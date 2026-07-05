@@ -1,0 +1,30 @@
+# Local secrets and configuration
+.env
+.npmrc
+.pypirc
+config.json
+.thinkflow/
+
+# Build and release output
+build/
+dist/
+release/
+*.tgz
+*.zip
+*.egg-info/
+__pycache__/
+*.pyc
+node_modules/
+**/node_modules/
+
+# Tests and development-only material
+tests/
+.github/
+bench/
+docs/assets/
+
+# Historical local workspaces
+bench_agent_efficiency/
+bench_compare_latest/
+bench_web_compare/
+review/

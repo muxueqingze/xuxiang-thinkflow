@@ -1,0 +1,206 @@
+
+请从一个空目录开始，构建一个可运行的前端项目，项目名为 **Agent Efficiency Lab**。
+
+目标：做一个用于比较不同 LLM Agent Harness 成本与调用效率的交互式前端仪表盘。这个项目不是静态页面，必须有真实交互、状态管理、数据计算和本地持久化。
+
+技术要求：
+
+1. 使用 React + TypeScript + Vite。
+2. 不允许使用 UI 组件库，不允许使用图表库，不允许调用任何外部 API。
+3. 可以使用原生 CSS、SVG、localStorage、浏览器原生 API。
+4. 项目必须可以通过 `npm install`、`npm run dev`、`npm run build` 正常运行。
+5. 代码结构必须清晰，至少拆分出组件、数据、类型、计算工具函数和样式文件。
+6. 不允许把所有代码都堆在一个文件里。
+7. 页面必须响应式，桌面端和手机端都要可用。
+8. 不允许出现 TypeScript 报错，不允许出现明显 console error。
+9. 尽量避免 `any`，核心数据结构必须有明确类型。
+
+页面主题：
+
+做一个深色科技风的成本对比仪表盘，用于展示 ThinkFlow、Claude Code 和 Baseline 三种 agent 执行方式的效率差异。
+
+初始内置数据如下：
+
+* ThinkFlow：
+
+  * API 调用：1
+  * 输入 token：78650
+  * 输出 token：6335
+  * 总 token：84985
+  * tool 调用：7
+  * 文件完成：5 / 5
+
+* Claude Code：
+
+  * API 调用：7
+  * 输入 token：233866
+  * 输出 token：10825
+  * 总 token：244691
+  * tool 调用：6
+  * 文件完成：5 / 5
+
+* Baseline：
+
+  * API 调用：8
+  * 输入 token：680952
+  * 输出 token：12903
+  * 总 token：693855
+  * tool 调用：7
+  * 文件完成：5 / 5
+
+页面必须包含以下功能：
+
+一、总览区域
+
+展示三张核心指标卡：
+
+1. ThinkFlow 相比 Claude Code 减少的 API 调用百分比。
+2. ThinkFlow 相比 Claude Code 减少的总 token 百分比。
+3. ThinkFlow 相比 Baseline 减少的总 token 百分比。
+
+百分比必须由代码计算，不允许写死。
+
+二、对比表格
+
+展示 ThinkFlow、Claude Code、Baseline 的完整指标表格。
+
+要求：
+
+1. 表格中显示 API 调用、输入 token、输出 token、总 token、tool 调用、文件完成率。
+2. 自动高亮每一列中最优的数值。
+3. 文件完成率需要显示为百分比，例如 100%。
+4. token 数字需要带千分位分隔符。
+
+三、无第三方库图表
+
+实现至少两个图表：
+
+1. 总 token 横向柱状图。
+2. API 调用次数横向柱状图。
+
+要求：
+
+1. 不使用任何图表库。
+2. 可以使用 SVG 或纯 CSS。
+3. 图表必须有标签、数值、比例关系。
+4. 移动端不能溢出屏幕。
+
+四、交互式成本计算器
+
+用户可以输入以下价格参数：
+
+1. 输入 token 单价，单位为美元 / 1M tokens，默认 1.00。
+2. 输出 token 单价，单位为美元 / 1M tokens，默认 3.00。
+3. cache read 折扣，默认 0.1，表示 cache read token 按 10% 输入价计算。
+
+页面需要实时计算并展示：
+
+1. 不考虑缓存时三种方案的估算成本。
+2. 假设 Claude Code 和 Baseline 的重复输入 token 有 70% 命中 cache read 时的估算成本。
+3. ThinkFlow 相比 Claude Code 的估算节省金额。
+4. ThinkFlow 相比 Baseline 的估算节省金额。
+
+注意：计算公式需要写在独立工具函数中，不要直接塞在 JSX 里。
+
+五、场景模拟器
+
+做一个“任务场景模拟器”，让用户可以调整：
+
+1. 基础上下文 token 数，范围 10K 到 200K，默认 80K。
+2. 可预测副作用工具数量，范围 0 到 20，默认 6。
+3. 阻塞式信息工具数量，范围 0 到 20，默认 0。
+4. 每次输出 token，范围 500 到 10000，默认 1500。
+
+根据这些参数，实时估算：
+
+传统 blocking agent 的 API 调用次数：
+
+`1 + 可预测副作用工具数量 + 阻塞式信息工具数量`
+
+ThinkFlow 的 API 调用次数：
+
+`1 + 阻塞式信息工具数量`
+
+传统 blocking agent 的重复上下文输入 token：
+
+`基础上下文 token × 传统 API 调用次数`
+
+ThinkFlow 的重复上下文输入 token：
+
+`基础上下文 token × ThinkFlow API 调用次数`
+
+然后展示两者的差异，并用一个小图表显示 API 调用和输入 token 的下降比例。
+
+六、自定义实验记录
+
+允许用户新增一条实验记录，字段包括：
+
+1. 名称
+2. API 调用
+3. 输入 token
+4. 输出 token
+5. tool 调用
+6. 文件完成数
+7. 文件总数
+
+要求：
+
+1. 新增记录后出现在对比表格中。
+2. 自动计算总 token 和文件完成率。
+3. 数据保存到 localStorage。
+4. 页面刷新后仍然保留。
+5. 支持删除自定义记录。
+6. 内置三条记录不允许删除。
+
+七、解释面板
+
+页面底部做一个简短的解释面板，用不超过 150 字解释：
+
+“Prompt caching makes repeated turns cheaper. ThinkFlow reduces unnecessary turns.”
+
+但注意：这只是页面内容的一部分，不是主要任务。主要任务仍然是前端功能实现。
+
+八、UI 要求
+
+1. 整体风格：深色、科技感、清爽，不要花哨。
+2. 使用卡片布局、细边框、柔和阴影、合理留白。
+3. 重要数字要突出。
+4. 表单控件要美观。
+5. 按钮要有 hover / focus 状态。
+6. 页面顶部要有标题和一句简短副标题。
+7. 页面底部要有一个小 footer。
+8. 移动端布局不能崩。
+
+九、工程质量要求
+
+1. 至少包含这些文件或类似结构：
+
+   * `package.json`
+   * `index.html`
+   * `src/main.tsx`
+   * `src/App.tsx`
+   * `src/types.ts`
+   * `src/data/initialRuns.ts`
+   * `src/utils/metrics.ts`
+   * `src/components/...`
+   * `src/styles.css`
+   * `README.md`
+
+2. README 需要说明：
+
+   * 项目是什么；
+   * 如何运行；
+   * 实现了哪些功能；
+   * 成本计算公式；
+   * 已知限制。
+
+3. 代码要有适量注释，但不要过度注释。
+
+4. 组件命名要清晰。
+
+5. 不要使用随机假数据替代题目给定数据。
+
+6. 不要只做静态 HTML，必须有真实 React 状态和计算逻辑。
+
+最终交付：
+请直接创建完整项目文件。 

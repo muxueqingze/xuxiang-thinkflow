@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xuxiang-agent"
+version = "0.5.0b1"
+description = "Xuxiang / ThinkFlow, a streaming execution agent harness for deterministic tools."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [
+  { name = "沐雪清泽" }
+]
+dependencies = [
+  "httpx>=0.27.0",
+  "rich>=13.7.0",
+  "prompt_toolkit>=3.0.43"
+]
+keywords = ["agent", "tool-use", "streaming", "llm", "harness"]
+
+[project.scripts]
+thinkflow = "thinkflow.cli:main"
+
+[tool.setuptools]
+package-dir = { "thinkflow" = "src" }
+packages = ["thinkflow"]

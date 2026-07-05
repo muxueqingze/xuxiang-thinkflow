@@ -1,0 +1,46 @@
+{
+  "case_id": "controlled-same-prompt-v0.5",
+  "version": "0.5.0",
+  "prompt_file": "inputs/prompt.md",
+  "prompt_sha256": "737ddeebeccdf72945d027eaa3d9c473151682268ada61d131e8ffa6e455168e",
+  "goal": "Compare agent harness efficiency under the same user prompt and explicit output success criteria.",
+  "control_variables": {
+    "same_user_prompt": true,
+    "fresh_empty_output_directory": true,
+    "no_manual_intervention_during_run": true,
+    "same_success_checks": [
+      "npm install succeeds",
+      "npm run build succeeds",
+      "requested output directory is respected",
+      "no obvious TypeScript or console-error regression is reported"
+    ],
+    "record_model_and_provider": true,
+    "record_system_prompt_policy": true,
+    "record_cache_policy": true
+  },
+  "tiers": {
+    "harness_controlled": {
+      "description": "Compare 续想/ThinkFlow with baseline_agent using the same configured model endpoint when possible.",
+      "primary_question": "How much agentic turn fragmentation is removed by streaming predictable tools?"
+    },
+    "product_comparison": {
+      "description": "Compare 续想/ThinkFlow with external products such as Claude Code using the same prompt and success checks.",
+      "primary_question": "How does the shipped product behavior compare in end-to-end cost and delivery?"
+    }
+  },
+  "metrics": [
+    "api_calls",
+    "prompt_tokens",
+    "cached_tokens",
+    "effective_input_tokens",
+    "completion_tokens",
+    "total_tokens",
+    "commands_executed",
+    "traditional_tool_calls",
+    "wall_time_seconds",
+    "build_passed",
+    "delivery_compliant"
+  ],
+  "runs_dir": "runs",
+  "reports_dir": "reports"
+}

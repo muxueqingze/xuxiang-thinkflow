@@ -1,0 +1,27 @@
+﻿{
+  "case_id": "agent-efficiency-same-prompt-2026-07-01",
+  "prompt_file": "prompt.txt",
+  "usage_report": "usage_compare_report.latest.json",
+  "agents": {
+    "tk": {
+      "name": "ThinkFlow/TK",
+      "requested_output_dir": "bench_compare_latest/tk",
+      "actual_output_dir": "bench_compare_latest/tk",
+      "build_passed": true
+    },
+    "cc": {
+      "name": "Claude Code/CC",
+      "requested_output_dir": "bench_compare_latest/cc",
+      "actual_output_dir": "<external-workspace>/agent-efficiency-lab",
+      "build_passed": true,
+      "delivery_compliance": false
+    }
+  },
+  "success_criteria": {
+    "tk_build_passed": true,
+    "tk_api_calls_less_than_cc": true,
+    "tk_total_tokens_less_than_cc": true,
+    "tk_completion_tokens_less_than_cc": true,
+    "tk_advantage_even_if_cached_input_free": true
+  }
+}

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use Xuxiang / ThinkFlow in research, writing, engineering evaluation, or public discussion, please cite it using the metadata in this file."
+type: software
+title: "续想 ThinkFlow"
+authors:
+  - name: "沐雪清泽"
+version: "0.5.0-beta.1"
+date-released: "2026-07-05"
+license: "MIT"
+repository-code: "https://github.com/muxueqingze/xuxiang-thinkflow"
+url: "https://github.com/muxueqingze/xuxiang-thinkflow"
+abstract: "续想（ThinkFlow） is an experimental streaming-execution agent harness for predictable tool calls. It explores the technical route that predictable side-effect tool calls, such as write, append, mkdir, touch, copy, and controlled edit operations, do not need to interrupt model reasoning on the success path. Informational and high-risk tools remain blocking."
+keywords:
+  - "LLM agent"
+  - "tool calling"
+  - "streaming execution"
+  - "predictable tool call"
+  - "agent harness"
+  - "ThinkFlow"
+  - "续想"

@@ -1,0 +1,32 @@
+{
+  "agent_id": "thinkflow",
+  "agent_name": "续想 ThinkFlow",
+  "agent_version": "0.5.0",
+  "tier": "harness_controlled",
+  "provider_family": "openai-compatible",
+  "model": "glm-5.2",
+  "system_prompt_policy": "built-in-xuxiang-default",
+  "cache_policy": "provider-reported",
+  "prompt_sha256": "737ddeebeccdf72945d027eaa3d9c473151682268ada61d131e8ffa6e455168e",
+  "requested_output_dir": "runs/workspaces/thinkflow",
+  "actual_output_dir": "runs/workspaces/thinkflow",
+  "delivery_compliant": true,
+  "build_passed": true,
+  "wall_time_seconds": 0,
+  "usage": {
+    "api_calls": 0,
+    "prompt_tokens": 0,
+    "cached_tokens": 0,
+    "effective_input_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0,
+    "commands_executed": 0,
+    "traditional_tool_calls": 0
+  },
+  "artifacts": {
+    "session": "",
+    "build_log": "",
+    "usage_log": ""
+  },
+  "notes": ""
+}

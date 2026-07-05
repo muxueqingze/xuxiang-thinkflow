@@ -1,0 +1,43 @@
+# Local secrets and configuration
+.env
+.npmrc
+.pypirc
+config.json
+.thinkflow/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# Node
+node_modules/
+**/node_modules/
+
+# Release/build artifacts
+release/
+*.tgz
+*.zip
+
+# Local benchmark and test outputs
+bench_workspace/
+temp_test/
+bench_agent_efficiency/
+bench_compare_latest/
+bench_web_compare/
+review/
+
+# Benchmark raw outputs and local logs.
+# Keep curated prompts/reports/scripts tracked, but do not publish generated workspaces.
+bench/agent_comparison_20260704/runs/
+bench/agent_comparison_20260704/runs_*/
+bench/agent_comparison_20260704/usage_smoke/
+bench/agent_comparison_20260704/model_smoke_deepseek/
+bench/agent_comparison_20260704/__pycache__/
+bench/agent_comparison_20260704/*.log
+bench/agent_comparison_20260704/reports/
+bench/agent_comparison_20260704/reports_*/metrics.json

@@ -1,0 +1,92 @@
+{
+    "provider": "openai",
+    "base_url": "",
+    "api_path": "",
+    "api_key": "",
+    "model": "",
+    "active_provider": "",
+    "providers": {},
+    "system_prompt": "",
+    "use_builtin_system_prompt": true,
+    "disable_system_prompt": false,
+    "thinking_budget": 0,
+    "max_tokens": 100000,
+    "stream_options_include_usage": false,
+    "enable_native_tools": true,
+    "max_retries": 2,
+    "retry_backoff_seconds": 1.0,
+    "max_auto_continues": 8,
+    "max_read_chars": 200000,
+    "verbose": false,
+    "compaction": {
+        "enabled": true,
+        "max_messages": 80,
+        "max_chars": 200000,
+        "keep_recent_messages": 30,
+        "max_summary_chars": 16000,
+        "max_item_chars": 900
+    },
+    "tool_protocol": {
+        "allow_legacy_tags": false
+    },
+    "interfaces": {
+        "web": {
+            "enabled": true,
+            "allowed_domains": [
+                "*"
+            ],
+            "allow_private_hosts": false,
+            "timeout_seconds": 20,
+            "max_chars": 12000,
+            "search_max_results": 6
+        },
+        "image_generation": {
+            "enabled": false,
+            "provider": "disabled",
+            "command": [],
+            "webhook_url": "",
+            "bearer_token_env": "",
+            "output_dir": ".thinkflow/images",
+            "timeout_seconds": 180,
+            "allow_outside_cwd": false
+        },
+        "skills": {
+            "enabled": true,
+            "roots": [],
+            "max_list_chars": 8000,
+            "max_body_chars": 24000
+        },
+        "custom_tools": []
+    },
+    "security": {
+        "profile": "balanced",
+        "allowed_roots": [
+            "."
+        ],
+        "allow_sensitive_paths": false,
+        "bash_policy": "safe",
+        "approval_mode": "auto",
+        "bash_timeout_seconds": 120,
+        "max_bash_output_chars": 80000,
+        "env_passthrough": [
+            "PATH",
+            "PATHEXT",
+            "SystemRoot",
+            "WINDIR",
+            "COMSPEC",
+            "HOME",
+            "USERPROFILE",
+            "TEMP",
+            "TMP",
+            "SHELL",
+            "TERM"
+        ]
+    },
+    "delivery_verify": true,
+    "max_delivery_fix_attempts": 3,
+    "context": {
+        "enabled": true,
+        "files": [],
+        "max_chars": 80000
+    }
+}

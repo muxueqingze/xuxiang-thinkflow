@@ -1,0 +1,43 @@
+{
+  "name": "xuxiang-agent",
+  "version": "0.5.0-beta.1",
+  "description": "Xuxiang / ThinkFlow streaming execution agent harness.",
+  "author": "沐雪清泽",
+  "license": "MIT",
+  "bin": {
+    "thinkflow": "bin/thinkflow.js",
+    "xuxiang": "bin/thinkflow.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "src/*.py",
+    "run.py",
+    "requirements.txt",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "CITATION.cff",
+    "SECURITY.md",
+    "OPEN_SOURCE_RELEASE.md",
+    "PROTOCOL.md",
+    "DESIGN.md",
+    "config.example.json",
+    "docs/*.md"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/npm-postinstall.js",
+    "test": "python tests/run_all.py"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "agent",
+    "llm",
+    "streaming",
+    "tool-use",
+    "thinkflow",
+    "xuxiang"
+  ]
+}

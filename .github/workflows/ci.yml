@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install package
+        run: python -m pip install -e .
+      - name: Compile
+        run: python -m compileall -q src tests bench run.py
+      - name: CLI smoke
+        run: thinkflow --help
+      - name: Benchmark import smoke
+        run: python -c "import bench.agent_comparison_20260704.run_benchmark; import bench.agent_comparison_20260704.run_benchmark_normal; import bench.agent_comparison_20260704.analyze_runs"
+      - name: Test
+        run: python tests\run_all.py
