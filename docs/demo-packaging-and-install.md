@@ -17,7 +17,7 @@ Requirements:
 Install:
 
 ```bash
-npm install -g https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.5.0-beta.1/xuxiang-agent-0.5.0-beta.1.tgz
+npm install -g xuxiang-agent@beta
 thinkflow --init-home
 thinkflow --init-config
 ```
@@ -26,7 +26,7 @@ If multiple Python versions are installed:
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.5.0-beta.1/xuxiang-agent-0.5.0-beta.1.tgz
+npm install -g xuxiang-agent@beta
 ```
 
 Launch from any project directory:

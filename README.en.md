@@ -40,19 +40,15 @@ This does not remove feedback. It distinguishes feedback types: information tool
 
 ## Installation
 
-The current version is a beta prerelease. Install the npm tarball from GitHub Release:
+The current version is a beta prerelease and is published on the npm registry:
 
 ```bash
-npm install -g https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.5.0-beta.1/xuxiang-agent-0.5.0-beta.1.tgz
+npm install -g xuxiang-agent@beta
 thinkflow --help
 xuxiang --help
 ```
 
-After npm registry publication:
-
-```bash
-npm install -g xuxiang-agent@beta
-```
+The GitHub Release tarball remains available for archival installs and reproducibility.
 
 Requirements:
 
@@ -65,7 +61,7 @@ If multiple Python versions are installed:
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.5.0-beta.1/xuxiang-agent-0.5.0-beta.1.tgz
+npm install -g xuxiang-agent@beta
 ```
 
 Development install:

@@ -40,19 +40,15 @@ model stream
 
 ## 安装
 
-当前版本是 beta 预发布。可以直接安装 GitHub Release 中的 npm tarball：
+当前版本是 beta 预发布，已经发布到 npm registry：
 
 ```bash
-npm install -g https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.5.0-beta.1/xuxiang-agent-0.5.0-beta.1.tgz
+npm install -g xuxiang-agent@beta
 thinkflow --help
 xuxiang --help
 ```
 
-发布到 npm registry 后，安装命令会变成：
-
-```bash
-npm install -g xuxiang-agent@beta
-```
+GitHub Release 仍保留同版本 tarball，适合离线归档或复现实验。
 
 要求：
 
@@ -65,7 +61,7 @@ npm install -g xuxiang-agent@beta
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.5.0-beta.1/xuxiang-agent-0.5.0-beta.1.tgz
+npm install -g xuxiang-agent@beta
 ```
 
 开发安装：

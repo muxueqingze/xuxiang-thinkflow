@@ -46,17 +46,16 @@ It must not contain:
 - `node_modules`
 - Python cache files
 
-Current prerelease install:
+npm registry install:
 
 ```bash
-npm install -g https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.5.0-beta.1/xuxiang-agent-0.5.0-beta.1.tgz
+npm install -g xuxiang-agent@beta
 ```
 
-After npm registry publication:
+Publish command:
 
 ```bash
 npm publish --tag beta
-npm install -g xuxiang-agent@beta
 ```
 
 ### GitHub source tree
