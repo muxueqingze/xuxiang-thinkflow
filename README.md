@@ -4,7 +4,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0--beta.1-orange.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0-beta.1)
+[![Version](https://img.shields.io/badge/version-0.5.0--beta.2-orange.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0-beta.2)
 
 > 可预测式工具调用不需要打断模型的推理与思考。
 

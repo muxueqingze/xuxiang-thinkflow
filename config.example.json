@@ -82,7 +82,8 @@
             "TERM"
         ]
     },
-    "delivery_verify": true,
+    "delivery_verify": false,
+    "auto_verify_runnable_artifacts": false,
     "max_delivery_fix_attempts": 3,
     "context": {
         "enabled": true,

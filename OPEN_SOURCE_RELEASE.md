@@ -1,6 +1,6 @@
 # Xuxiang ThinkFlow v0.5 Open Source Release Checklist
 
-This file records the intended release shape for the `0.5.0-beta.1` open-source release.
+This file records the intended release shape for the `0.5.0-beta.2` open-source release.
 
 ## Names
 
@@ -9,7 +9,7 @@ This file records the intended release shape for the `0.5.0-beta.1` open-source 
 - CLI commands: `thinkflow`, `xuxiang`
 - GitHub repository: `xuxiang-thinkflow`
 - npm package: `xuxiang-agent`
-- Package version: `0.5.0-beta.1`
+- Package version: `0.5.0-beta.2`
 - Author: 沐雪清泽
 
 ## Release Shapes

@@ -1000,7 +1000,8 @@ def write_config_template(path: str):
         "max_retries": 2,
         "retry_backoff_seconds": 1.0,
         "max_auto_continues": 8,
-        "delivery_verify": True,
+        "delivery_verify": False,
+        "auto_verify_runnable_artifacts": False,
         "max_delivery_fix_attempts": 3,
         "max_read_chars": 200000,
         "verbose": False,
@@ -1204,7 +1205,8 @@ def create_agent(config: dict, system_prompt: str, cwd: str = None) -> AgentLoop
         max_retries=int(config.get("max_retries", 2)),
         retry_backoff_seconds=float(config.get("retry_backoff_seconds", 1.0)),
         max_auto_continues=int(config.get("max_auto_continues", 8)),
-        delivery_verify=bool(config.get("delivery_verify", True)),
+        delivery_verify=bool(config.get("delivery_verify", False)),
+        auto_verify_runnable_artifacts=bool(config.get("auto_verify_runnable_artifacts", False)),
         max_delivery_fix_attempts=int(config.get("max_delivery_fix_attempts", 3)),
     )
 
@@ -1729,6 +1731,16 @@ def main():
                         help="API 临时错误最大重试次数")
     parser.add_argument("--max-auto-continues", type=int, default=None,
                         help="finish_reason=length 时最多自动续写几轮")
+    parser.add_argument("--delivery-verify", dest="delivery_verify", action="store_true", default=None,
+                        help="enable local post-write delivery checks when supported")
+    parser.add_argument("--no-delivery-verify", dest="delivery_verify", action="store_false",
+                        help="disable local post-write delivery checks")
+    parser.add_argument("--auto-verify-runnable-artifacts", dest="auto_verify_runnable_artifacts",
+                        action="store_true", default=None,
+                        help="spend an extra model turn to verify newly written runnable scripts")
+    parser.add_argument("--no-auto-verify-runnable-artifacts", dest="auto_verify_runnable_artifacts",
+                        action="store_false",
+                        help="do not spend an extra model turn just to verify newly written runnable scripts")
     parser.add_argument("--bash-policy", default=None,
                         choices=["off", "safe", "unrestricted"],
                         help="bash 安全策略：off/safe/unrestricted")
@@ -1849,6 +1861,10 @@ def main():
         config["max_retries"] = args.max_retries
     if args.max_auto_continues is not None:
         config["max_auto_continues"] = args.max_auto_continues
+    if args.delivery_verify is not None:
+        config["delivery_verify"] = args.delivery_verify
+    if args.auto_verify_runnable_artifacts is not None:
+        config["auto_verify_runnable_artifacts"] = args.auto_verify_runnable_artifacts
     security_config = dict(config.get("security", {}) or {})
     if args.sandbox:
         security_config["profile"] = normalize_security_profile(args.sandbox)

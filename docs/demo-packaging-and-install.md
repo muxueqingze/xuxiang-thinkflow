@@ -99,7 +99,7 @@ For Python package checks:
 ```bash
 python -m pip install build
 python -m build
-python -m pip install --force-reinstall dist\xuxiang_agent-0.5.0b1-py3-none-any.whl
+python -m pip install --force-reinstall dist\xuxiang_agent-0.5.0b2-py3-none-any.whl
 thinkflow --help
 ```
 

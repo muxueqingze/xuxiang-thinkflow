@@ -74,7 +74,8 @@ class AgentConfig:
     max_retries: int = 2
     retry_backoff_seconds: float = 1.0
     max_auto_continues: int = 8
-    delivery_verify: bool = True
+    delivery_verify: bool = False
+    auto_verify_runnable_artifacts: bool = False
     max_delivery_fix_attempts: int = 3
 
 
@@ -977,7 +978,11 @@ class AgentLoop:
                         self.messages.append({"role": "user", "content": verification.to_feedback()})
                         return True
                     renderer.render_error("交付前验证失败，已达到自动修复上限")
-            runnable_feedback = self._build_runnable_artifact_feedback(turn_records)
+            runnable_feedback = (
+                self._build_runnable_artifact_feedback(turn_records)
+                if self.config.auto_verify_runnable_artifacts
+                else ""
+            )
             if runnable_feedback and self._auto_continue_count < self.config.max_auto_continues:
                 self._auto_continue_count += 1
                 self.messages.append({"role": "user", "content": runnable_feedback})

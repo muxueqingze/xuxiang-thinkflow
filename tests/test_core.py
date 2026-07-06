@@ -978,6 +978,8 @@ def test_write_config_template_creates_starter_config_without_key():
         assert '"disabled_native_tools": []' in data
         assert parsed["max_tokens"] == 100000
         assert parsed["max_auto_continues"] == 8
+        assert parsed["delivery_verify"] is False
+        assert parsed["auto_verify_runnable_artifacts"] is False
         assert parsed["compaction"]["max_chars"] == 200000
         assert "opencode.ai" not in data
         assert '"compaction"' in data
@@ -1140,6 +1142,8 @@ def test_create_agent_accepts_native_tool_string_or_list_config():
         assert agent.config.provider.disabled_native_tools == ["bash"]
         assert agent.config.provider.max_tokens == 100000
         assert agent.config.max_auto_continues == 8
+        assert agent.config.delivery_verify is False
+        assert agent.config.auto_verify_runnable_artifacts is False
         assert agent.config.compaction.max_chars == 200000
     finally:
         asyncio.run(agent.close())
@@ -1694,6 +1698,7 @@ def test_agent_auto_continues_after_delivery_verification_failure():
             config = AgentConfig(
                 provider=ProviderConfig(api_key="test-key", format="openai"),
                 cwd=tmp,
+                delivery_verify=True,
                 max_delivery_fix_attempts=2,
             )
             agent = AgentLoop(config)
@@ -1753,6 +1758,7 @@ def test_agent_auto_continues_after_runnable_script_write_without_execution():
                 provider=ProviderConfig(api_key="test-key", format="openai"),
                 cwd=tmp,
                 max_auto_continues=2,
+                auto_verify_runnable_artifacts=True,
             )
             agent = AgentLoop(config)
             old_console = renderer.console
@@ -1772,6 +1778,51 @@ def test_agent_auto_continues_after_runnable_script_write_without_execution():
                     for message in seen_bodies[1]["messages"]
                     if message.get("role") == "user"
                 )
+                out_path = os.path.join(tmp, "gen_report.py")
+                assert os.path.exists(out_path)
+            finally:
+                renderer.console = old_console
+                await agent.close()
+
+    asyncio.run(scenario())
+
+
+def test_runnable_script_write_does_not_auto_continue_by_default():
+    class FakeResponse:
+        def __init__(self, lines):
+            self._lines = lines
+
+        async def aiter_lines(self):
+            for line in self._lines:
+                yield line
+
+        async def aclose(self):
+            pass
+
+    async def scenario():
+        with tempfile.TemporaryDirectory() as tmp:
+            seen_bodies = []
+            responses = [
+                FakeResponse([
+                    'data: {"choices":[{"delta":{"content":"<tf-write id=\\"1\\" path=\\"gen_report.py\\">print(' + "'done'" + ')</tf-write>"},"finish_reason":"stop"}]}',
+                ]),
+            ]
+            config = AgentConfig(
+                provider=ProviderConfig(api_key="test-key", format="openai"),
+                cwd=tmp,
+            )
+            agent = AgentLoop(config)
+            old_console = renderer.console
+            renderer.console = Console(file=io.StringIO(), force_terminal=False, theme=renderer.THEME)
+
+            async def fake_send(_path, body):
+                seen_bodies.append(body)
+                return responses.pop(0)
+
+            agent._send_stream_request = fake_send
+            try:
+                await agent.run("write generator")
+                assert len(seen_bodies) == 1
                 out_path = os.path.join(tmp, "gen_report.py")
                 assert os.path.exists(out_path)
             finally:
@@ -2367,6 +2418,7 @@ def run_all():
         test_agent_auto_continues_after_text_read_command_result,
         test_agent_auto_continues_after_delivery_verification_failure,
         test_agent_auto_continues_after_runnable_script_write_without_execution,
+        test_runnable_script_write_does_not_auto_continue_by_default,
         test_parser_error_continues_with_successful_receipts_injected,
         test_agent_auto_continues_incomplete_text_command_block,
         test_agent_auto_continues_after_max_tokens_finish_reason,
