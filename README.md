@@ -165,10 +165,18 @@ thinkflow --config config.json --sandbox balanced
 - `/btw`：运行中追加旁注
 - `/cancel` 或 `Esc`：请求打断当前模型请求
 
-## 文档
+## 技术路线
 
-- [可预测式工具调用不需要打断模型的推理与思考](docs/predictable-tool-calls.md)
-- [实验性续想 agent 及其技术路线已经开源](docs/xuxiang-streaming-agent.md)
+如果想深入理解续想的技术路线和设计思路，请阅读以下两篇论文：
+
+1. **《可预测式工具调用不需要打断模型的推理与思考》** — 核心理论判断，阐述为什么可预测副作用工具的成功反馈不应成为模型推理的强制中断点。
+   📄 [阅读全文](docs/predictable-tool-calls.md)
+
+2. **《实验性续想 agent 及其技术路线已经开源》** — 实现层面的设计文档，从 tf-* 协议、parser 状态机、FIFO 队列到执行器和 ledger 的完整链路说明。
+   📄 [阅读全文](docs/xuxiang-streaming-agent.md)
+
+## 其他文档
+
 - [命令协议](PROTOCOL.md)
 - [架构设计](DESIGN.md)
 - [开源发布清单](OPEN_SOURCE_RELEASE.md)
