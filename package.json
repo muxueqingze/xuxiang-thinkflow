@@ -1,6 +1,6 @@
 {
   "name": "xuxiang-agent",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Xuxiang / ThinkFlow streaming execution agent harness.",
   "author": "沐雪清泽",
   "license": "MIT",

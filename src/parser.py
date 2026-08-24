@@ -395,7 +395,7 @@ class StreamingParser:
 
 
 def _unescape_command_tags(text: str) -> str:
-    """还原正文中按协议转义的命令标签（`<\/tf-` → `</tf-`，旧标签同理）。
+    r"""还原正文中按协议转义的命令标签（`<\/tf-` → `</tf-`，旧标签同理）。
 
     模型被要求把正文字面出现的 `</tf-write>` 写成 `<\/tf-write>`，防止被
     close-tag 扫描提前截断；解析成功后在这里还原成模型真正想落盘的内容。
