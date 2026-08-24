@@ -573,15 +573,17 @@ def render_info(msg: str):
 
 def render_banner(model: str = ""):
     """渲染启动 banner。"""
+    from . import __version__
+
     def _banner_panel():
         body = Text()
         body.append("续想", style="accent")
-        body.append(" agent  ", style="banner")
-        body.append("=v=", style="banner")
+        body.append(" agent ", style="banner")
+        body.append(f"v{__version__}", style="bytes")
         if model:
             body.append("\n模型 ", style="tag")
             body.append(model, style="bytes")
-        body.append("\n/help 命令    Esc 打断", style="tag")
+        body.append("\n/help 命令    Esc 打断    Shift+Tab 权限", style="tag")
         return Panel.fit(
             body,
             title="续想 agent",

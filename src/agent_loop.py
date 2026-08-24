@@ -13,6 +13,7 @@ import os
 import json
 import sys
 import time
+from collections import deque
 from dataclasses import dataclass, field
 from typing import Optional
 from urllib.parse import urlparse
@@ -49,6 +50,9 @@ import httpx
 
 
 TOOL_SCHEMAS = [spec.without_handler() for spec in BUILTIN_TOOL_SPECS]
+
+# 执行层 id 去重窗口容量（快照恢复时同样只保留最近这么多）。
+MAX_EXECUTED_IDS = 4096
 
 
 def _as_int(value, default: int) -> int:
@@ -206,7 +210,9 @@ class AgentLoop:
         self.text_filter = SafeTextStreamFilter(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_command_gate = MarkdownFenceCommandGate()
         renderer.set_allow_legacy_tool_tags(config.allow_legacy_tool_tags)
-        self._executed_ids: set[str] = set()  # 执行层去重
+        # 执行层去重；滚动窗口防长会话无限增长（戳记单调递增，只需防近期重复）
+        self._executed_ids: set[str] = set()
+        self._executed_ids_order: deque[str] = deque()
         self.active_text_tool_count = 0
         self.active_text_tool_name = ""
         self.active_text_tool_streaming = False
@@ -1313,6 +1319,10 @@ class AgentLoop:
         if command.id in self._executed_ids:
             return ExecutionResult(success=True, tool=command.tool)  # 假装成功
         self._executed_ids.add(command.id)
+        self._executed_ids_order.append(command.id)
+        if len(self._executed_ids_order) > MAX_EXECUTED_IDS:
+            oldest = self._executed_ids_order.popleft()
+            self._executed_ids.discard(oldest)
         path_info = self._command_detail(command)
 
         renderer.render_command_start(
@@ -1484,7 +1494,8 @@ class AgentLoop:
             "version": 1,
             "messages": self.messages,
             "context": self.context.to_dict(),
-            "executed_ids": sorted(self._executed_ids),
+            # 按 deque 顺序导出，恢复时直接截尾保最近，避免排序猜测丢错端。
+            "executed_ids": list(self._executed_ids_order),
             "turn_count": self._turn_count,
             "compaction_count": self.compaction_count,
             "usage": self.usage.to_dict(),
@@ -1494,7 +1505,13 @@ class AgentLoop:
         """恢复会话状态。"""
         self.messages = list(data.get("messages", []))
         self.context = ContextManager.from_dict(data.get("context", {}))
-        self._executed_ids = set(data.get("executed_ids", []))
+        restored = [
+            str(item) for item in data.get("executed_ids", []) if item
+        ]
+        if len(restored) > MAX_EXECUTED_IDS:
+            restored = restored[-MAX_EXECUTED_IDS:]
+        self._executed_ids = set(restored)
+        self._executed_ids_order = deque(restored)
         self._turn_count = int(data.get("turn_count", 0) or 0)
         self.compaction_count = int(data.get("compaction_count", 0) or 0)
         # Usage is diagnostic; old snapshots may not contain it.

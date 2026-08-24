@@ -245,10 +245,12 @@ class ExternalInterfaces:
         return out or f"{tool.name} ok"
 
     async def _get_text(self, url: str, *, max_chars: int, web: WebInterfaceConfig) -> str:
+        from . import __version__
+
         async with httpx.AsyncClient(
             follow_redirects=False,
             timeout=httpx.Timeout(web.timeout_seconds, connect=10.0),
-            headers={"user-agent": "ThinkFlow/0.4.9"},
+            headers={"user-agent": f"ThinkFlow/{__version__}"},
         ) as client:
             current_url = url
             for _ in range(6):

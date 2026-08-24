@@ -6,6 +6,7 @@ ThinkFlow Parser — 流式命令块解析器
 """
 
 import re
+from collections import deque
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
@@ -16,6 +17,9 @@ TOOLS = ("read", "write", "append", "mkdir", "touch", "copy", "bash", "edit")
 
 # 最大缓冲区大小（防止格式错误导致无限增长）
 MAX_BUFFER_SIZE = 2 * 1024 * 1024  # 2MB
+
+# id 去重窗口：戳记单调递增，只需防近期重复，长会话不让集合无限增长。
+MAX_SEEN_IDS = 512
 
 
 class ParseState(Enum):
@@ -93,6 +97,7 @@ class StreamingParser:
         self.buffer: str = ""
         self.errors: list[ParseError] = []
         self._seen_ids: set[str] = set()
+        self._seen_ids_order: deque[str] = deque()
         self.allow_legacy_tags = allow_legacy_tags
         self._open_tag_re = build_open_tag_re(allow_legacy_tags)
 
@@ -300,7 +305,7 @@ class StreamingParser:
             ))
             return None
 
-        # 检查 id 重复
+        # 检查 id 重复（滚动窗口，只防近期重复）
         if cmd_id in self._seen_ids:
             self.errors.append(ParseError(
                 message=f"id={cmd_id} 重复",
@@ -308,6 +313,10 @@ class StreamingParser:
             ))
             return None
         self._seen_ids.add(cmd_id)
+        self._seen_ids_order.append(cmd_id)
+        if len(self._seen_ids_order) > MAX_SEEN_IDS:
+            oldest = self._seen_ids_order.popleft()
+            self._seen_ids.discard(oldest)
 
         # 解析其他属性
         path = attrs.get("path")
@@ -352,7 +361,7 @@ class StreamingParser:
 
         # 按工具处理正文
         if tool in ("write", "append"):
-            command.content = content or ""
+            command.content = _unescape_command_tags(content or "")
 
         elif tool == "edit":
             if content:
@@ -364,8 +373,8 @@ class StreamingParser:
                         raw=raw[:200],
                     ))
                     return None
-                command.old_text = old_match.group("old")
-                command.new_text = new_match.group("new")
+                command.old_text = _unescape_command_tags(old_match.group("old"))
+                command.new_text = _unescape_command_tags(new_match.group("new"))
             else:
                 self.errors.append(ParseError(
                     message=f"<edit id={cmd_id}> 缺少正文（<old>/<new>）",
@@ -382,6 +391,16 @@ class StreamingParser:
         self.buffer = ""
         self.errors.clear()
         self._seen_ids.clear()
+        self._seen_ids_order.clear()
+
+
+def _unescape_command_tags(text: str) -> str:
+    """还原正文中按协议转义的命令标签（`<\/tf-` → `</tf-`，旧标签同理）。
+
+    模型被要求把正文字面出现的 `</tf-write>` 写成 `<\/tf-write>`，防止被
+    close-tag 扫描提前截断；解析成功后在这里还原成模型真正想落盘的内容。
+    """
+    return text.replace("<\\/tf-", "</tf-").replace("<\\/write>", "</write>").replace("<\\/edit>", "</edit>")
 
 
 def _parse_attrs(attrs: str) -> dict[str, str]:

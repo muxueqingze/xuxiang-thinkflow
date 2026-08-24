@@ -354,6 +354,25 @@ def main():
     print()
 
 
+def test_canonical_escaped_close_tag_restored():
+    """测试：正文按协议转义的关闭标签不提前截断，解析后还原成原文"""
+    print("测试: 转义命令标签的还原")
+    parser = StreamingParser(allow_legacy_tags=False)
+
+    text = (
+        '<tf-write id="1" path="doc.md">\n'
+        '规则示例：正文里写关闭标签要转义成 <\\/tf-write> 这样。\n'
+        '</tf-write>'
+    )
+
+    cmds = parser.feed(text)
+    assert len(cmds) == 1, f"期望 1 条命令，得到 {len(cmds)}"
+    assert "</tf-write>" in cmds[0].content, "转义序列应被还原为字面原文"
+    assert "<\\/tf-write>" not in cmds[0].content, "落盘内容不应残留转义反斜杠"
+    print(f"  ✓ 转义标签还原: {cmds[0].content.strip()[:60]}")
+    print()
+
+
 def run_all():
     """运行所有测试。"""
     print("=" * 50)
@@ -378,6 +397,7 @@ def run_all():
     test_special_chars_in_content()
     test_large_content()
     test_mixed_thinking_and_commands()
+    test_canonical_escaped_close_tag_restored()
 
     print("=" * 50)
     print("全部通过 ✓")

@@ -6,7 +6,8 @@ from pathlib import Path
 
 
 DEFAULT_CONTEXT_FILENAMES = ("AGENTS.md", "context.md")
-WORKSPACE_CONTEXT_FILENAMES = ("AGENTS.md", "agents.md")
+# Claude 生态工作区上下文也读取；同目录多份并存时全部注入（按此顺序去重）。
+WORKSPACE_CONTEXT_FILENAMES = ("AGENTS.md", "agents.md", "CLAUDE.md")
 
 
 def thinkflow_home() -> Path:

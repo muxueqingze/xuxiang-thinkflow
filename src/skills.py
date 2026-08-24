@@ -73,11 +73,16 @@ class SkillManager:
         return text
 
     def read_skill(self, name: str) -> str:
-        if not self.config.enabled:
-            return "skills 未启用。请在 config.interfaces.skills.enabled 打开。"
         needle = name.strip().lower()
         if not needle:
             return "缺少 name"
+        if not self.config.enabled:
+            # enabled 只关用户目录发现；内置 harness 指南始终可读，
+            # 系统提示词里的 read_skill("thinkflow") 指引不会因此落空。
+            bundled = self._read_bundled(needle)
+            if bundled is not None:
+                return bundled
+            return "skills 未启用。请在 config.interfaces.skills.enabled 打开。"
         matches = [
             skill for skill in self._discover()
             if skill.name.lower() == needle or os.path.abspath(skill.path).lower() == needle
@@ -90,6 +95,16 @@ class SkillManager:
             return f"未找到 skill: {name}"
 
         skill = matches[0]
+        return self._render_skill_body(skill)
+
+    def _read_bundled(self, needle: str) -> str | None:
+        """Read a bundled skill by name directly, bypassing discovery caches."""
+        for info in self._discover_skill_root(Path(bundled_skills_root()), "builtin"):
+            if info.name.lower() == needle:
+                return self._render_skill_body(info)
+        return None
+
+    def _render_skill_body(self, skill: SkillInfo) -> str:
         try:
             with open(skill.path, "r", encoding="utf-8", errors="replace") as f:
                 body = f.read()
@@ -109,7 +124,8 @@ class SkillManager:
     def _discover(self) -> list[SkillInfo]:
         if self._cache is not None:
             return self._cache
-        seen: set[str] = set()
+        seen_paths: set[str] = set()
+        seen_names: set[str] = set()
         skills: list[SkillInfo] = []
         for root, source in self._candidate_roots():
             root_path = Path(root)
@@ -117,9 +133,15 @@ class SkillManager:
                 continue
             for info in self._discover_skill_root(root_path, source):
                 real = os.path.realpath(info.path)
-                if real in seen:
+                if real in seen_paths:
                     continue
-                seen.add(real)
+                # 同名 skill 先到先得：roots 顺序用户目录在前、内置最后，
+                # 用户可以用同名 SKILL.md 覆盖内置 skill。
+                name_key = info.name.lower()
+                if name_key in seen_names:
+                    continue
+                seen_paths.add(real)
+                seen_names.add(name_key)
                 skills.append(info)
         skills.sort(key=lambda item: (item.source, item.name.lower(), item.path.lower()))
         self._cache = skills
@@ -144,6 +166,9 @@ class SkillManager:
             if not os.path.isabs(path):
                 path = os.path.join(self.cwd, path)
             roots.append((path, "config"))
+        # Bundled skills ship with the package and always sit after user roots,
+        # so a user skill with the same name overrides the built-in one.
+        roots.append((bundled_skills_root(), "builtin"))
         return roots
 
     def _discover_skill_root(self, root: Path, source: str) -> list[SkillInfo]:
@@ -176,6 +201,11 @@ class SkillManager:
                 kind="claude-command",
             ))
         return skills
+
+
+def bundled_skills_root() -> str:
+    """Skills that ship inside the package itself (src/skills/, both npm and pip layouts)."""
+    return str(Path(__file__).resolve().parent / "skills")
 
 
 def _walk_to_repo_root(cwd: str) -> list[str]:

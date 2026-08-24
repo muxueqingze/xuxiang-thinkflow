@@ -442,6 +442,7 @@ def test_agent_snapshot_roundtrip():
         try:
             agent.messages.append({"role": "user", "content": "hello"})
             agent._executed_ids.add("1")
+            agent._executed_ids_order.append("1")
             agent._turn_count = 3
             snapshot = agent.to_snapshot()
         finally:
@@ -860,7 +861,12 @@ def test_system_prompt_defaults_to_builtin_and_context_is_appended():
     assert "续想 agent 运行约定" in BUILTIN_SYSTEM_PROMPT
     assert "英文名是 ThinkFlow" in BUILTIN_SYSTEM_PROMPT
     assert "完成报告" in BUILTIN_SYSTEM_PROMPT
-    assert "文件归纳整理" in BUILTIN_SYSTEM_PROMPT
+    # 协议骨架必须留在系统提示词里（模型不读 skill 也要会写 tf-* 标签），
+    # 工作方法/文件归纳迁移进内置 skill，提示词只保留指引。
+    assert '<tf-write id="编号" path="路径">' in BUILTIN_SYSTEM_PROMPT
+    assert 'read_skill' in BUILTIN_SYSTEM_PROMPT
+    assert 'name="thinkflow"' in BUILTIN_SYSTEM_PROMPT
+    assert "文件归纳整理" not in BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"use_builtin_system_prompt": True, "context": {"enabled": False}}) == BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"context": {"enabled": False}}, use_builtin=True) == BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"system_prompt": "custom prompt", "context": {"enabled": False}}) == "custom prompt"
@@ -2354,6 +2360,156 @@ def test_slash_completer_lists_matching_commands_and_sandbox_options():
         asyncio.run(agent.close())
 
 
+def _isolated_skill_env(tmp):
+    """把 home/THINKFLOW_HOME 指到空临时目录，避免本机 ~/.claude 等目录干扰。"""
+    env = {
+        "THINKFLOW_HOME": os.path.join(tmp, "home"),
+        "USERPROFILE": os.path.join(tmp, "profile"),
+        "HOME": os.path.join(tmp, "home-dir"),
+    }
+    saved = {key: os.environ.get(key) for key in env}
+    os.environ.update(env)
+    return saved
+
+
+def _restore_skill_env(saved):
+    for key, value in saved.items():
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
+
+
+def test_builtin_skill_ships_and_reads():
+    """内置 thinkflow skill 随包分发：可列出、可读取；禁用发现后内置指南仍可读。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = _isolated_skill_env(tmp)
+        try:
+            manager = SkillManager(tmp, SkillConfig())
+            listed = manager.list_skills()
+            builtin = [skill for skill in listed if skill.name == "thinkflow" and skill.source == "builtin"]
+            assert builtin, "内置 thinkflow skill 未被发现"
+
+            body = manager.read_skill("thinkflow")
+            assert "续想" in body
+            assert "<tf-write" in body, "内置 skill 必须包含 tf-* 协议说明"
+            assert "need_result" in body
+            assert "拉尔夫循环" in body, "工作方法应迁移进内置 skill"
+
+            disabled = SkillManager(tmp, SkillConfig(enabled=False))
+            assert disabled.list_skills() == []
+            # enabled 只关用户目录发现；内置 harness 指南始终可读。
+            disabled_body = disabled.read_skill("thinkflow")
+            assert "<tf-write" in disabled_body
+            assert "未启用" in disabled.read_skill("not-a-skill-anywhere")
+        finally:
+            _restore_skill_env(saved)
+
+
+def test_user_skill_overrides_builtin():
+    """用户目录下的同名 skill 覆盖内置版本。"""
+    with tempfile.TemporaryDirectory() as tmp:
+        saved = _isolated_skill_env(tmp)
+        try:
+            user_root = os.path.join(tmp, "skills")
+            os.makedirs(os.path.join(user_root, "thinkflow"))
+            with open(os.path.join(user_root, "thinkflow", "SKILL.md"), "w", encoding="utf-8") as f:
+                f.write("---\nname: thinkflow\ndescription: custom override\n---\n# custom guide\n")
+
+            manager = SkillManager(tmp, SkillConfig(roots=[user_root]))
+            body = manager.read_skill("thinkflow")
+            assert "custom guide" in body
+            assert "续想使用指南" not in body
+        finally:
+            _restore_skill_env(saved)
+
+
+def test_edit_is_atomic_and_leaves_no_temp_files():
+    """edit 走临时文件 + 原子替换，成功后无 .tmp 残留。"""
+    async def scenario():
+        with tempfile.TemporaryDirectory() as tmp:
+            target = os.path.join(tmp, "file.txt")
+            with open(target, "w", encoding="utf-8") as f:
+                f.write("alpha\nbeta\n")
+            executor = Executor(cwd=tmp)
+            result = await executor.execute(Command(
+                id="1", tool="edit", path="file.txt",
+                old_text="beta", new_text="gamma",
+            ))
+            assert result.success, result.error
+            with open(target, "r", encoding="utf-8") as f:
+                assert f.read() == "alpha\ngamma\n"
+            leftovers = [name for name in os.listdir(tmp) if ".tmp-" in name]
+            assert leftovers == [], f"edit 留下临时文件: {leftovers}"
+
+    asyncio.run(scenario())
+
+
+def test_cli_version_flag_prints_version():
+    import subprocess
+    import src as thinkflow_pkg
+
+    proc = subprocess.run(
+        [sys.executable, os.path.join(os.path.dirname(__file__), "..", "run.py"), "--version"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=60,
+        cwd=os.path.join(os.path.dirname(__file__), ".."),
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert thinkflow_pkg.__version__ in (proc.stdout + proc.stderr)
+
+
+def test_parser_seen_ids_use_rolling_window():
+    """id 去重窗口：近期重复仍报错，滑出窗口的旧 id 不再误报。"""
+    from src.parser import MAX_SEEN_IDS
+
+    parser = StreamingParser(allow_legacy_tags=False)
+    for i in range(1, MAX_SEEN_IDS + 2):
+        commands = parser.feed(f'<tf-touch id="{i}" path="a.txt" />')
+        assert len(commands) == 1
+    assert len(parser._seen_ids) == MAX_SEEN_IDS
+    assert len(parser._seen_ids_order) == MAX_SEEN_IDS
+
+    # id=1 已滑出窗口，重发不再报重复；窗口内的最新 id 重复仍会报错。
+    assert parser.feed('<tf-touch id="1" path="a.txt" />')
+    before_errors = len(parser.errors)
+    parser.feed(f'<tf-touch id="{MAX_SEEN_IDS + 1}" path="a.txt" />')
+    assert len(parser.errors) == before_errors + 1
+
+
+def test_executed_ids_snapshot_keeps_most_recent():
+    """快照按 deque 顺序导出/恢复：截尾保最近，混合数字与非数字 id 不丢错端。"""
+    from src.agent_loop import MAX_EXECUTED_IDS
+
+    agent = AgentLoop(AgentConfig(cwd="."))
+    total = MAX_EXECUTED_IDS + 10
+    sequence = []
+    for i in range(1, total + 1):
+        cmd_id = f"tool_{i}_bash" if i % 3 == 0 else str(i)
+        sequence.append(cmd_id)
+        agent._executed_ids_order.append(cmd_id)
+        agent._executed_ids.add(cmd_id)
+
+    snapshot = agent.to_snapshot()
+    restored_ids = snapshot["executed_ids"]
+    assert len(restored_ids) == total
+    assert restored_ids == sequence, "导出必须保持执行顺序"
+
+    fresh = AgentLoop(AgentConfig(cwd="."))
+    fresh.load_snapshot(snapshot)
+    assert len(fresh._executed_ids_order) == MAX_EXECUTED_IDS
+    assert list(fresh._executed_ids_order) == sequence[-MAX_EXECUTED_IDS:], "恢复必须截尾保留最近"
+    assert fresh._executed_ids == set(sequence[-MAX_EXECUTED_IDS:])
+    # 非数字 id 不再让恢复崩溃（曾因 isdigit/int 不一致抛 ValueError）。
+    weird = dict(snapshot)
+    weird["executed_ids"] = ["²", "1", "tool_2_bash"]
+    fresh.load_snapshot(weird)
+    assert set(fresh._executed_ids) == {"²", "1", "tool_2_bash"}
+
+
 def run_all():
     tests = [
         test_executor_resolves_relative_paths_to_cwd,
@@ -2432,6 +2588,12 @@ def run_all():
         test_slash_new_and_resume_roundtrip_session,
         test_session_store_keeps_history_snapshots_for_resume_choices,
         test_slash_completer_lists_matching_commands_and_sandbox_options,
+        test_builtin_skill_ships_and_reads,
+        test_user_skill_overrides_builtin,
+        test_edit_is_atomic_and_leaves_no_temp_files,
+        test_cli_version_flag_prints_version,
+        test_parser_seen_ids_use_rolling_window,
+        test_executed_ids_snapshot_keeps_most_recent,
     ]
     for test in tests:
         test()

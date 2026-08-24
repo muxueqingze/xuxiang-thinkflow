@@ -534,7 +534,7 @@ class Executor:
 
     @staticmethod
     def _do_edit(path: str, old: str, new: str) -> tuple[str, Optional[str]]:
-        """执行编辑，返回 (新内容, 错误)。"""
+        """执行编辑，返回 (新内容, 错误)。写入走临时文件 + 原子替换，崩溃不留半截文件。"""
         with open(path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -546,8 +546,19 @@ class Executor:
 
         new_content = content.replace(old, new, 1)
 
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(new_content)
+        temp_path = f"{path}.tmp-{os.getpid()}"
+        try:
+            with open(temp_path, "w", encoding="utf-8") as f:
+                f.write(new_content)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_path, path)
+        except BaseException:
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+            raise
 
         return new_content, None
 

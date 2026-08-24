@@ -4,7 +4,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0--beta.2-orange.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0-beta.2)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
@@ -40,10 +40,10 @@ This does not remove feedback. It distinguishes feedback types: information tool
 
 ## Installation
 
-The current version is a beta prerelease and is published on the npm registry:
+The current version is 0.5.0 and is published on the npm registry:
 
 ```bash
-npm install -g xuxiang-agent@beta
+npm install -g xuxiang-agent
 thinkflow --help
 xuxiang --help
 ```
@@ -61,7 +61,7 @@ If multiple Python versions are installed:
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g xuxiang-agent@beta
+npm install -g xuxiang-agent
 ```
 
 Development install:
@@ -199,6 +199,7 @@ Raw runs, logs, `node_modules`, local sessions, and build artifacts are intentio
 - Command ledger, session snapshots, and `/resume`.
 - OpenAI-compatible and Anthropic-compatible adapters.
 - Native tool registry for read, grep, glob, bash, write, append, edit, web, skills, and more.
+- **Bundled `thinkflow` skill ships with the package**: the full harness guide (protocol, tool flows, ledger, working methods) is pulled on demand as a skill, while the system prompt keeps only the protocol skeleton plus a `read_skill("thinkflow")` hint; a user skill with the same name overrides the bundled one.
 - Automatic context compaction.
 - Provider profiles and model discovery.
 - Windows-friendly CLI, tests, and CI.

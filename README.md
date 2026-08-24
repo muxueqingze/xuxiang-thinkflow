@@ -4,7 +4,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0--beta.2-orange.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0-beta.2)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0)
 
 > 可预测式工具调用不需要打断模型的推理与思考。
 
@@ -40,10 +40,10 @@ model stream
 
 ## 安装
 
-当前版本是 beta 预发布，已经发布到 npm registry：
+当前版本 0.5.0，已发布到 npm registry：
 
 ```bash
-npm install -g xuxiang-agent@beta
+npm install -g xuxiang-agent
 thinkflow --help
 xuxiang --help
 ```
@@ -61,7 +61,7 @@ GitHub Release 仍保留同版本 tarball，适合离线归档或复现实验。
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g xuxiang-agent@beta
+npm install -g xuxiang-agent
 ```
 
 开发安装：
@@ -78,6 +78,7 @@ thinkflow --help
 生成不含密钥的配置模板：
 
 ```bash
+thinkflow --version
 thinkflow --init-config
 thinkflow --doctor --config config.json
 ```
@@ -143,6 +144,7 @@ thinkflow --config config.json --list-models
 ## 常用命令
 
 ```bash
+thinkflow --version
 thinkflow --init-config
 thinkflow --doctor --config config.json
 thinkflow --config config.json --prompt "创建 hello.py"
@@ -207,6 +209,7 @@ raw runs、日志、`node_modules`、本地 session 与构建产物不进入仓�
 - 命令 ledger、session 快照、`/resume` 历史恢复。
 - OpenAI-compatible 与 Anthropic-compatible 适配。
 - 原生工具注册层：read、grep、glob、bash、write、append、edit、web、skills 等。
+- **内置 `thinkflow` skill 随包分发**：完整 harness 使用指南（协议、分流、ledger、工作方法）以 skill 形式按需拉取，系统提示词只保留协议骨架与 `read_skill("thinkflow")` 指引；用户同名 skill 可覆盖内置。
 - 自动上下文压缩，避免长会话无限增长。
 - 模型目录发现与 provider profile。
 - Windows 友好的 CLI、测试与 CI。

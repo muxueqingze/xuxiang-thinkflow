@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xuxiang-agent"
-version = "0.5.0b2"
+version = "0.5.0"
 description = "Xuxiang / ThinkFlow, a streaming execution agent harness for deterministic tools."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -25,3 +25,6 @@ thinkflow = "thinkflow.cli:main"
 [tool.setuptools]
 package-dir = { "thinkflow" = "src" }
 packages = ["thinkflow"]
+
+[tool.setuptools.package-data]
+thinkflow = ["skills/**/SKILL.md"]

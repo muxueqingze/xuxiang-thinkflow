@@ -1,0 +1,13 @@
+# Normalize text files to LF in the repository on commit.
+# Working-tree checkouts keep their native style; this only stops the
+# LF/CRLF flip-flopping that mixed line endings caused in diffs.
+* text=auto
+
+# Binary assets must never be touched.
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.tgz binary
+*.gz binary
+*.whl binary
