@@ -75,7 +75,7 @@ ThinkFlow Parser 测试
 ✓ test_bash_safe_policy_blocks_dangerous_commands
 ✓ test_bash_env_does_not_leak_api_key_by_default
   流式工具调用：bash 执行 等待 高 #1 echo blocked
-  FAIL 流式工具失败：bash 执行 等待 高 #1 echo blocked [THINKFLOW APPROVAL 
+  FAIL 流式工具失败：bash 执行 等待 高 #1 echo blocked [THINKFLOW APPROVAL
 REQUIRED] tool=bash risk=high flow=blocking. 当前 security.app
 ✓ test_approval_request_all_blocks_high_risk_tools
   流式工具调用：bash 执行 等待 高 #1 echo allowed
