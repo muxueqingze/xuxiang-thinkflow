@@ -1,0 +1,5206 @@
+{
+  "scope": "Independent offline audit of saved test tool output after final implementation/test mutation. No model, harness, or solution execution; unknown is not hidden-grader failure.",
+  "classifications": {
+    "confirmed_success": "最终代码与最终测试修改后，有真实成功输出",
+    "success_unknown": "最终测试输出不明或变更证据需人工复核",
+    "not_reverified_after_change": "最后实现或测试修改后未复验",
+    "not_executed": "未执行可识别测试命令",
+    "explicit_failure": "最终测试保存了明确失败输出",
+    "pending": "样本尚未完成"
+  },
+  "counts": {
+    "confirmed_success": 36
+  },
+  "runs": [
+    {
+      "id": "durable_inbox-thinkflow-r1",
+      "task": "durable_inbox",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[23]",
+          "id": "call_00_Fs1SpaUvEeK05qnVsbcD6702",
+          "tool": "write",
+          "path": "inbox.py",
+          "kind": "implementation",
+          "completed_at": 57.422
+        },
+        {
+          "ref": "events[28]",
+          "id": "call_00_tBlMgqVwbXKgDId6cmrw5404",
+          "tool": "write",
+          "path": "tests/test_inbox.py",
+          "kind": "test",
+          "completed_at": 69.562
+        },
+        {
+          "ref": "events[38]",
+          "id": "call_00_4MiCMG6Gzad14HeYURX97148",
+          "tool": "edit",
+          "path": "tests/test_inbox.py",
+          "kind": "test",
+          "completed_at": 82.016
+        },
+        {
+          "ref": "events[48]",
+          "id": "call_00_Q7SqhBpGHyyAN3tXnrKJ5498",
+          "tool": "edit",
+          "path": "tests/test_inbox.py",
+          "kind": "test",
+          "completed_at": 85.812
+        },
+        {
+          "ref": "events[50]",
+          "id": "call_01_rhHw2fJ4iQqE0D3hsK184376",
+          "tool": "edit",
+          "path": "tests/test_inbox.py",
+          "kind": "test",
+          "completed_at": 85.828
+        },
+        {
+          "ref": "events[55]",
+          "id": "call_00_XRQ5bvmu6wGy9Hrxy6mQ0815",
+          "tool": "edit",
+          "path": "tests/test_inbox.py",
+          "kind": "test",
+          "completed_at": 88.5
+        },
+        {
+          "ref": "events[57]",
+          "id": "call_01_ZwKKC1sKqu5dUFQcXUN17312",
+          "tool": "edit",
+          "path": "tests/test_inbox.py",
+          "kind": "test",
+          "completed_at": 88.516
+        },
+        {
+          "ref": "events[69]",
+          "id": "call_00_v3W15qhNcTw7ckBvYFQw9803",
+          "tool": "edit",
+          "path": "tests/test_inbox.py",
+          "kind": "test",
+          "completed_at": 108.234
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[33]",
+          "id": "call_00_1ayHzOqOC1uMeodJDoIV5835",
+          "command": "python public_tests.py -v & python tests\\test_inbox.py",
+          "started_at": 70.5,
+          "completed_at": 70.891,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 22,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_inbox.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[62]",
+          "id": "call_00_mP2kd1JO4GIXoIjZKmQA6464",
+          "command": "python public_tests.py -v",
+          "started_at": 90.031,
+          "completed_at": 90.141,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[64]",
+          "id": "call_01_8vQJRSJORwzt5aqb1Vaa0505",
+          "command": "python tests\\test_inbox.py 2>&1",
+          "started_at": 90.141,
+          "completed_at": 90.328,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 23,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_inbox.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[74]",
+          "id": "call_00_Uu0tUAzg1ju1SVgVzISh5964",
+          "command": "python public_tests.py & python tests\\test_inbox.py 2>&1",
+          "started_at": 110.812,
+          "completed_at": 111.109,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 23,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_inbox.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 108.234,
+      "last_implementation_change": 57.422,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/durable_inbox-thinkflow-r1/harness.json"
+    },
+    {
+      "id": "frame_decoder-opencode-r2",
+      "task": "frame_decoder",
+      "harness": "opencode",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 13",
+          "id": "call_00_Zrmh7d0MLkuGg5P2ovbE5670",
+          "tool": "write",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 1790693994730
+        },
+        {
+          "ref": "line 17",
+          "id": "call_00_86QYdFJnAeoSmVKmavXs5770",
+          "tool": "edit",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 1790693997684
+        },
+        {
+          "ref": "line 20",
+          "id": "call_00_zJxenwX3D3WFZB5lg9DG6430",
+          "tool": "write",
+          "path": "test_decoder.py",
+          "kind": "test",
+          "completed_at": 1790694003119
+        },
+        {
+          "ref": "line 27",
+          "id": "call_00_H0HGpaWJEuW7WZLvi7wz3180",
+          "tool": "edit",
+          "path": "test_decoder.py",
+          "kind": "test",
+          "completed_at": 1790694008531
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 23",
+          "id": "call_00_ET_lA1SL2qyR7CKNuDdkkF83824",
+          "command": "python public_tests.py; Write-Output \"=== additional ===\"; python -m unittest test_decoder -v",
+          "started_at": 1790694004606,
+          "completed_at": 1790694005338,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 27,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python -m unittest test_decoder"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 30",
+          "id": "call_00_ET_kF7b2gT6YkHJkQ6bDUIz3516",
+          "command": "python public_tests.py; Write-Output \"=== additional ===\"; python -m unittest test_decoder 2>&1 | Select-Object -Last 5",
+          "started_at": 1790694010213,
+          "completed_at": 1790694010979,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 27,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python -m unittest test_decoder"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790694008531,
+      "last_implementation_change": 1790693997684,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/frame_decoder-opencode-r2/stdout.jsonl"
+    },
+    {
+      "id": "durable_inbox-opencode-r1",
+      "task": "durable_inbox",
+      "harness": "opencode",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 10",
+          "id": "call_00_9ZXMwr4oWDD42vxtA2Ou9815",
+          "tool": "write",
+          "path": "inbox.py",
+          "kind": "implementation",
+          "completed_at": 1790694079436
+        },
+        {
+          "ref": "line 14",
+          "id": "call_00_vjpr8wia1K2Us5uLbZjK6945",
+          "tool": "write",
+          "path": "my_tests.py",
+          "kind": "test",
+          "completed_at": 1790694086652
+        },
+        {
+          "ref": "line 21",
+          "id": "call_00_DbhXwLflYdNjuiV3sZRp1947",
+          "tool": "edit",
+          "path": "my_tests.py",
+          "kind": "test",
+          "completed_at": 1790694097853
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 17",
+          "id": "call_00_tWESxjbhKZJEcDy2hVTu0037",
+          "command": "python public_tests.py; python my_tests.py",
+          "started_at": 1790694090398,
+          "completed_at": 1790694092050,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 16,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python my_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 24",
+          "id": "call_00_ET_blzDmT7eoPUVNihQRDpN7040",
+          "command": "python public_tests.py; python my_tests.py",
+          "started_at": 1790694099143,
+          "completed_at": 1790694099848,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 16,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python my_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790694097853,
+      "last_implementation_change": 1790694079436,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/durable_inbox-opencode-r1/stdout.jsonl"
+    },
+    {
+      "id": "durable_inbox-pi-r1",
+      "task": "durable_inbox",
+      "harness": "pi",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 10405",
+          "id": "call_00_70XdBhmOWHVRHghHCDtR2709",
+          "tool": "write",
+          "path": "inbox.py",
+          "kind": "implementation",
+          "completed_at": 10405
+        },
+        {
+          "ref": "line 13073",
+          "id": "call_00_slvSgPVgCGDGqXS3Lb1e7326",
+          "tool": "write",
+          "path": "test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 13073
+        },
+        {
+          "ref": "line 13299",
+          "id": "call_00_wTuewJnqbBwiqzD4diyB4873",
+          "tool": "edit",
+          "path": "test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 13299
+        },
+        {
+          "ref": "line 14093",
+          "id": "call_00_IaTAJiRMh9rWAaerhZ4L6500",
+          "tool": "edit",
+          "path": "test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 14093
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 13365",
+          "id": "call_00_ET_IYhvGh2npImfspYAMLQA2081",
+          "command": "python public_tests.py; echo \"---exit $?---\"",
+          "started_at": 13358,
+          "completed_at": 13365,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 13367",
+          "id": "call_01_ET_MapYdxFPAs6jgfEpVQ9o3377",
+          "command": "python test_inbox_extra.py; echo \"---exit $?---\"",
+          "started_at": 13359,
+          "completed_at": 13367,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 26,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python test_inbox_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 14146",
+          "id": "call_00_ET_fqjeCNA0oeidPUq7rEyu4729",
+          "command": "python test_inbox_extra.py; echo \"---exit $?---\"; python public_tests.py; echo \"---exit $?---\"",
+          "started_at": 14141,
+          "completed_at": 14146,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 26,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python test_inbox_extra.py",
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 15578",
+          "id": "call_00_hI0AUE866O6NMP5xOVnN6240",
+          "command": "python -m unittest public_tests test_inbox_extra -v 2>&1 | tail -20; echo \"---\"; ls -la",
+          "started_at": 15574,
+          "completed_at": 15578,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 27,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python -m unittest public_tests test_inbox_extra"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 14093,
+      "last_implementation_change": 10405,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/durable_inbox-pi-r1/stdout.jsonl"
+    },
+    {
+      "id": "durable_inbox-pi-r2",
+      "task": "durable_inbox",
+      "harness": "pi",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 9874",
+          "id": "call_00_AMvOjZa1dyn30KgpwZL50304",
+          "tool": "write",
+          "path": "inbox.py",
+          "kind": "implementation",
+          "completed_at": 9874
+        },
+        {
+          "ref": "line 12439",
+          "id": "call_01_IspKJvNa4VGjUNWZDuO77504",
+          "tool": "write",
+          "path": "test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 12439
+        },
+        {
+          "ref": "line 12857",
+          "id": "call_00_hCWEwhWTNkInN6d7uR7A9828",
+          "tool": "edit",
+          "path": "test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 12857
+        },
+        {
+          "ref": "line 15058",
+          "id": "call_00_FKtpaA4t97n3aFkXDWrX5850",
+          "tool": "edit",
+          "path": "inbox.py",
+          "kind": "implementation",
+          "completed_at": 15058
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 12442",
+          "id": "call_00_Zpo0rgrdHgdd29YcJ4jl7706",
+          "command": "python public_tests.py -v 2>&1",
+          "started_at": 12436,
+          "completed_at": 12442,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 12477",
+          "id": "call_00_ET_ewhATgja14gmDDGFvBkx4373",
+          "command": "python test_inbox_extra.py 2>&1",
+          "started_at": 12473,
+          "completed_at": 12477,
+          "tool_success": false,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 21,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python test_inbox_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 12893",
+          "id": "call_00_ET_Nj9K946UxZ9te4onvdfv6785",
+          "command": "python test_inbox_extra.py 2>&1 | tail -20",
+          "started_at": 12890,
+          "completed_at": 12893,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 21,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python test_inbox_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 13321",
+          "id": "call_00_MPopgTApneOH1VshoHqQ2109",
+          "command": "python public_tests.py && python test_inbox_extra.py 2>&1 | tail -3 [multiline/long command omitted]",
+          "started_at": 13315,
+          "completed_at": 13321,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 21,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_inbox_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 15101",
+          "id": "call_00_ET_SkOixbVrQuL4W2dWw2o13913",
+          "command": "python public_tests.py && python test_inbox_extra.py 2>&1 | tail -3",
+          "started_at": 15097,
+          "completed_at": 15101,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 21,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_inbox_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 15058,
+      "last_implementation_change": 15058,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/durable_inbox-pi-r2/stdout.jsonl"
+    },
+    {
+      "id": "frame_decoder-opencode-r1",
+      "task": "frame_decoder",
+      "harness": "opencode",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 10",
+          "id": "call_00_TVc36nOptZhcZhhQyv5G0562",
+          "tool": "write",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 1790694300657
+        },
+        {
+          "ref": "line 16",
+          "id": "call_00_J15yEmkq54jrb5ZdDwqY9036",
+          "tool": "write",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 1790694314600
+        },
+        {
+          "ref": "line 22",
+          "id": "call_00_iWrvA4iWLcIJXnzD25rc3311",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 1790694326393
+        },
+        {
+          "ref": "line 25",
+          "id": "call_00_ET_41vneVbMO2g1zuvJc6M13309",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 1790694328566
+        },
+        {
+          "ref": "line 31",
+          "id": "call_00_bChIpQbcbvCm4zmELdV17469",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 1790694332511
+        },
+        {
+          "ref": "line 34",
+          "id": "call_00_ET_D6oY1j9BxcAPs2SaWUXe2468",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 1790694334489
+        },
+        {
+          "ref": "line 41",
+          "id": "call_00_m741rLK6Z75lIiwEkruC7097",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 1790694345999
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 13",
+          "id": "call_00_aDP8VPvlsIBjsoGUmx216234",
+          "command": "python public_tests.py",
+          "started_at": 1790694302281,
+          "completed_at": 1790694302892,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 19",
+          "id": "call_00_SunsnCr482qW7GCcRJ8g4342",
+          "command": "python -m unittest test_decoder_extra -v 2>&1",
+          "started_at": 1790694316785,
+          "completed_at": 1790694317419,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 35,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python -m unittest test_decoder_extra"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 37",
+          "id": "call_00_FnZJxFts7r38DLGOYSTV0008",
+          "command": "python -m unittest test_decoder_extra -v 2>&1",
+          "started_at": 1790694336214,
+          "completed_at": 1790694336859,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 36,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python -m unittest test_decoder_extra"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 38",
+          "id": "call_01_U6uUsFZwvHNH6Gmpaq9e7539",
+          "command": "python public_tests.py 2>&1",
+          "started_at": 1790694336298,
+          "completed_at": 1790694336932,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 44",
+          "id": "call_00_7ED9JsfX6Ge2hLlDCZvv8024",
+          "command": "python -m unittest test_decoder_extra -v 2>&1 | Select-Object -Last 15",
+          "started_at": 1790694348303,
+          "completed_at": 1790694348987,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 38,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python -m unittest test_decoder_extra"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790694345999,
+      "last_implementation_change": 1790694300657,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/frame_decoder-opencode-r1/stdout.jsonl"
+    },
+    {
+      "id": "receipt_package-pi-r1",
+      "task": "receipt_package",
+      "harness": "pi",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 2867",
+          "id": "call_01_AlJrQzOJz5Pp713LmyQD3884",
+          "tool": "write",
+          "path": "receipt_tools/__init__.py",
+          "kind": "implementation",
+          "completed_at": 2867
+        },
+        {
+          "ref": "line 2868",
+          "id": "call_00_XWHidHZY1MyjWOwd2XH67679",
+          "tool": "write",
+          "path": "receipt_tools/model.py",
+          "kind": "implementation",
+          "completed_at": 2868
+        },
+        {
+          "ref": "line 2869",
+          "id": "call_02_3TrsBRoLtG5TTuyfEBpP8997",
+          "tool": "write",
+          "path": "receipt_tools/cli.py",
+          "kind": "implementation",
+          "completed_at": 2869
+        },
+        {
+          "ref": "line 3241",
+          "id": "call_00_nurTPCgxt3A4GQo006Id9870",
+          "tool": "edit",
+          "path": "receipt_tools/model.py",
+          "kind": "implementation",
+          "completed_at": 3241
+        },
+        {
+          "ref": "line 5503",
+          "id": "call_00_Iamh47leYiZscTB4ZJ5C4160",
+          "tool": "write",
+          "path": "test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 5503
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 3244",
+          "id": "call_01_ibDQ6jfGn3dRITmxcvVf0917",
+          "command": "python public_tests.py -v",
+          "started_at": 3239,
+          "completed_at": 3244,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 5542",
+          "id": "call_00_ET_uJgxnUhZeSG42QIxEKEB3729",
+          "command": "python test_receipt_tools.py -v 2>&1 | tail -50",
+          "started_at": 5539,
+          "completed_at": 5542,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 16,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python test_receipt_tools.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 6409",
+          "id": "call_00_VJIIElIm2mlQnd41wY9h7032",
+          "command": "python public_tests.py && python test_receipt_tools.py 2>&1 | tail -3 && ls receipt_tools",
+          "started_at": 6403,
+          "completed_at": 6409,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 16,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_receipt_tools.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 5503,
+      "last_implementation_change": 3241,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/receipt_package-pi-r1/stdout.jsonl"
+    },
+    {
+      "id": "frame_decoder-thinkflow-r1",
+      "task": "frame_decoder",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[27]",
+          "id": "call_00_2ClbA1qdYNt0ucYlNm7P1631",
+          "tool": "write",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 76.109
+        },
+        {
+          "ref": "events[34]",
+          "id": "call_00_TlHjmsMbHf2RGsOQUBMF3864",
+          "tool": "write",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 92.078
+        },
+        {
+          "ref": "events[39]",
+          "id": "call_00_ZRlDWWfGCewjeydfUcKV4003",
+          "tool": "write",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 111.828
+        },
+        {
+          "ref": "events[51]",
+          "id": "call_00_0qNly6kJmwOCAra5mK6J9177",
+          "tool": "edit",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 120.828
+        },
+        {
+          "ref": "events[53]",
+          "id": "call_01_beRx1cASSZYel3LMxJ9c4685",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 120.828
+        },
+        {
+          "ref": "events[55]",
+          "id": "call_02_HhsipckpdRk09EukOz4F5113",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 120.843
+        },
+        {
+          "ref": "events[65]",
+          "id": "call_00_RQU4rp4UG99u0bTtmWjA1681",
+          "tool": "write",
+          "path": "tests/test_decoder_fuzz.py",
+          "kind": "test",
+          "completed_at": 140.765
+        },
+        {
+          "ref": "events[70]",
+          "id": "call_00_9P6XX06pLuC2YcsHPcoP4246",
+          "tool": "edit",
+          "path": "tests/test_decoder_fuzz.py",
+          "kind": "test",
+          "completed_at": 142.875
+        },
+        {
+          "ref": "events[80]",
+          "id": "call_00_hZ79PF2zbHQqBReKkvmC8056",
+          "tool": "write",
+          "path": "tests/test_decoder_fuzz.py",
+          "kind": "test",
+          "completed_at": 163.89
+        },
+        {
+          "ref": "events[90]",
+          "id": "call_00_8KjdiTkawkv78m9G0bvI3029",
+          "tool": "edit",
+          "path": "tests/test_decoder_fuzz.py",
+          "kind": "test",
+          "completed_at": 170.468
+        },
+        {
+          "ref": "events[92]",
+          "id": "call_01_52IeGtJFPvwCLUofuXWC7297",
+          "tool": "edit",
+          "path": "tests/test_decoder_fuzz.py",
+          "kind": "test",
+          "completed_at": 170.484
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[44]",
+          "id": "call_00_LjXN0ruNckNPXTAAF3mx6753",
+          "command": "python public_tests.py",
+          "started_at": 112.703,
+          "completed_at": 112.812,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[46]",
+          "id": "call_01_pyYR9TFFRW3EqcGpzo6j3983",
+          "command": "python tests\\test_decoder_extra.py 2>&1",
+          "started_at": 112.812,
+          "completed_at": 112.906,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 42,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python tests/test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[60]",
+          "id": "call_00_4UfOWO2oUvvsSVNbtsnr3258",
+          "command": "python public_tests.py && python tests\\test_decoder_extra.py 2>&1",
+          "started_at": 121.937,
+          "completed_at": 122.109,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 42,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[75]",
+          "id": "call_00_ET_hAT9tvH8IFZnYWFE1kLv1330",
+          "command": "python tests\\test_decoder_fuzz.py 2>&1",
+          "started_at": 144.031,
+          "completed_at": 144.125,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 3,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python tests/test_decoder_fuzz.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[85]",
+          "id": "call_00_2K1ZQGE3j7f4tRdLAURa4440",
+          "command": "python public_tests.py && python tests\\test_decoder_extra.py 2>&1 | more +45 && python tests\\test_decoder_fuzz.py 2>&1",
+          "started_at": 165.687,
+          "completed_at": 166.109,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 3,
+          "summaries": [
+            {
+              "tests": 5,
+              "outcome": "failed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_decoder_extra.py",
+            "python tests/test_decoder_fuzz.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[97]",
+          "id": "call_00_WMf1qwU8BdD7uaFXZJG22834",
+          "command": "python public_tests.py",
+          "started_at": 171.797,
+          "completed_at": 171.89,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[99]",
+          "id": "call_01_px0YedVJ0WvHkIMiEcQH5585",
+          "command": "python tests\\test_decoder_fuzz.py 2>&1",
+          "started_at": 171.89,
+          "completed_at": 172.062,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 5,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_decoder_fuzz.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[104]",
+          "id": "call_00_qtYid9lVWUvXtFEmMaY83300",
+          "command": "python tests\\test_decoder_extra.py 2>&1",
+          "started_at": 174.937,
+          "completed_at": 175.047,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 42,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[111]",
+          "id": "call_00_HGzF6DOzDwNfPRBiYlDh8509",
+          "command": "python public_tests.py && python tests\\test_decoder_extra.py 2>&1 | findstr /C:\"Ran\" /C:\"OK\" /C:\"FAILED\" && python tests\\test_decoder_fuzz.py 2>&1 | findstr /C:\"Ran\" /C:\"OK\" /C:\"FAILED\" && dir /s /b",
+          "started_at": 178.75,
+          "completed_at": 179.093,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 3,
+          "summaries": [
+            {
+              "tests": 42,
+              "outcome": "passed"
+            },
+            {
+              "tests": 5,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_decoder_extra.py",
+            "python tests/test_decoder_fuzz.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 170.484,
+      "last_implementation_change": 120.828,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/frame_decoder-thinkflow-r1/harness.json"
+    },
+    {
+      "id": "repair_routes-opencode-r2",
+      "task": "repair_routes",
+      "harness": "opencode",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 13",
+          "id": "call_00_2x1JoX5ltE53AyB5U33D5468",
+          "tool": "write",
+          "path": "router.py",
+          "kind": "implementation",
+          "completed_at": 1790694617461
+        },
+        {
+          "ref": "line 16",
+          "id": "call_00_lyOjNYzYE2MG5mZGl8GT8990",
+          "tool": "write",
+          "path": "mytests.py",
+          "kind": "test",
+          "completed_at": 1790694624411
+        },
+        {
+          "ref": "line 19",
+          "id": "call_00_kHdo2514SwJVwFq6FkYD3004",
+          "tool": "edit",
+          "path": "mytests.py",
+          "kind": "test",
+          "completed_at": 1790694626477
+        },
+        {
+          "ref": "line 25",
+          "id": "call_00_6iGXxI3kSpb16CUzXFoP4672",
+          "tool": "edit",
+          "path": "mytests.py",
+          "kind": "test",
+          "completed_at": 1790694630425
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 22",
+          "id": "call_00_ET_IL2An1sI4g9TDWxYdI3X5249",
+          "command": "python public_tests.py; python mytests.py",
+          "started_at": 1790694627715,
+          "completed_at": 1790694628406,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 25,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python mytests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 28",
+          "id": "call_00_ET_NRb2JvumuPOhjWqSRVEf3774",
+          "command": "python public_tests.py; python mytests.py",
+          "started_at": 1790694632030,
+          "completed_at": 1790694632627,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 25,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python mytests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790694630425,
+      "last_implementation_change": 1790694617461,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/repair_routes-opencode-r2/stdout.jsonl"
+    },
+    {
+      "id": "pricing_refactor-pi-r2",
+      "task": "pricing_refactor",
+      "harness": "pi",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 6418",
+          "id": "call_00_Ki2vB9zV1ZxsIN1VFFbB6891",
+          "tool": "write",
+          "path": "pricing.py",
+          "kind": "implementation",
+          "completed_at": 6418
+        },
+        {
+          "ref": "line 6419",
+          "id": "call_01_oeVChESyoUpRWMaje1Pm2851",
+          "tool": "write",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 6419
+        },
+        {
+          "ref": "line 6420",
+          "id": "call_02_sN5WpfwSNqq3BJJYNqFm5652",
+          "tool": "write",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 6420
+        },
+        {
+          "ref": "line 9265",
+          "id": "call_00_rvmzoHjTS6FFwMNZgQsZ0920",
+          "tool": "write",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 9265
+        },
+        {
+          "ref": "line 11128",
+          "id": "call_00_Zx4lEYbyZQjk2q8xPN5i4484",
+          "tool": "edit",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 11128
+        },
+        {
+          "ref": "line 11129",
+          "id": "call_01_zB0kAp1r1x0Xsk2naP0y9545",
+          "tool": "edit",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 11129
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 6458",
+          "id": "call_00_AhOf6ppc5iopd7imjIXx1206",
+          "command": "python public_tests.py",
+          "started_at": 6454,
+          "completed_at": 6458,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 9662",
+          "id": "call_00_QWVWIYWKuUrykhqjkbz69167",
+          "command": "python extra_tests.py -v",
+          "started_at": 9658,
+          "completed_at": 9662,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 13,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 11164",
+          "id": "call_00_ET_nZPCkLt1IPuavlPLQ0c55396",
+          "command": "python public_tests.py && python extra_tests.py",
+          "started_at": 11160,
+          "completed_at": 11164,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 13,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 11129,
+      "last_implementation_change": 11129,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/pricing_refactor-pi-r2/stdout.jsonl"
+    },
+    {
+      "id": "durable_inbox-opencode-r2",
+      "task": "durable_inbox",
+      "harness": "opencode",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 10",
+          "id": "call_00_THhPHtImXh1FxNxC1B8S9801",
+          "tool": "write",
+          "path": "inbox.py",
+          "kind": "implementation",
+          "completed_at": 1790694740402
+        },
+        {
+          "ref": "line 14",
+          "id": "call_00_IC8zToJ2Ux4Ucd8OVOeV0045",
+          "tool": "write",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 1790694746397
+        },
+        {
+          "ref": "line 20",
+          "id": "call_00_OmI9gnh5cmINkehuK7hw9991",
+          "tool": "edit",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 1790694750999
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 17",
+          "id": "call_00_ET_ckqV9K5qOYnPsAT1OYBV8127",
+          "command": "python public_tests.py; python extra_tests.py",
+          "started_at": 1790694748274,
+          "completed_at": 1790694748978,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 17,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 24",
+          "id": "call_00_ET_JFZVeR0MfJmLCF5KV87c8035",
+          "command": "python public_tests.py; python extra_tests.py",
+          "started_at": 1790694752342,
+          "completed_at": 1790694753008,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 17,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790694750999,
+      "last_implementation_change": 1790694740402,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/durable_inbox-opencode-r2/stdout.jsonl"
+    },
+    {
+      "id": "pricing_refactor-thinkflow-r2",
+      "task": "pricing_refactor",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[20]",
+          "id": "1",
+          "tool": "write",
+          "path": "pricing.py",
+          "kind": "implementation",
+          "completed_at": 78.36
+        },
+        {
+          "ref": "events[22]",
+          "id": "2",
+          "tool": "write",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 79.203
+        },
+        {
+          "ref": "events[24]",
+          "id": "3",
+          "tool": "write",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 80.235
+        },
+        {
+          "ref": "events[27]",
+          "id": "4",
+          "tool": "write",
+          "path": "test_pricing_extra.py",
+          "kind": "test",
+          "completed_at": 88.141
+        },
+        {
+          "ref": "events[41]",
+          "id": "5",
+          "tool": "edit",
+          "path": "test_pricing_extra.py",
+          "kind": "test",
+          "completed_at": 95.782
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[29]",
+          "id": "call_00_tDCdKyLukwuG5wn8XAgu7255",
+          "command": "python public_tests.py && python test_pricing_extra.py 2>&1",
+          "started_at": 88.141,
+          "completed_at": 88.328,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 25,
+              "outcome": "failed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_pricing_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[43]",
+          "id": "call_00_oy3SgkOcd5HylDCrLXzW7231",
+          "command": "python public_tests.py && python test_pricing_extra.py",
+          "started_at": 95.782,
+          "completed_at": 95.969,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 25,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_pricing_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 95.782,
+      "last_implementation_change": 80.235,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/pricing_refactor-thinkflow-r2/harness.json"
+    },
+    {
+      "id": "repair_routes-thinkflow-r1",
+      "task": "repair_routes",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[18]",
+          "id": "1",
+          "tool": "write",
+          "path": "router.py",
+          "kind": "implementation",
+          "completed_at": 39.766
+        },
+        {
+          "ref": "events[20]",
+          "id": "2",
+          "tool": "write",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 46.703
+        },
+        {
+          "ref": "events[38]",
+          "id": "call_00_ONzdbvmjrc41SlIPWpM83050",
+          "tool": "edit",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 59.5
+        },
+        {
+          "ref": "events[40]",
+          "id": "call_01_q3cM1bodeTuz0rGa9UPX1187",
+          "tool": "edit",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 59.5
+        },
+        {
+          "ref": "events[50]",
+          "id": "call_00_fomTuTYiFZa2qtsEl8wF7349",
+          "tool": "edit",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 71.5
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[23]",
+          "id": "call_00_3Q0dQEOUE0sc0QKCYfsW9959",
+          "command": "python public_tests.py -v 2>&1 & echo \"=== PUBLIC EXIT %errorlevel% ===\" & python extra_tests.py 2>&1 & echo \"=== EXTRA EXIT %errorlevel% ===\"",
+          "started_at": 46.937,
+          "completed_at": 47.109,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 24,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[45]",
+          "id": "call_00_FQnbSb9k8dkA8gUo8PPR5206",
+          "command": "python public_tests.py -v & echo \"=== PUBLIC EXIT %errorlevel% ===\" & python extra_tests.py & echo \"=== EXTRA EXIT %errorlevel% ===\"",
+          "started_at": 60.625,
+          "completed_at": 60.797,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 24,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[55]",
+          "id": "call_00_sNNiNZUZTe9uSNeMY5A54425",
+          "command": "python extra_tests.py & echo === EXTRA EXIT %errorlevel% === & python public_tests.py & echo === PUBLIC EXIT %errorlevel% ===",
+          "started_at": 72.328,
+          "completed_at": 72.516,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 31,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python extra_tests.py",
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 71.5,
+      "last_implementation_change": 39.766,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/repair_routes-thinkflow-r1/harness.json"
+    },
+    {
+      "id": "frame_decoder-pi-r2",
+      "task": "frame_decoder",
+      "harness": "pi",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 6571",
+          "id": "call_00_QEw61iOIGocvEkdkTTC12020",
+          "tool": "write",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 6571
+        },
+        {
+          "ref": "line 10112",
+          "id": "call_00_dMU10CJLJCtp6S1c9vi67712",
+          "tool": "write",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 10112
+        },
+        {
+          "ref": "line 11241",
+          "id": "call_00_ENTNcRSn2to1A33FzkV40097",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 11241
+        },
+        {
+          "ref": "line 11898",
+          "id": "call_00_Q6CVvO2YLAx6rLOazdEx6502",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 11898
+        },
+        {
+          "ref": "line 16644",
+          "id": "call_00_ET_7AZmWxR6aKZn5D2eDlB76172",
+          "tool": "edit",
+          "path": "test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 16644
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 6760",
+          "id": "call_00_VSLIKy7Gy5kQ577n0w5k4897",
+          "command": "python public_tests.py",
+          "started_at": 6757,
+          "completed_at": 6760,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 10148",
+          "id": "call_00_ET_CBT0S3lygTvnEDVQf0O09792",
+          "command": "python test_decoder_extra.py 2>&1 | tail -20",
+          "started_at": 10145,
+          "completed_at": 10148,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 34,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 11532",
+          "id": "call_00_9HUgqGB3fs1gmCxE4T8w7100",
+          "command": "python test_decoder_extra.py 2>&1 | tail -6 && python public_tests.py 2>&1 | tail -4",
+          "started_at": 11528,
+          "completed_at": 11532,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 34,
+              "outcome": "failed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python test_decoder_extra.py",
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 12029",
+          "id": "call_00_JW71YQr5rDOOLqB1xDiF0440",
+          "command": "python test_decoder_extra.py 2>&1 | tail -6",
+          "started_at": 12026,
+          "completed_at": 12029,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 34,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 16695",
+          "id": "call_00_ET_xYa2o3x5WdFzAmiTivcb5263",
+          "command": "python test_decoder_extra.py 2>&1 | tail -5 && python public_tests.py 2>&1 | tail -3",
+          "started_at": 16691,
+          "completed_at": 16695,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 36,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python test_decoder_extra.py",
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 17085",
+          "id": "call_00_qozVmBP2XqLOesIgWHfy7037",
+          "command": "python public_tests.py && python test_decoder_extra.py 2>&1 | tail -4",
+          "started_at": 17081,
+          "completed_at": 17085,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 36,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 16644,
+      "last_implementation_change": 6571,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/frame_decoder-pi-r2/stdout.jsonl"
+    },
+    {
+      "id": "pricing_refactor-pi-r1",
+      "task": "pricing_refactor",
+      "harness": "pi",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 11706",
+          "id": "call_00_flwgiUjr1M5AaiJTHCZ42549",
+          "tool": "write",
+          "path": "pricing.py",
+          "kind": "implementation",
+          "completed_at": 11706
+        },
+        {
+          "ref": "line 11707",
+          "id": "call_01_lrHwieQbVBvfvOMXIMY90035",
+          "tool": "write",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 11707
+        },
+        {
+          "ref": "line 11708",
+          "id": "call_02_KeMr5OnlNzexrba9rj0t3158",
+          "tool": "write",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 11708
+        },
+        {
+          "ref": "line 13274",
+          "id": "call_01_kGDcMKKjMfIpHtkXVz610619",
+          "tool": "write",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 13274
+        },
+        {
+          "ref": "line 13496",
+          "id": "call_00_3BsB4yIOM90VRDC8Pl6Y3074",
+          "tool": "edit",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 13496
+        },
+        {
+          "ref": "line 14524",
+          "id": "call_00_t18DEPGAZXc9XzTrGUBf6784",
+          "tool": "edit",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 14524
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 13276",
+          "id": "call_00_yDFX32mYlfi3Z3muNJzr6160",
+          "command": "python public_tests.py",
+          "started_at": 13271,
+          "completed_at": 13276,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 13305",
+          "id": "call_00_ET_oxcS0ssxvYjWOjbsjYRm5568",
+          "command": "python extra_tests.py",
+          "started_at": 13301,
+          "completed_at": 13305,
+          "tool_success": false,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 16,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 13529",
+          "id": "call_00_ET_QLvxtcCfTaZgxbtkgEiA9773",
+          "command": "python extra_tests.py && python public_tests.py",
+          "started_at": 13525,
+          "completed_at": 13529,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 16,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python extra_tests.py",
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 14632",
+          "id": "call_00_ET_Lb6Igq7OCYG8xmnBQ7J30863",
+          "command": "python public_tests.py && python extra_tests.py && python -c \" [multiline/long command omitted]",
+          "started_at": 14627,
+          "completed_at": 14632,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 16,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 14524,
+      "last_implementation_change": 14524,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/pricing_refactor-pi-r1/stdout.jsonl"
+    },
+    {
+      "id": "durable_inbox-thinkflow-r2",
+      "task": "durable_inbox",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[19]",
+          "id": "call_00_MtFk6NmqMwF6jYURwTJa7474",
+          "tool": "write",
+          "path": "inbox.py",
+          "kind": "implementation",
+          "completed_at": 49.484
+        },
+        {
+          "ref": "events[24]",
+          "id": "call_00_yyIA9oXsJBw4SZo9fcnV4928",
+          "tool": "write",
+          "path": "tests/test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 61.016
+        },
+        {
+          "ref": "events[29]",
+          "id": "call_00_a2i3xzUPHTT3KvoDkG9c4761",
+          "tool": "edit",
+          "path": "tests/test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 62.406
+        },
+        {
+          "ref": "events[39]",
+          "id": "call_00_u45WLAvtghqGq8gEOmAv8695",
+          "tool": "edit",
+          "path": "tests/test_inbox_extra.py",
+          "kind": "test",
+          "completed_at": 65.734
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[34]",
+          "id": "call_00_bSqxde2nR2uMgidNTteF5182",
+          "command": "python public_tests.py && python tests/test_inbox_extra.py 2>&1",
+          "started_at": 63.391,
+          "completed_at": 63.813,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 30,
+              "outcome": "failed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_inbox_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[44]",
+          "id": "call_00_q8hagBhkdNNb1BZqr8y47175",
+          "command": "python public_tests.py && python tests/test_inbox_extra.py 2>&1",
+          "started_at": 66.844,
+          "completed_at": 67.188,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 30,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_inbox_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 65.734,
+      "last_implementation_change": 49.484,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/durable_inbox-thinkflow-r2/harness.json"
+    },
+    {
+      "id": "interval_coverage-opencode-r1",
+      "task": "interval_coverage",
+      "harness": "opencode",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 10",
+          "id": "call_00_L01xi3rNOtxONBnq6pii1958",
+          "tool": "write",
+          "path": "coverage.py",
+          "kind": "implementation",
+          "completed_at": 1790695226440
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 13",
+          "id": "call_00_ei7yqodlhSLKUfgfR9nv1143",
+          "command": "python public_tests.py",
+          "started_at": 1790695227527,
+          "completed_at": 1790695228083,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790695226440,
+      "last_implementation_change": 1790695226440,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/interval_coverage-opencode-r1/stdout.jsonl"
+    },
+    {
+      "id": "repair_routes-opencode-r1",
+      "task": "repair_routes",
+      "harness": "opencode",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 10",
+          "id": "call_00_ldMHfJ4Uz1rZfFMAXjIg3388",
+          "tool": "write",
+          "path": "router.py",
+          "kind": "implementation",
+          "completed_at": 1790695266572
+        },
+        {
+          "ref": "line 13",
+          "id": "call_00_HGK3DOKYXpItHfjXmIxh3166",
+          "tool": "write",
+          "path": "test_router_extra.py",
+          "kind": "test",
+          "completed_at": 1790695270428
+        },
+        {
+          "ref": "line 16",
+          "id": "call_00_FhQGBeazgDGJ4vev8Otc9164",
+          "tool": "edit",
+          "path": "test_router_extra.py",
+          "kind": "test",
+          "completed_at": 1790695272635
+        },
+        {
+          "ref": "line 22",
+          "id": "call_00_qFELyw9AstD7QcKzhSXc5231",
+          "tool": "edit",
+          "path": "test_router_extra.py",
+          "kind": "test",
+          "completed_at": 1790695277962
+        },
+        {
+          "ref": "line 25",
+          "id": "call_00_ET_LO81q3rtajZYiBw7DZRt0144",
+          "tool": "edit",
+          "path": "test_router_extra.py",
+          "kind": "test",
+          "completed_at": 1790695279344
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 19",
+          "id": "call_00_ET_HAHhCbvO000Uy0mCmUF08399",
+          "command": "python public_tests.py; python test_router_extra.py",
+          "started_at": 1790695273890,
+          "completed_at": 1790695274663,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 12,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_router_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 28",
+          "id": "call_00_ET_tuar44L72XHvBcuvpTAW0830",
+          "command": "python public_tests.py; python test_router_extra.py",
+          "started_at": 1790695280590,
+          "completed_at": 1790695281189,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 12,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_router_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790695279344,
+      "last_implementation_change": 1790695266572,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/repair_routes-opencode-r1/stdout.jsonl"
+    },
+    {
+      "id": "repair_routes-thinkflow-r2",
+      "task": "repair_routes",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "original_interrupted": true,
+      "original_infrastructure_error_type": "UnicodeEncodeError",
+      "original_result": "artifacts/benchmark-20260929/production-91e4911/repair_routes-thinkflow-r2/result.json",
+      "recovery_result": "artifacts/benchmark-20260929/production-91e4911-observer-recovery/repair_routes-thinkflow-r2/result.json",
+      "recovery_manifest_verified": [
+        "source_commit",
+        "files",
+        "generation",
+        "versions",
+        "mode"
+      ],
+      "recovery_prompt_verified": true,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[21]",
+          "id": "1",
+          "tool": "write",
+          "path": "router.py",
+          "kind": "implementation",
+          "completed_at": 25.062
+        },
+        {
+          "ref": "events[24]",
+          "id": "2",
+          "tool": "write",
+          "path": "tests/test_router_contract.py",
+          "kind": "test",
+          "completed_at": 31.406
+        },
+        {
+          "ref": "events[37]",
+          "id": "3",
+          "tool": "edit",
+          "path": "tests/test_router_contract.py",
+          "kind": "test",
+          "completed_at": 45.031
+        },
+        {
+          "ref": "events[44]",
+          "id": "call_00_z62fj0n9IIpKyuXthhEX3708",
+          "tool": "edit",
+          "path": "tests/test_router_contract.py",
+          "kind": "test",
+          "completed_at": 49.266
+        },
+        {
+          "ref": "events[58]",
+          "id": "call_00_PhZrtMKfTunCWH0lS4Id4777",
+          "tool": "write",
+          "path": ".thinkflow/contract_matrix.py",
+          "kind": "test",
+          "completed_at": 59.75
+        },
+        {
+          "ref": "events[63]",
+          "id": "call_00_CT52HSnLze3JrpuYU8Jk9008",
+          "tool": "edit",
+          "path": ".thinkflow/contract_matrix.py",
+          "kind": "test",
+          "completed_at": 62.953
+        },
+        {
+          "ref": "events[73]",
+          "id": "call_00_LMbCtnARpHWB82c5QJ2z6475",
+          "tool": "edit",
+          "path": ".thinkflow/contract_matrix.py",
+          "kind": "test",
+          "completed_at": 66.437
+        },
+        {
+          "ref": "events[83]",
+          "id": "call_00_92RLGPriSilqndimsk7I5616",
+          "tool": "edit",
+          "path": ".thinkflow/contract_matrix.py",
+          "kind": "test",
+          "completed_at": 70.687
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[26]",
+          "id": "call_00_W3cNXJ1fHhOhrtFdkvVF3245",
+          "command": "python public_tests.py && python tests\\test_router_contract.py",
+          "started_at": 31.406,
+          "completed_at": 31.594,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 26,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_router_contract.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[46]",
+          "id": "call_01_Ar4lPfPgxebsCo8WjotU1206",
+          "command": "python public_tests.py; echo ---; python tests\\test_router_contract.py 2>&1 | findstr /C:\"Ran\" /C:\"OK\" /C:\"FAILED\" /C:\"ERROR\"",
+          "started_at": 49.266,
+          "completed_at": 49.328,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_router_contract.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "output_unknown",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[51]",
+          "id": "call_00_l6RYWSM25VfB5iJtrPak2831",
+          "command": "python public_tests.py",
+          "started_at": 50.75,
+          "completed_at": 50.859,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[53]",
+          "id": "call_01_zCFvCklHCRgJPBkGB9q60476",
+          "command": "python tests\\test_router_contract.py",
+          "started_at": 50.859,
+          "completed_at": 50.953,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 26,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_router_contract.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[68]",
+          "id": "call_00_apvfvp7jXgGqbYy0rB9d8552",
+          "command": "python .thinkflow\\contract_matrix.py",
+          "started_at": 63.891,
+          "completed_at": 63.953,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [],
+          "targets": [
+            "python .thinkflow/contract_matrix.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[78]",
+          "id": "call_00_C2jzoCl24YBSWGlySgcR2237",
+          "command": "python .thinkflow\\contract_matrix.py",
+          "started_at": 68.062,
+          "completed_at": 68.125,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [],
+          "targets": [
+            "python .thinkflow/contract_matrix.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[88]",
+          "id": "call_00_ocTOECbNrTBcNJIWsmax6907",
+          "command": "python .thinkflow\\contract_matrix.py",
+          "started_at": 71.781,
+          "completed_at": 71.828,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 92,
+              "outcome": "passed",
+              "format": "ad_hoc_checks"
+            }
+          ],
+          "targets": [
+            "python .thinkflow/contract_matrix.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 70.687,
+      "last_implementation_change": 25.062,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911-observer-recovery/repair_routes-thinkflow-r2/harness.json",
+      "manual_audit": "Verification helper, not production source: router.py last changed at events[21]; public 1/OK at events[51], custom 26/OK at events[53]; final contract_matrix script at events[88] saved 92 checks passed. Helper assertions and final print inspected offline."
+    },
+    {
+      "id": "receipt_package-opencode-r2",
+      "task": "receipt_package",
+      "harness": "opencode",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 9",
+          "id": "call_00_DNX2h4XSYlGXDeDQZdIx8749",
+          "tool": "write",
+          "path": "receipt_tools/__init__.py",
+          "kind": "implementation",
+          "completed_at": 1790695378535
+        },
+        {
+          "ref": "line 10",
+          "id": "call_01_c64EQ9695Gi9bwjqvBj05419",
+          "tool": "write",
+          "path": "receipt_tools/model.py",
+          "kind": "implementation",
+          "completed_at": 1790695380312
+        },
+        {
+          "ref": "line 11",
+          "id": "call_02_yqZuT92pTMgkxwhaD2Mb3965",
+          "tool": "write",
+          "path": "receipt_tools/cli.py",
+          "kind": "implementation",
+          "completed_at": 1790695381587
+        },
+        {
+          "ref": "line 18",
+          "id": "call_00_nxmspHTqsNk0fDkUgO7o4137",
+          "tool": "write",
+          "path": "test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 1790695391672
+        },
+        {
+          "ref": "line 21",
+          "id": "call_00_uJTwlFhGMctTOXc0LnsP7910",
+          "tool": "edit",
+          "path": "test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 1790695393835
+        },
+        {
+          "ref": "line 24",
+          "id": "call_00_7e84aiJqxtPEhpYuE95r5928",
+          "tool": "edit",
+          "path": "test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 1790695395519
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 15",
+          "id": "call_00_3XFsxlGwDRVhNnAqR0gf5392",
+          "command": "python public_tests.py -v",
+          "started_at": 1790695383563,
+          "completed_at": 1790695384145,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 27",
+          "id": "call_00_ET_ON1MbIAHWkoojySAGVKX5623",
+          "command": "python -m unittest test_receipt_tools -v 2>&1",
+          "started_at": 1790695396905,
+          "completed_at": 1790695397881,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 21,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python -m unittest test_receipt_tools"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 31",
+          "id": "call_00_XulAtIeIOZBEhpL12B1e3939",
+          "command": "python public_tests.py && python -m unittest test_receipt_tools 2>&1 | Select-Object -Last 4",
+          "started_at": 1790695401978,
+          "completed_at": 1790695403291,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 21,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python -m unittest test_receipt_tools"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790695395519,
+      "last_implementation_change": 1790695381587,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/receipt_package-opencode-r2/stdout.jsonl"
+    },
+    {
+      "id": "interval_coverage-pi-r2",
+      "task": "interval_coverage",
+      "harness": "pi",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 3015",
+          "id": "call_00_a2s8uXCGL8g9BNePSI1d7810",
+          "tool": "write",
+          "path": "coverage.py",
+          "kind": "implementation",
+          "completed_at": 3015
+        },
+        {
+          "ref": "line 4748",
+          "id": "call_00_vU9LHgs1tcCkNLi0JmGH2627",
+          "tool": "write",
+          "path": "test_coverage.py",
+          "kind": "test",
+          "completed_at": 4748
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 4789",
+          "id": "call_00_ET_303XPsTn7mc3EaUEFF638726",
+          "command": "python public_tests.py && echo \"=== additional ===\" && python test_coverage.py",
+          "started_at": 4784,
+          "completed_at": 4789,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 29,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_coverage.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 4748,
+      "last_implementation_change": 3015,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/interval_coverage-pi-r2/stdout.jsonl"
+    },
+    {
+      "id": "interval_coverage-opencode-r2",
+      "task": "interval_coverage",
+      "harness": "opencode",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 15",
+          "id": "call_00_vdgYnXF2XbhlorW1Zmol6028",
+          "tool": "write",
+          "path": "coverage.py",
+          "kind": "implementation",
+          "completed_at": 1790695470262
+        },
+        {
+          "ref": "line 18",
+          "id": "call_00_BsXFOMlYP5KqorudAnYY3348",
+          "tool": "write",
+          "path": "test_coverage_extra.py",
+          "kind": "test",
+          "completed_at": 1790695475357
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 21",
+          "id": "call_00_ET_M9qIJrh2gzAL8Az9bxRI1452",
+          "command": "python public_tests.py; python test_coverage_extra.py",
+          "started_at": 1790695476606,
+          "completed_at": 1790695477171,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 17,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_coverage_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790695475357,
+      "last_implementation_change": 1790695470262,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/interval_coverage-opencode-r2/stdout.jsonl"
+    },
+    {
+      "id": "repair_routes-pi-r2",
+      "task": "repair_routes",
+      "harness": "pi",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 6195",
+          "id": "call_00_MR3Qg4KZtjHNClpLSq9N1724",
+          "tool": "write",
+          "path": "router.py",
+          "kind": "implementation",
+          "completed_at": 6195
+        },
+        {
+          "ref": "line 7892",
+          "id": "call_00_D3pvOlGlPqN8PZXXAa1C4308",
+          "tool": "write",
+          "path": "extra_tests.py",
+          "kind": "test",
+          "completed_at": 7892
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 6379",
+          "id": "call_00_F0XagFFTdQcmX95nn95g7875",
+          "command": "cd \"[absolute-path]\" && python public_tests.py",
+          "started_at": 6375,
+          "completed_at": 6379,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 7967",
+          "id": "call_00_ET_aLFXI1Kcfi2MDXQIgwAD2300",
+          "command": "cd \"[absolute-path]\" && python extra_tests.py",
+          "started_at": 7963,
+          "completed_at": 7967,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 17,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 9262",
+          "id": "call_00_PhrkELMHbpZ7PEePhuzX4942",
+          "command": "cd \"[absolute-path]\" && python public_tests.py && python extra_tests.py && python -m py_compile router.py",
+          "started_at": 9258,
+          "completed_at": 9262,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 17,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python extra_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 7892,
+      "last_implementation_change": 6195,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/repair_routes-pi-r2/stdout.jsonl"
+    },
+    {
+      "id": "receipt_package-thinkflow-r1",
+      "task": "receipt_package",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[16]",
+          "id": "1",
+          "tool": "write",
+          "path": "receipt_tools/__init__.py",
+          "kind": "implementation",
+          "completed_at": 18.656
+        },
+        {
+          "ref": "events[18]",
+          "id": "2",
+          "tool": "write",
+          "path": "receipt_tools/model.py",
+          "kind": "implementation",
+          "completed_at": 21.672
+        },
+        {
+          "ref": "events[20]",
+          "id": "3",
+          "tool": "write",
+          "path": "receipt_tools/cli.py",
+          "kind": "implementation",
+          "completed_at": 24.031
+        },
+        {
+          "ref": "events[34]",
+          "id": "call_00_2bfn5kzV57Fr1JJWUzNr6718",
+          "tool": "write",
+          "path": "tests/test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 48.015
+        },
+        {
+          "ref": "events[49]",
+          "id": "call_00_QBXK2nk4VIueCXMjB0ci2487",
+          "tool": "edit",
+          "path": "tests/test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 55.047
+        },
+        {
+          "ref": "events[51]",
+          "id": "call_01_XPHUg8opSvAbbuwXbHuv4263",
+          "tool": "edit",
+          "path": "tests/test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 55.062
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[27]",
+          "id": "call_00_M26xUzgnYcgGNLfpoO7b1566",
+          "command": "python public_tests.py",
+          "started_at": 35.687,
+          "completed_at": 35.812,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[39]",
+          "id": "call_00_0sNn5icPwWrxbyESwz8J9740",
+          "command": "python -m unittest discover -s tests -t . -v 2>&1",
+          "started_at": 49.062,
+          "completed_at": 49.156,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [],
+          "targets": [
+            "python -m unittest discover -s tests -t ."
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[44]",
+          "id": "call_00_nZwg3M4FYCBuH7MZi2U68292",
+          "command": "python tests\\test_receipt_tools.py 2>&1",
+          "started_at": 50.218,
+          "completed_at": 51.328,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 41,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python tests/test_receipt_tools.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[58]",
+          "id": "call_00_Kg81C6AuzjrAZw0MKSt32622",
+          "command": "python tests\\test_receipt_tools.py 2>&1 | findstr /C:\"Ran \" /C:\"OK\" /C:\"FAILED\"",
+          "started_at": 56.515,
+          "completed_at": 57.703,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 41,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_receipt_tools.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[60]",
+          "id": "call_01_Wbgy58SafuHFuH0TKFuh5127",
+          "command": "python public_tests.py 2>&1",
+          "started_at": 57.703,
+          "completed_at": 57.828,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 55.062,
+      "last_implementation_change": 24.031,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/receipt_package-thinkflow-r1/harness.json"
+    },
+    {
+      "id": "interval_coverage-pi-r1",
+      "task": "interval_coverage",
+      "harness": "pi",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 4218",
+          "id": "call_01_hsnmJVrDOHdyxGMW2x9t8668",
+          "tool": "write",
+          "path": "test_coverage.py",
+          "kind": "test",
+          "completed_at": 4218
+        },
+        {
+          "ref": "line 4219",
+          "id": "call_00_nYL3zNEk1NWOkjPvXk4O4752",
+          "tool": "write",
+          "path": "coverage.py",
+          "kind": "implementation",
+          "completed_at": 4219
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 4406",
+          "id": "call_00_6o8aZgfHwqa1VTUEgVOx6578",
+          "command": "python public_tests.py && python test_coverage.py",
+          "started_at": 4402,
+          "completed_at": 4406,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 24,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_coverage.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 4219,
+      "last_implementation_change": 4219,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/interval_coverage-pi-r1/stdout.jsonl"
+    },
+    {
+      "id": "receipt_package-opencode-r1",
+      "task": "receipt_package",
+      "harness": "opencode",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 9",
+          "id": "call_00_ohiXPZtSk6pPs2i0bzj88011",
+          "tool": "write",
+          "path": "receipt_tools/model.py",
+          "kind": "implementation",
+          "completed_at": 1790695682958
+        },
+        {
+          "ref": "line 10",
+          "id": "call_01_MWzEygrNZfqN6BHzYmXw9071",
+          "tool": "write",
+          "path": "receipt_tools/__init__.py",
+          "kind": "implementation",
+          "completed_at": 1790695683215
+        },
+        {
+          "ref": "line 13",
+          "id": "call_00_Er9dud3vNnIExqAtfFNq3846",
+          "tool": "write",
+          "path": "receipt_tools/cli.py",
+          "kind": "implementation",
+          "completed_at": 1790695687205
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 16",
+          "id": "call_00_hW4fUscrFo54rjHxYJGJ6311",
+          "command": "python public_tests.py",
+          "started_at": 1790695688739,
+          "completed_at": 1790695689310,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790695687205,
+      "last_implementation_change": 1790695687205,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/receipt_package-opencode-r1/stdout.jsonl"
+    },
+    {
+      "id": "interval_coverage-thinkflow-r1",
+      "task": "interval_coverage",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[20]",
+          "id": "2",
+          "tool": "write",
+          "path": "coverage.py",
+          "kind": "implementation",
+          "completed_at": 29.172
+        },
+        {
+          "ref": "events[22]",
+          "id": "3",
+          "tool": "write",
+          "path": "tests/test_coverage_extra.py",
+          "kind": "test",
+          "completed_at": 33.437
+        },
+        {
+          "ref": "events[25]",
+          "id": "4",
+          "tool": "edit",
+          "path": "tests/test_coverage_extra.py",
+          "kind": "test",
+          "completed_at": 34.359
+        },
+        {
+          "ref": "events[38]",
+          "id": "5",
+          "tool": "write",
+          "path": "coverage.py",
+          "kind": "implementation",
+          "completed_at": 61.265
+        },
+        {
+          "ref": "events[40]",
+          "id": "6",
+          "tool": "edit",
+          "path": "tests/test_coverage_extra.py",
+          "kind": "test",
+          "completed_at": 62.078
+        },
+        {
+          "ref": "events[42]",
+          "id": "7",
+          "tool": "edit",
+          "path": "tests/test_coverage_extra.py",
+          "kind": "test",
+          "completed_at": 62.375
+        },
+        {
+          "ref": "events[45]",
+          "id": "8",
+          "tool": "edit",
+          "path": "tests/test_coverage_extra.py",
+          "kind": "test",
+          "completed_at": 64.219
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[27]",
+          "id": "call_00_q5kHRr3ZfcKZcmBQj7PS2137",
+          "command": "python public_tests.py",
+          "started_at": 34.359,
+          "completed_at": 34.484,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[29]",
+          "id": "call_01_hqVTimJB2nt06N11jkNU2689",
+          "command": "python tests\\test_coverage_extra.py",
+          "started_at": 34.484,
+          "completed_at": 34.594,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 30,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python tests/test_coverage_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[47]",
+          "id": "call_00_F0xz9SfuJo3FMJFuPF791427",
+          "command": "python tests\\test_coverage_extra.py",
+          "started_at": 64.219,
+          "completed_at": 64.375,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 30,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_coverage_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[49]",
+          "id": "call_01_kz969HLwSxqyix6cLVyS9473",
+          "command": "python public_tests.py",
+          "started_at": 64.375,
+          "completed_at": 64.484,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 64.219,
+      "last_implementation_change": 61.265,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/interval_coverage-thinkflow-r1/harness.json"
+    },
+    {
+      "id": "pricing_refactor-opencode-r1",
+      "task": "pricing_refactor",
+      "harness": "opencode",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 14",
+          "id": "call_00_N2VhNXPiGwrotjU7sbyq5264",
+          "tool": "write",
+          "path": "pricing.py",
+          "kind": "implementation",
+          "completed_at": 1790695808237
+        },
+        {
+          "ref": "line 18",
+          "id": "call_00_ET_pwUVPVpa6ljzCD0qui4A7792",
+          "tool": "write",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 1790695809998
+        },
+        {
+          "ref": "line 19",
+          "id": "call_01_ET_qtIkrgJKWPp0mk4vcB8Z9871",
+          "tool": "write",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 1790695810860
+        },
+        {
+          "ref": "line 25",
+          "id": "call_00_FYFDuP4E0WLUTez2aQBj9243",
+          "tool": "write",
+          "path": "test_pricing_extra.py",
+          "kind": "test",
+          "completed_at": 1790695818980
+        },
+        {
+          "ref": "line 32",
+          "id": "call_00_w4qZfZlVUte9wIQ2mrJN8925",
+          "tool": "edit",
+          "path": "test_pricing_extra.py",
+          "kind": "test",
+          "completed_at": 1790695822995
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 22",
+          "id": "call_00_ET_RhVNkXdr30fKkJQ2kfzQ8583",
+          "command": "python public_tests.py",
+          "started_at": 1790695812129,
+          "completed_at": 1790695812667,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 29",
+          "id": "call_00_BTSwlkHCDcA3t12cr60k2781",
+          "command": "python test_pricing_extra.py",
+          "started_at": 1790695820879,
+          "completed_at": 1790695821415,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 17,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python test_pricing_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 36",
+          "id": "call_00_ET_Wsug1XS74Iqm7he346919730",
+          "command": "python test_pricing_extra.py && python public_tests.py",
+          "started_at": 1790695824307,
+          "completed_at": 1790695824891,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 17,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python test_pricing_extra.py",
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790695822995,
+      "last_implementation_change": 1790695810860,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/pricing_refactor-opencode-r1/stdout.jsonl"
+    },
+    {
+      "id": "receipt_package-pi-r2",
+      "task": "receipt_package",
+      "harness": "pi",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 5708",
+          "id": "call_01_0TSoh1VqeXxnOv5MLaSf8048",
+          "tool": "write",
+          "path": "receipt_tools/__init__.py",
+          "kind": "implementation",
+          "completed_at": 5708
+        },
+        {
+          "ref": "line 5709",
+          "id": "call_00_CZobS5mvs6yahgTRu0Wi5272",
+          "tool": "write",
+          "path": "receipt_tools/model.py",
+          "kind": "implementation",
+          "completed_at": 5709
+        },
+        {
+          "ref": "line 5710",
+          "id": "call_02_Atars1iPthuIPF08zTzr4073",
+          "tool": "write",
+          "path": "receipt_tools/cli.py",
+          "kind": "implementation",
+          "completed_at": 5710
+        },
+        {
+          "ref": "line 8227",
+          "id": "call_00_hZHegaUFfceSR50gW1S40439",
+          "tool": "bash",
+          "path": "[shell write: review required]",
+          "kind": "uncertain",
+          "completed_at": 8227
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 5772",
+          "id": "call_00_MigO6UOkWSoIZfCu9szg5111",
+          "command": "python public_tests.py",
+          "started_at": 5768,
+          "completed_at": 5772,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 9478",
+          "id": "call_00_3Ap8A2DydMMcTqgmey7t0424",
+          "command": "python public_tests.py && echo \"---\" && ls -R receipt_tools",
+          "started_at": 9474,
+          "completed_at": 9478,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 8227,
+      "last_implementation_change": 8227,
+      "uncertain_shell_mutations": [
+        "line 8227"
+      ],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/receipt_package-pi-r2/stdout.jsonl",
+      "manual_audit": "Shell line 8227 wrote a temporary check_receipt.py and failed import, not final production source. Line 8405 reran it with PYTHONPATH=. and saved model checks OK / CLI checks OK; public test at line 9478 saved 1/OK. Initial probe failure retained here, not treated as model completion failure."
+    },
+    {
+      "id": "frame_decoder-pi-r1",
+      "task": "frame_decoder",
+      "harness": "pi",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 7357",
+          "id": "call_01_UG5NNyV2tAJzac2VVeXu3410",
+          "tool": "write",
+          "path": "test_decoder.py",
+          "kind": "test",
+          "completed_at": 7357
+        },
+        {
+          "ref": "line 7358",
+          "id": "call_00_enzGPdvNOvyZeQqXsKUS2676",
+          "tool": "write",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 7358
+        },
+        {
+          "ref": "line 9047",
+          "id": "call_00_NxQScrjphjaVUznuKky12881",
+          "tool": "edit",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 9047
+        },
+        {
+          "ref": "line 9999",
+          "id": "call_00_OeWTW2p2n2gh0izIEgoa9763",
+          "tool": "bash",
+          "path": "[shell write: review required]",
+          "kind": "uncertain",
+          "completed_at": 9999
+        },
+        {
+          "ref": "line 12126",
+          "id": "call_00_WwBiDApaayEDSG2yCKu94552",
+          "tool": "edit",
+          "path": "test_decoder.py",
+          "kind": "test",
+          "completed_at": 12126
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 7682",
+          "id": "call_00_kNFIMcFde18MqOjChoqW5160",
+          "command": "cd \"[absolute-path]\" && python public_tests.py && echo \"=== own tests ===\" && python test_decoder.py",
+          "started_at": 7678,
+          "completed_at": 7682,
+          "tool_success": false,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_decoder.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 9296",
+          "id": "call_00_9uAdPyZAwVwlH8bqeQak9597",
+          "command": "cd \"[absolute-path]\" && python public_tests.py && echo \"=== own tests ===\" && python test_decoder.py",
+          "started_at": 9292,
+          "completed_at": 9296,
+          "tool_success": false,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_decoder.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 10087",
+          "id": "call_00_ET_m9XtTrwbnUDNHEN8fDAO7250",
+          "command": "cd \"[absolute-path]\" && python public_tests.py && echo \"=== own tests ===\" && python test_decoder.py",
+          "started_at": 10083,
+          "completed_at": 10087,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 26,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_decoder.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 12366",
+          "id": "call_00_ET_oB5aReZmKYgzIwEkncY96462",
+          "command": "cd \"[absolute-path]\" && python -m py_compile decoder.py test_decoder.py && python public_tests.py && python test_decoder.py && python - <<'EOF' [multiline/long command omitted]",
+          "started_at": 12361,
+          "completed_at": 12366,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 26,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_decoder.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 12126,
+      "last_implementation_change": 9999,
+      "uncertain_shell_mutations": [
+        "line 9999"
+      ],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/frame_decoder-pi-r1/stdout.jsonl",
+      "manual_audit": "Shell line 9999 rewrote decoder.py state constants; line 12366, after the final test edit, saved public 1/OK and custom 26/OK. The earlier shell mutation does not invalidate later saved test success."
+    },
+    {
+      "id": "repair_routes-pi-r1",
+      "task": "repair_routes",
+      "harness": "pi",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 4748",
+          "id": "call_00_N6AIHSGiVNw7dPGo4fNs5093",
+          "tool": "write",
+          "path": "router.py",
+          "kind": "implementation",
+          "completed_at": 4748
+        },
+        {
+          "ref": "line 6496",
+          "id": "call_00_dFwR5ZDUI0p3ILpyOmlM2348",
+          "tool": "write",
+          "path": "test_router_extended.py",
+          "kind": "test",
+          "completed_at": 6496
+        },
+        {
+          "ref": "line 7087",
+          "id": "call_00_JkQmEU5K2uSNQsV9vVlX3881",
+          "tool": "bash",
+          "path": "[shell write: review required]",
+          "kind": "uncertain",
+          "completed_at": 7087
+        },
+        {
+          "ref": "line 9390",
+          "id": "call_00_i1flRmGGuFEaGtwgDOun9169",
+          "tool": "write",
+          "path": "router.py",
+          "kind": "implementation",
+          "completed_at": 9390
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 6580",
+          "id": "call_00_OZrCWMvtAR9PR9BykJQc5476",
+          "command": "python public_tests.py && python test_router_extended.py",
+          "started_at": 6576,
+          "completed_at": 6580,
+          "tool_success": false,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 23,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_router_extended.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 7122",
+          "id": "call_00_ET_BCb8ReSE25IXjjSlpqNA2581",
+          "command": "python public_tests.py && python test_router_extended.py",
+          "started_at": 7118,
+          "completed_at": 7122,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 23,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_router_extended.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 9486",
+          "id": "call_00_wdvTnCZx3AWRUIb2IxeP3719",
+          "command": "python public_tests.py && python test_router_extended.py",
+          "started_at": 9482,
+          "completed_at": 9486,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 23,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python test_router_extended.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 9878",
+          "id": "call_00_OpXr8aCrbeXmsHhSx4IO5981",
+          "command": "python -m unittest -v public_tests test_router_extended 2>&1 | tail -5",
+          "started_at": 9875,
+          "completed_at": 9878,
+          "tool_success": true,
+          "exit_code": null,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 24,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python -m unittest public_tests test_router_extended"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 9390,
+      "last_implementation_change": 9390,
+      "uncertain_shell_mutations": [
+        "line 7087"
+      ],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/repair_routes-pi-r1/stdout.jsonl",
+      "manual_audit": "Shell line 7087 rewrote test_router_extended.py; final router.py write at line 9390 preceded line 9486 public 1/OK and custom 23/OK, followed by combined 24/OK at line 9878."
+    },
+    {
+      "id": "pricing_refactor-thinkflow-r1",
+      "task": "pricing_refactor",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[28]",
+          "id": "call_01_zjIyUiYsOkTR7DyaneEl4815",
+          "tool": "write",
+          "path": "pricing.py",
+          "kind": "implementation",
+          "completed_at": 100.516
+        },
+        {
+          "ref": "events[30]",
+          "id": "call_02_WsjT6KuRkRMSSJgQqX4Z6258",
+          "tool": "write",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 100.516
+        },
+        {
+          "ref": "events[32]",
+          "id": "call_03_wiQV5UXwMmsln55tj5SO0702",
+          "tool": "write",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 100.532
+        },
+        {
+          "ref": "events[37]",
+          "id": "call_00_ciDCZILpixuV6PIBsryF0375",
+          "tool": "write",
+          "path": "tests/test_pricing.py",
+          "kind": "test",
+          "completed_at": 108.25
+        },
+        {
+          "ref": "events[49]",
+          "id": "call_00_vjmb1fW1dDH2TQ6V74oc8128",
+          "tool": "write",
+          "path": "tests/test_oracle_crosscheck.py",
+          "kind": "test",
+          "completed_at": 124.828
+        },
+        {
+          "ref": "events[56]",
+          "id": "call_00_gLVpSSDQY6haniKhV6vT7758",
+          "tool": "edit",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 127.0
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[39]",
+          "id": "call_01_ZCSBd2DiangRF6GBGnzU4764",
+          "command": "python public_tests.py",
+          "started_at": 108.25,
+          "completed_at": 108.344,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[44]",
+          "id": "call_00_j721s1KqSWLkCCL9YGeM6218",
+          "command": "python tests\\test_pricing.py -v 2>&1",
+          "started_at": 109.422,
+          "completed_at": 109.516,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 26,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_pricing.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[51]",
+          "id": "call_01_dEAxzL183Ilssy4Ui7eP0830",
+          "command": "python tests\\test_oracle_crosscheck.py -v 2>&1",
+          "started_at": 124.828,
+          "completed_at": 124.985,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 4,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_oracle_crosscheck.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[61]",
+          "id": "call_00_PmiEoPcKpTZ4Q4e3rD5l3115",
+          "command": "python public_tests.py & python tests\\test_pricing.py & python tests\\test_oracle_crosscheck.py",
+          "started_at": 128.032,
+          "completed_at": 128.344,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 3,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 26,
+              "outcome": "passed"
+            },
+            {
+              "tests": 4,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_pricing.py",
+            "python tests/test_oracle_crosscheck.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 127.0,
+      "last_implementation_change": 127.0,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/pricing_refactor-thinkflow-r1/harness.json"
+    },
+    {
+      "id": "pricing_refactor-opencode-r2",
+      "task": "pricing_refactor",
+      "harness": "opencode",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "line 15",
+          "id": "call_00_jKH4xTkD8Kg0JO7MbMl75141",
+          "tool": "write",
+          "path": "pricing.py",
+          "kind": "implementation",
+          "completed_at": 1790696169185
+        },
+        {
+          "ref": "line 16",
+          "id": "call_01_Jhp0mGVdliceMNEjYNN68455",
+          "tool": "write",
+          "path": "checkout.py",
+          "kind": "implementation",
+          "completed_at": 1790696169754
+        },
+        {
+          "ref": "line 17",
+          "id": "call_02_tvDf8oHScynMgjE7cv550492",
+          "tool": "write",
+          "path": "reporting.py",
+          "kind": "implementation",
+          "completed_at": 1790696170449
+        },
+        {
+          "ref": "line 25",
+          "id": "call_00_FVPsf2YJPzY7R4xm6bX64055",
+          "tool": "write",
+          "path": "my_tests.py",
+          "kind": "test",
+          "completed_at": 1790696182109
+        },
+        {
+          "ref": "line 32",
+          "id": "call_00_KdzBMsSxyXWlQ1kDWLir5108",
+          "tool": "edit",
+          "path": "my_tests.py",
+          "kind": "test",
+          "completed_at": 1790696186771
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "line 21",
+          "id": "call_00_2E38XIEPCOjvL0NDvMbd6066",
+          "command": "python public_tests.py",
+          "started_at": 1790696171918,
+          "completed_at": 1790696172497,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 28",
+          "id": "call_00_iA5AapaRt5koddtqbQDK9944",
+          "command": "python my_tests.py",
+          "started_at": 1790696183868,
+          "completed_at": 1790696184377,
+          "tool_success": true,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 24,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python my_tests.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "line 35",
+          "id": "call_00_ET_6PtCOj83PUFab4XA47UM7962",
+          "command": "python my_tests.py && python public_tests.py",
+          "started_at": 1790696187955,
+          "completed_at": 1790696188559,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 24,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python my_tests.py",
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 1790696186771,
+      "last_implementation_change": 1790696170449,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/pricing_refactor-opencode-r2/stdout.jsonl"
+    },
+    {
+      "id": "receipt_package-thinkflow-r2",
+      "task": "receipt_package",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[21]",
+          "id": "1",
+          "tool": "write",
+          "path": "receipt_tools/model.py",
+          "kind": "implementation",
+          "completed_at": 60.766
+        },
+        {
+          "ref": "events[23]",
+          "id": "2",
+          "tool": "write",
+          "path": "receipt_tools/__init__.py",
+          "kind": "implementation",
+          "completed_at": 61.047
+        },
+        {
+          "ref": "events[25]",
+          "id": "3",
+          "tool": "write",
+          "path": "receipt_tools/cli.py",
+          "kind": "implementation",
+          "completed_at": 64.219
+        },
+        {
+          "ref": "events[27]",
+          "id": "4",
+          "tool": "write",
+          "path": "tests/test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 74.547
+        },
+        {
+          "ref": "events[45]",
+          "id": "5",
+          "tool": "edit",
+          "path": "tests/test_receipt_tools.py",
+          "kind": "test",
+          "completed_at": 82.391
+        },
+        {
+          "ref": "events[117]",
+          "id": "call_00_PHM5l88djs1NK7JqDzlQ8247",
+          "tool": "write",
+          "path": ".thinkflow/verify_cli_edges.py",
+          "kind": "test",
+          "completed_at": 122.157
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[30]",
+          "id": "call_00_yv8RpDSmhmumyZ7bAYpD9849",
+          "command": "cd /d \"[absolute-path]\" && python public_tests.py",
+          "started_at": 74.813,
+          "completed_at": 74.907,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[35]",
+          "id": "call_00_H6UFM3bxveyl7Zufwl4j7599",
+          "command": "cd /d \"[absolute-path]\" && python tests/test_receipt_tools.py",
+          "started_at": 76.141,
+          "completed_at": 77.032,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 35,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python tests/test_receipt_tools.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[47]",
+          "id": "call_00_StLgbrSPncHVD1SbLt2D4938",
+          "command": "cd /d \"[absolute-path]\" && python tests/test_receipt_tools.py 2>&1 | findstr /C:\"Ran \" /C:\"FAIL\" /C:\"OK\"",
+          "started_at": 82.391,
+          "completed_at": 83.25,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 35,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python tests/test_receipt_tools.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[112]",
+          "id": "call_00_aRrvpz33f4g0hE3YlPSh1761",
+          "command": "cd /d \"[absolute-path]\" && python -m unittest discover -s tests -v 2>&1 | findstr /C:\"Ran \" /C:\"OK\" /C:\"FAILED\"",
+          "started_at": 114.938,
+          "completed_at": 115.844,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 35,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python -m unittest discover -s tests"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[122]",
+          "id": "call_00_ET_oYujo8FahD4rzW5Pcd4z2946",
+          "command": "cd /d \"[absolute-path]\" && python .thinkflow/verify_cli_edges.py",
+          "started_at": 123.516,
+          "completed_at": 124.344,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 13,
+              "outcome": "passed",
+              "format": "ad_hoc_checks"
+            }
+          ],
+          "targets": [
+            "python .thinkflow/verify_cli_edges.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 122.157,
+      "last_implementation_change": 64.219,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/receipt_package-thinkflow-r2/harness.json",
+      "manual_audit": "Verification helper, not production source: receipt_tools last changed at events[25]; public 1/OK at events[30], custom 35/OK at events[47] and discover at events[112]; final helper at events[122] saved 13/13 CLI edge checks passed. Helper checks and exit handling inspected offline."
+    },
+    {
+      "id": "interval_coverage-thinkflow-r2",
+      "task": "interval_coverage",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[19]",
+          "id": "call_00_TeZSW9dFqoyu546FtPHs6669",
+          "tool": "write",
+          "path": "coverage.py",
+          "kind": "implementation",
+          "completed_at": 36.703
+        },
+        {
+          "ref": "events[21]",
+          "id": "call_01_ABG1S1Hyni2rZaygKFhp3825",
+          "tool": "write",
+          "path": "tests/test_coverage.py",
+          "kind": "test",
+          "completed_at": 36.703
+        },
+        {
+          "ref": "events[31]",
+          "id": "call_00_YQbnQGb2X8ZvulmX6V0u0472",
+          "tool": "edit",
+          "path": "tests/test_coverage.py",
+          "kind": "test",
+          "completed_at": 40.187
+        },
+        {
+          "ref": "events[41]",
+          "id": "call_00_CIrHLxDZUNLEabwHnzjh2603",
+          "tool": "edit",
+          "path": "tests/test_coverage.py",
+          "kind": "test",
+          "completed_at": 48.468
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[26]",
+          "id": "call_00_lm3yuLyQEpQIZoypwz8y6629",
+          "command": "python public_tests.py && python tests/test_coverage.py",
+          "started_at": 37.687,
+          "completed_at": 37.953,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 30,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_coverage.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[36]",
+          "id": "call_00_o31kPE12yL2Cn4Kthf3n4855",
+          "command": "python public_tests.py && python tests/test_coverage.py 2>&1 | findstr /C:\"Ran\" /C:\"OK\" /C:\"FAILED\"",
+          "started_at": 41.156,
+          "completed_at": 41.359,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 30,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_coverage.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[46]",
+          "id": "call_00_TDB03jKhXlpgWAtGDk4G2257",
+          "command": "python public_tests.py && python tests/test_coverage.py 2>&1 | findstr /C:\"Ran\" /C:\"OK\" /C:\"FAILED\" /C:\"ERROR\"",
+          "started_at": 49.656,
+          "completed_at": 49.859,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 32,
+              "outcome": "passed"
+            },
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_coverage.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 48.468,
+      "last_implementation_change": 36.703,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/interval_coverage-thinkflow-r2/harness.json"
+    },
+    {
+      "id": "frame_decoder-thinkflow-r2",
+      "task": "frame_decoder",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "classification": "confirmed_success",
+      "supplied_public_tests_confirmed": true,
+      "file_mutation_order": [
+        {
+          "ref": "events[23]",
+          "id": "1",
+          "tool": "write",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 48.609
+        },
+        {
+          "ref": "events[25]",
+          "id": "2",
+          "tool": "write",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 64.187
+        },
+        {
+          "ref": "events[27]",
+          "id": "3",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 64.89
+        },
+        {
+          "ref": "events[29]",
+          "id": "4",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 65.796
+        },
+        {
+          "ref": "events[31]",
+          "id": "5",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 66.25
+        },
+        {
+          "ref": "events[57]",
+          "id": "call_00_CSlRkFrLElNXtgvqYMHl1166",
+          "tool": "edit",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 112.515
+        },
+        {
+          "ref": "events[59]",
+          "id": "call_01_uYwjenzDTvRedWwyHeqj7694",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 112.531
+        },
+        {
+          "ref": "events[64]",
+          "id": "call_00_Ag9Xa373IeSdV8zF6pZ63796",
+          "tool": "edit",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 114.921
+        },
+        {
+          "ref": "events[66]",
+          "id": "call_01_WugKHCLJ7gplUHRcOsCm8934",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 114.937
+        },
+        {
+          "ref": "events[71]",
+          "id": "call_00_fBgIq29vL0xcad8ABcHV2152",
+          "tool": "edit",
+          "path": "decoder.py",
+          "kind": "implementation",
+          "completed_at": 116.89
+        },
+        {
+          "ref": "events[73]",
+          "id": "call_01_HJlld4oQnS4K0IvYovad0631",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 116.906
+        },
+        {
+          "ref": "events[78]",
+          "id": "call_00_s7zhBSMCQWx7pNg8supS1686",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 118.703
+        },
+        {
+          "ref": "events[88]",
+          "id": "call_00_VxgR6MR2KrOOKOaQtzRt5026",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 130.75
+        },
+        {
+          "ref": "events[95]",
+          "id": "call_00_8KQfGrjPtDfDfLgMGntQ4969",
+          "tool": "edit",
+          "path": "tests/test_decoder_extra.py",
+          "kind": "test",
+          "completed_at": 133.687
+        }
+      ],
+      "tool_evidence": [
+        {
+          "ref": "events[34]",
+          "id": "call_00_kY7pZ5U1Sm3IUqDPlyod4781",
+          "command": "cd /d \"[absolute-path]\" && python public_tests.py -v",
+          "started_at": 66.75,
+          "completed_at": 66.843,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[39]",
+          "id": "call_00_nFTeX08g7ZuQI70epUjf9517",
+          "command": "python tests\\test_decoder_extra.py 2>&1",
+          "started_at": 68.828,
+          "completed_at": 69.25,
+          "tool_success": false,
+          "exit_code": 1,
+          "shell_can_mask_exit": false,
+          "invocations_detected": 1,
+          "summaries": [
+            {
+              "tests": 38,
+              "outcome": "failed"
+            }
+          ],
+          "targets": [
+            "python tests/test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": false,
+          "outcome": "explicit_failure",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[83]",
+          "id": "call_00_GIxj0ElM8eIDaqgsCMas8895",
+          "command": "python public_tests.py 2>&1 && python tests\\test_decoder_extra.py 2>&1",
+          "started_at": 119.578,
+          "completed_at": 120.125,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 38,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        },
+        {
+          "ref": "events[100]",
+          "id": "call_00_gZ09ayVhNSgpOaElq6uR2321",
+          "command": "python public_tests.py 2>&1 && python tests\\test_decoder_extra.py 2>&1 | findstr /C:\"Ran\" /C:\"OK\" /C:\"FAILED\" /C:\"ERROR\"",
+          "started_at": 134.89,
+          "completed_at": 135.468,
+          "tool_success": true,
+          "exit_code": 0,
+          "shell_can_mask_exit": true,
+          "invocations_detected": 2,
+          "summaries": [
+            {
+              "tests": 1,
+              "outcome": "passed"
+            },
+            {
+              "tests": 42,
+              "outcome": "passed"
+            }
+          ],
+          "targets": [
+            "python public_tests.py",
+            "python tests/test_decoder_extra.py"
+          ],
+          "supplied_public_tests_in_command": true,
+          "outcome": "confirmed_success",
+          "receipt_saved": true,
+          "output_truncated": false
+        }
+      ],
+      "last_code_or_test_change": 133.687,
+      "last_implementation_change": 116.89,
+      "uncertain_shell_mutations": [],
+      "limitations": "Saved output proves execution only, not coverage quality. Tests modified by the model remain listed. Shell mutation detection is conservative; unrecognized writes require review.",
+      "source_log": "artifacts/benchmark-20260929/production-91e4911/frame_decoder-thinkflow-r2/harness.json"
+    }
+  ]
+}

@@ -236,7 +236,7 @@ class BenchmarkRunnerTests(unittest.TestCase):
                     runner.freeze_manifest(destination, False)
                 self.assertEqual((destination / 'manifest.json').read_bytes(), frozen)
 
-    def run_fake_job(self, *, broken_configuration=False):
+    def run_fake_job(self, *, broken_configuration=False, broken_progress=False):
         class FakeMeter:
             token = 'local-fixture'
 
@@ -264,11 +264,15 @@ class BenchmarkRunnerTests(unittest.TestCase):
             return ['never-executed'], {}
 
         process = Mock(returncode=0)
+        if broken_progress:
+            process.communicate.side_effect=[runner.subprocess.TimeoutExpired('fixture',8),None]
         with tempfile.TemporaryDirectory() as temporary, \
              patch.dict(sys.modules, {'tasks': fake_tasks}), \
              patch.object(runner, 'Meter', FakeMeter), \
              patch.object(runner, 'configuration', side_effect=configuration), \
              patch.object(runner.subprocess, 'Popen', return_value=process) as spawn, \
+             patch.object(runner,'print_progress',side_effect=UnicodeEncodeError('gbk','\ufffd',0,1,'fixture')), \
+             patch.object(runner,'kill_tree') as kill, \
              contextlib.redirect_stdout(io.StringIO()):
             result = runner.run_one({'id': 'fixture', 'task': 'fixture', 'harness': 'fixture'},
                                     Path(temporary), 'fixture-not-a-credential')
@@ -276,6 +280,8 @@ class BenchmarkRunnerTests(unittest.TestCase):
             self.assertEqual(saved, result)
             if broken_configuration:
                 spawn.assert_not_called()
+            if broken_progress:
+                kill.assert_not_called()
             return result
 
     def test_public_test_change_and_bad_diagnostic_are_recorded(self):
@@ -288,6 +294,42 @@ class BenchmarkRunnerTests(unittest.TestCase):
         result = self.run_fake_job(broken_configuration=True)
         self.assertIn('configuration failed', result['infrastructure_error'])
         self.assertIsNone(result['exit_code'])
+
+    def test_progress_failure_cannot_terminate_worker(self):
+        result=self.run_fake_job(broken_progress=True)
+        self.assertIsNone(result['infrastructure_error'])
+        self.assertEqual(result['exit_code'],0)
+        self.assertEqual(result['observer_errors'],['UnicodeEncodeError'])
+
+
+class BenchmarkReportRecoveryTests(unittest.TestCase):
+    def test_recovery_requires_identical_conditions_and_observer_failure(self):
+        analysis = load_module('benchmark_report_recovery', 'analyze.py')
+        with tempfile.TemporaryDirectory() as temporary:
+            original, recovery = Path(temporary)/'original', Path(temporary)/'recovery'
+            job = {'id':'repair_routes-thinkflow-r2','task':'repair_routes','harness':'thinkflow','repeat':2}
+            manifest = {'source_commit':'fixture','versions':{'thinkflow':'fixture'},
+                        'generation':{'max_tokens':None}, 'files':{'worker.py':'fixture'},
+                        'mode':'production','provider_capabilities':{'context_window':1048576}}
+            for directory in (original,recovery):
+                (directory/job['id']).mkdir(parents=True)
+                (directory/'manifest.json').write_text(json.dumps(manifest),encoding='utf-8')
+                (directory/'plan.json').write_text(json.dumps([job]),encoding='utf-8')
+            result = original/job['id']/'result.json'
+            result.write_text(json.dumps({'infrastructure_error':None}),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'Only the recorded'):
+                analysis.recovery_runs(original,recovery)
+            result.write_text(json.dumps({'infrastructure_error':"UnicodeEncodeError: 'gbk' codec failure"}),encoding='utf-8')
+            self.assertEqual(analysis.recovery_runs(original,recovery),{job['id']:recovery/job['id']})
+            for key in ('source_commit','versions','generation','files','mode','provider_capabilities'):
+                changed = {**manifest,key:'changed'}
+                (recovery/'manifest.json').write_text(json.dumps(changed),encoding='utf-8')
+                with self.subTest(key=key), self.assertRaisesRegex(ValueError,'frozen conditions'):
+                    analysis.recovery_runs(original,recovery)
+            (recovery/'manifest.json').write_text(json.dumps(manifest),encoding='utf-8')
+            (recovery/'plan.json').write_text(json.dumps([{**job,'repeat':1}]),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError,'identity mismatch'):
+                analysis.recovery_runs(original,recovery)
 
 
 if __name__ == '__main__':

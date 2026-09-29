@@ -1,0 +1,83 @@
+{
+  "original_result": {
+    "id": "repair_routes-thinkflow-r2",
+    "task": "repair_routes",
+    "harness": "thinkflow",
+    "repeat": 2,
+    "pilot": false,
+    "exit_code": 1,
+    "timed_out": false,
+    "infrastructure_error": "UnicodeEncodeError: 'gbk' codec can't encode character '\\ufffd' in position 270: illegal multibyte sequence",
+    "modified_public_tests": [],
+    "seconds": 56.344,
+    "measurement_seconds": 60.0,
+    "prompt_sha256": "be4ea0ee2c779675c6e68d471bbee856e38f7d4d37cf819f0c3db2cd4653bf9a",
+    "grade": {
+      "passed": true,
+      "checks_passed": 8,
+      "checks_total": 8,
+      "details": [
+        {
+          "check": "static_specificity",
+          "passed": true
+        },
+        {
+          "check": "ties_keep_registration",
+          "passed": true
+        },
+        {
+          "check": "normalized_replacement",
+          "passed": true
+        },
+        {
+          "check": "root_query_fragment_slashes",
+          "passed": true
+        },
+        {
+          "check": "validation_is_nonmutating",
+          "passed": true
+        },
+        {
+          "check": "missing_and_parameter_length",
+          "passed": true
+        },
+        {
+          "check": "literal_static_characters",
+          "passed": true
+        },
+        {
+          "check": "opaque_handler_and_fresh_params",
+          "passed": true
+        }
+      ]
+    },
+    "usage": {
+      "prompt_tokens": 32201,
+      "cached_tokens": 16000,
+      "uncached_tokens": 16201,
+      "completion_tokens": 14830,
+      "reasoning_tokens": 7527,
+      "total_tokens": 47031,
+      "api_requests": 4,
+      "successful_requests": 4,
+      "usage_reported_requests": 4,
+      "usage_complete": true,
+      "unknown_usage_requests": 0,
+      "cache_usage_complete": true,
+      "cache_reported_requests": 4,
+      "reasoning_reported_requests": 4,
+      "abandoned_requests": 1,
+      "failed_requests": 0
+    },
+    "stderr_tail": ""
+  },
+  "original_source": "artifacts/benchmark-20260929/production-91e4911/repair_routes-thinkflow-r2/result.json",
+  "frozen_commit": "91e491167564f625334b812d6f0a422d2315b23e",
+  "operations_from_primary_tool_records": [
+    "Waited for plan item 22 interval_coverage-opencode-r2 to finish; an empty item-23 directory with OBSERVER_PAUSE.txt invoked the existing incomplete-run guard before any item-23 generation.",
+    "Verified the pause directory held only OBSERVER_PAUSE.txt; sent that directory to Recycle Bin.",
+    "Verified UTF-8 stdout can encode U+FFFD; restarted identical frozen run with PYTHONIOENCODING=utf-8. Saved attempts were skipped, not overwritten."
+  ],
+  "independent_reproduction": "docs/reviews/production-observer-incident.md",
+  "recovery_policy": "Exactly one attempt of repair_routes-thinkflow-r2 in production-91e4911-observer-recovery, same source/conditions/prompt. Preserve original failure and include its usage in total expenditure."
+}

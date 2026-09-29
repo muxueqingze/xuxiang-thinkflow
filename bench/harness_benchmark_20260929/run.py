@@ -105,6 +105,7 @@ def run_one(job, directory, key, pilot=False, *, mode='bounded'):
     timed_out = False
     process = None
     infrastructure_error = None
+    observer_errors = set()
     print(json.dumps({'start':job['id'],'harness':job['harness'],'task':job['task']}),flush=True)
     try:
         options = {'mode':mode} if mode == 'production' else {}
@@ -127,7 +128,12 @@ def run_one(job, directory, key, pilot=False, *, mode='bounded'):
                     break
                 except subprocess.TimeoutExpired:
                     first_wait = False
-                    print_progress(job['id'], destination, meter)
+                    try:
+                        print_progress(job['id'], destination, meter)
+                    except Exception as exc:
+                        # An optional progress sink must not terminate model work.
+                        # Billing failures still propagate through meter.finish().
+                        observer_errors.add(type(exc).__name__)
     except KeyboardInterrupt:
         if process is not None:
             kill_tree(process)
@@ -159,6 +165,7 @@ def run_one(job, directory, key, pilot=False, *, mode='bounded'):
     stderr = stderr_path.read_text(encoding='utf-8',errors='replace') if stderr_path.exists() else ''
     exit_code=process.returncode if process else None
     result = {**job,'pilot':pilot,'exit_code':exit_code,'timed_out':timed_out,
+              'observer_errors':sorted(observer_errors),
               'infrastructure_error':infrastructure_error,'modified_public_tests':changed_tests,
               'seconds':run_seconds,'measurement_seconds':round(time.monotonic()-started,3),
               'prompt_sha256':hashlib.sha256(prompt.encode()).hexdigest(),'grade':grade,'usage':usage,

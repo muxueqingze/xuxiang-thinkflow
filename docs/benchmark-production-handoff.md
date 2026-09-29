@@ -1,28 +1,25 @@
 # 生产配置基准接力 · 2026-09-29
 
-当前状态：实现与离线预检已通过，准备commit冻结并启动36次真实生成。上一轮8K结果完整保留。
+状态：全部生成、唯一事故补测、独立复核和本地后置修补完成。没有活动模型进程，不要重复启动benchmark。正式报告在 `bench/harness_benchmark_20260929/reports-production/README.md`。
 
-## 目标与验收
+## 已完成
 
-主人要求取消人为输出/上下文预算，正常完成任务后比较。先改装置和必要生产配置、离线核验实际请求，再冻结并运行原六题×两次×三个harness共36次。任务与判题保持原样，以隔离配置变化；前端与长篇写作不在这六题内，不能用本报告代替旧项目场景结论。
+- 冻结核心91e491167564f625334b812d6f0a422d2315b23e，原六题×两次×三harness；OpenAI请求省略输出budget，生产worker不设总轮次/总时间/续写预算，不做自动上下文压缩。Pi/OpenCode使用实际模型能力元数据与只移除SDK输出budget的本地钩子。
+- 原始目录 `artifacts/benchmark-20260929/production-91e4911`；唯一恢复 `production-91e4911-observer-recovery`。36有效正常交付（各12/12）；原36尝试中35正常、1观察器故障，不冒称首次36全正常。
+- 有效token：ThinkFlow3,845,627、Pi1,397,532、OpenCode1,732,556；平均105.38/54.62/59.90秒。全部实际37尝试397请求7,022,746token，原中断47,031计入。没有length截断，17次输出超旧8K。
+- 独立核对原/补测manifest完全相同，后置修补前38文件指纹一致；397请求预算字段缺失、消息hash一致、usage完整。三份发布JSON离线重评分8/8。25次有效ThinkFlow文件操作与stream重叠。
+- 三harness均12份最终实现上的真实测试成功与公共测试证据；五份特殊脚本/壳命令经过人工复核，保留依据。证明执行成功，不证明模型自建测试覆盖充分。
+- 核心新增13项、桌面Node13项通过。早期全套parser/core通过，unittest唯一旧Anthropic fixture修复后5项定向复核；后置装置/报告12项和monitor5项通过。当前提交远端CI以PR检查为准。
+- 37个专用CLI profile核对绝对路径与完成状态后已送回收站，剩余0；专项审查temp已回收。原始日志、失败记录、代码产物和旧报告保留。
 
-生产模式不发送任何输出 token 上限；自动上下文压缩与清理关闭，不设总运行时间、请求数或自动续写次数预算。Pi/OpenCode能力 metadata 来自官方模型列表：DeepSeek-V4.1-Flash，context_window=1048576、max_output_tokens=393216，这些不会变成请求预算。服务端省略参数的默认仍存在，不能宣称物理无限。普通工具输出分页、权限校验、错误重试、连接失败处理保持原生机制。
+## 观察器事故与修复
 
-## 文件与单元
+repair_routes-thinkflow-r2因父进程GBK stdout不能编码U+FFFD而被run.py误终止。产物虽8/8，exit1且无harness收尾，原4请求47,031token保留。第22项结束前在下一待跑目录设置只有OBSERVER_PAUSE.txt的暂停门，触发原incomplete guard在任务边界退出；门核对后回收。原冻源不变，以PYTHONIOENCODING=utf-8恢复同名实验，已完成样本全部跳过。之后只对事故项同题/同prompt/同repeat补一次，正常8/8、16请求304,630token。
 
-1. src/provider、agent_loop、cli、model_registry、desktop_service 与桌面设置：支持显式 null/省略；离线请求体与None循环验证；失败回退已有Git，不覆盖个人配置。
-2. bench/harness_benchmark_20260929 的 adapter、meter、runner、worker：默认production，旧bounded可显式复现。客户端钩子消除其SDK预算；meter仅核验并记录，不偷偷删除遗留预算。消息hash与逐请求usage保留。独立假SSE验证，失败则在付费生成前停止修装置。
-3. 冻结源码/协议钩子/任务/依赖指纹后，顺序运行36次，持续观察；不按成绩重试，不在运行中改核心。输出到新的artifacts实验目录，发布到reports-production，不覆盖旧报告。
-4. 离线汇总、逐请求完整计量、隐藏检查、关键失败复验及独立定向质检；通过后推送现有PR，不用Claude Code或Pro。
+全部生成结束并核验指纹后，永久将monitor进度JSON改ASCII转义；run_one捕获可选progress异常并保存observer_errors，不再kill worker，关键meter.finish失败仍传播。离线复现GBK和注入观察器异常均通过。这些后置修补不属于被测91e4911，未来新跑须新建实验名，不要续入旧数据。
 
-## 已完成与正在做
+## 判断与下一步
 
-- OpenAI缺省输出预算改为None；正整数显式设置仍兼容。Anthropic协议需要正整数，缺省在本地明确报错。
-- 核心新13项离线测试通过；原全套parser/core通过，192项unittest唯一旧Anthropic fixture缺显式budget，修复该fixture后5项定向通过。
-- Pi/OpenCode真实CLI假SSE各一条请求，实际输出限制字段缺失、退出0，证据 production-adapter-probe.json。
-- meter10项回归通过（包括>8MB全文、>24请求/1000秒、拒绝残留输出预算）；Node13项通过。
-- 独立预检确认三类真实CLI/worker都未携带输出预算，100条/402,990字符历史不压缩，snapshot不修改消息。未发现阻塞问题，批准冻结。
+8K/24请求/300秒是此前装置的人为条件，用它代表生产表现有误。取消以后，ThinkFlow仍更慢、更费；有效token较旧轮观察值+81.1%、时间+37.1%，不是本轮性能提升。具体损耗包括协议恢复、自建测试修订、验收后多余探测和历史重传；未发现native bash成功stdout丢失。案例阶段成本不等于可以直接省掉的量，详情见独立cost-cases报告。
 
-## 风险与下一步
-
-下一步是离线回归与独立预检、commit冻结，再启动生产36次。没有预设成绩。代理若下游断开会继续收取当前上游usage，必须单独说明这部分观测成本。原desktop二进制尚未重打，源码改动不能冒充旧包已更新。
+下一步若继续优化，针对已记录的协议歧义、解析错误非正文诊断、验收后及时收尾开展最小实验；不得恢复额度来压分，也不再次无目标全量重跑。六题不等于原前端/长篇小说基准。旧桌面包未重打，本轮更新源码和报告，不发布Release/npm，不使用Claude Code或Pro。

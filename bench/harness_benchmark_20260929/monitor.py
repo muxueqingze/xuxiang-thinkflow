@@ -130,4 +130,6 @@ def print_progress(run_id, directory, meter):
                                   if key in ('tool', 'cmd', 'path', 'status', 'error')}
     except (OSError, ValueError):
         fields = {'phase': 'waiting_for_worker'}
-    print(json.dumps({'progress': run_id, **fields, **meter_progress(meter)}, ensure_ascii=False), flush=True)
+    # Console pipes can still use legacy encodings on Windows. JSON escapes
+    # preserve every character without making progress reporting a run failure.
+    print(json.dumps({'progress': run_id, **fields, **meter_progress(meter)}, ensure_ascii=True), flush=True)

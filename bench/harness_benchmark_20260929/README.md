@@ -1,5 +1,7 @@
 # 2026-09-29 同模型 harness 实测
 
+**最新：** [无额外预算生产实测](reports-production/README.md)已完成：三个harness有效12/12，实际37次含一次单独计费保留的观察器事故与补测。ThinkFlow仍更慢、更费；完整负面结果公开。
+
 新实验入口默认 `--mode production`：不额外设置输出/上下文及运行预算。旧实验复现必须显式 `--mode bounded`；生产重跑进度见[接力](../../docs/benchmark-production-handoff.md)。
 
 **此前最新：** [34119c6修复后完整复测](reports-rerun/README.md)重新跑了36次，ThinkFlow/Pi/OpenCode产物全过且正常结束为12/12、10/12、12/12；全部请求与失败单独保存。下文是e49b717原轮记录，未被新结果覆盖。

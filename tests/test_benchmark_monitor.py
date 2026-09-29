@@ -29,6 +29,19 @@ with patch.dict(sys.modules, {'monitor': monitor}):
 
 
 class MonitorBoundaryTests(unittest.TestCase):
+    def test_progress_survives_legacy_console_encoding_without_losing_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            error = 'path contains replacement character \ufffd'
+            (Path(directory)/'live.json').write_text(json.dumps({'last_tool':{'error':error}}),encoding='utf-8')
+            meter = types.SimpleNamespace(lock=threading.RLock(),requests=[])
+            buffer = io.BytesIO()
+            output = io.TextIOWrapper(buffer,encoding='gbk',errors='strict')
+            with patch.object(sys,'stdout',output):
+                monitor.print_progress('fixture',directory,meter)
+            output.flush()
+            self.assertEqual(json.loads(buffer.getvalue().decode('ascii'))['last_tool']['error'],error)
+            output.detach()
+
     def test_counts_do_not_persist_text_or_mutate_event(self):
         with tempfile.TemporaryDirectory() as directory:
             metadata = {'context_chars': 99, 'message_count': 3,

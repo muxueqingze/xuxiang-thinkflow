@@ -215,13 +215,13 @@ thinkflow --config config.json --sandbox balanced
 
 ## Benchmark
 
-最新结果见[修复后的完整三方复测](bench/harness_benchmark_20260929/reports-rerun/README.md)：ThinkFlow 0.8.0（34119c6）、Pi 0.87.1、OpenCode 1.18.33，官方DeepSeek Flash，原六道题各两次、共36次；未使用Claude Code。产物全过且正常结束分别12/12、10/12、12/12，总token分别212.35万、126.46万、189.87万。
+最新见[无额外输出/上下文预算的生产配置实测](bench/harness_benchmark_20260929/reports-production/README.md)：ThinkFlow（91e4911）、Pi 0.87.1、OpenCode 1.18.33，官方DeepSeek Flash high，同六题各两次。三个harness的有效样本均12/12正常交付，总token分别3,845,627、1,397,532、1,732,556，平均105.38、54.62、59.90秒。**ThinkFlow目前仍没有整体效率优势。**
 
-这组是8K受限预算下的新工程套题，不是原GitHub版本在旧前端/小说题上的回归测试。模型入口、对手、预算与验收反馈均有变化，不能据它否定旧案例优势或宣称新版优于旧版。[历史与源码核对](docs/benchmark-history-diagnosis.md)列出已证实变化及尚未完成的同条件对照。
+原36次有1次ThinkFlow被观察器日志编码故障中断，已保留原始记录并在同冻结条件下单独补测一次。含事故实际37次尝试、397请求、7,022,746 token，不是36次首次全部正常交付。输出预算字段逐请求确认缺失，17次输出超过旧8K、length截断0次；自动上下文压缩及实验总时限/请求数/续写预算关闭。有效样本的实际测试成功与公共测试证据均已复核，成功执行不保证覆盖质量。
 
-ThinkFlow相较[原轮](bench/harness_benchmark_20260929/reports/summary.md)从7/12正常结束提高到12/12，总token观察值减少16.4%；但本轮仍比OpenCode多11.8%总token、慢27.4%。仅6/12有最终代码上可靠的测试成功证据，另有漏测、退出码不明和修改后未复验，因此该分数不能当作完整工作流程验收；新旧共同成功七对的用时基本持平。
+ThinkFlow保留25次与stream重叠的文件操作，但协议恢复、测试修订和验收后的多余探测使总输入显著增加；[独立案例拆解](docs/reviews/production-cost-cases.md)列出具体证据。不能靠8K额度压指标，也不能把完整历史或全部额外测试都称作浪费。
 
-[恢复诊断](docs/benchmark-debug-20260929.md)修复了误通道、截断/停止和计划回执引用，原生文件工具从首轮可用。本轮保留30次与输出重叠的文件操作，整体效率仍未领先。原36次及16次诊断全部保留，不择优替换；原0.8便携包尚不含这些源码补丁。
+[上一轮8K复测](bench/harness_benchmark_20260929/reports-rerun/README.md)、[原轮](bench/harness_benchmark_20260929/reports/summary.md)及[历史与源码核对](docs/benchmark-history-diagnosis.md)保留。这组六题不等于原GitHub前端/长篇小说任务，不能混算排名或据此否定旧案例。旧0.8便携包尚未包含后续源码修补。
 
 历史 benchmark 材料保留，不能与新套题直接混算：
 

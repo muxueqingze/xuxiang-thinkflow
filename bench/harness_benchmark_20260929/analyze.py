@@ -34,7 +34,29 @@ def terminal_state(run_directory, result):
             'source':'stdout.jsonl',**(last or {'reason':'unknown'})}
 
 
-def analyze(directory):
+def recovery_runs(directory, recovery):
+    """Only a documented observer encoding failure is eligible for one recovery."""
+    if recovery is None:
+        return {}
+    original = json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
+    replacement = json.loads((recovery/'manifest.json').read_text(encoding='utf-8'))
+    for key in ('source_commit','versions','generation','files','mode','provider_capabilities'):
+        if original.get(key) != replacement.get(key):
+            raise ValueError('Recovery changed frozen conditions: '+key)
+    plan = {j['id']:j for j in json.loads((directory/'plan.json').read_text(encoding='utf-8'))}
+    selected = {}
+    for job in json.loads((recovery/'plan.json').read_text(encoding='utf-8')):
+        if plan.get(job['id']) != job or job['id'] in selected:
+            raise ValueError('Recovery identity mismatch/duplicate')
+        failed = json.loads((directory/job['id']/'result.json').read_text(encoding='utf-8'))
+        error = failed.get('infrastructure_error') or ''
+        if not (error.startswith('UnicodeEncodeError:') and "'gbk' codec" in error):
+            raise ValueError('Only the recorded GBK observer failure may be recovered')
+        selected[job['id']] = recovery/job['id']
+    return selected
+
+
+def analyze(directory, recovery=None):
     plan=json.loads((directory/'plan.json').read_text(encoding='utf-8'))
     manifest=json.loads((directory/'manifest.json').read_text(encoding='utf-8'))
     if len({j['id'] for j in plan}) != len(plan):
@@ -46,10 +68,22 @@ def analyze(directory):
     complete_suite=actual_jobs==expected_jobs and not manifest.get('pilot')
     results=[]
     meters={}
+    replacements = recovery_runs(directory, recovery)
+    interrupted = []
     limit_observations=[]
     for job in plan:
-        result=json.loads((directory/job['id']/'result.json').read_text(encoding='utf-8'))
-        meter=json.loads((directory/job['id']/'meter.json').read_text(encoding='utf-8'))
+        run_directory = replacements.get(job['id'], directory/job['id'])
+        if job['id'] in replacements:
+            original_result=json.loads((directory/job['id']/'result.json').read_text(encoding='utf-8'))
+            original_meter=json.loads((directory/job['id']/'meter.json').read_text(encoding='utf-8'))
+            if summarize(original_meter['requests']) != original_result['usage'] or not original_result['usage']['usage_complete']:
+                raise ValueError('Interrupted attempt has incomplete accounting')
+            interrupted.append(original_result)
+            meters[job['id']+'__observer_interrupted']=original_meter
+        result=json.loads((run_directory/'result.json').read_text(encoding='utf-8'))
+        meter=json.loads((run_directory/'meter.json').read_text(encoding='utf-8'))
+        if job['id'] in replacements and result['prompt_sha256'] != original_result['prompt_sha256']:
+            raise ValueError('Recovery prompt changed')
         if any(result.get(k)!=v for k,v in job.items()):
             raise ValueError('Run identity mismatch: '+job['id'])
         actual=summarize(meter['requests'])
@@ -61,7 +95,7 @@ def analyze(directory):
             raise ValueError('Incomplete billing observation; do not rank tokens: '+job['id'])
         if not all(r.get('response_model')==manifest['generation']['model'] for r in meter['requests']):
             raise ValueError('Unexpected provider-reported model: '+job['id'])
-        result['terminal']=terminal_state(directory/job['id'],result)
+        result['terminal']=terminal_state(run_directory,result)
         result['delivery_passed']=bool(result['grade']['passed'] and result['exit_code']==0 and not result['timed_out']
                                       and result['terminal']['normal'])
         results.append(result)
@@ -114,24 +148,37 @@ def analyze(directory):
                 'thinkflow_total_token_ratio':sum(a['usage']['total_tokens'] for a,b in pairs)/sum(b['usage']['total_tokens'] for a,b in pairs),
                 'thinkflow_output_token_ratio':sum(a['usage']['completion_tokens'] for a,b in pairs)/sum(b['usage']['completion_tokens'] for a,b in pairs),
                 'thinkflow_wall_time_ratio':sum(a['seconds'] for a,b in pairs)/sum(b['seconds'] for a,b in pairs)}
+    actual_consumption={h:{k:sum(r['usage'][k] for r in results+interrupted if r['harness']==h)
+                          for k in ('total_tokens','prompt_tokens','completion_tokens','api_requests')}
+                        for h in aggregates}
     return {'complete_suite':complete_suite,'manifest':manifest,'limit_observations':limit_observations,
+            'observer_interrupted_attempts':interrupted,'actual_consumption_including_interrupted':actual_consumption,
+            'all_attempts_abandoned_requests':sum(bool(r.get('client_disconnected')) for m in meters.values() for r in m['requests']),
+            'all_attempts_abandoned_output_tokens':sum(r['usage']['completion_tokens'] for m in meters.values() for r in m['requests'] if r.get('client_disconnected')),
+            'recovery_sources':{name:str(path.parent.name) for name,path in replacements.items()},
             'aggregates':aggregates,'paired_success_only':paired,'results':results},meters
 
 
 def render(data):
     production = data['manifest'].get('mode') == 'production'
     lines=['# ThinkFlow / Pi / OpenCode 同模型基准 · 2026-09-29','',
-           f"同一官方 DeepSeek Flash，高思考；本次{len({r['task'] for r in data['results']})}题、{len(data['aggregates'])}个harness，共{len(data['results'])}次独立运行。没有使用 Claude Code。",
+           f"同一官方 DeepSeek Flash，高思考；本次{len({r['task'] for r in data['results']})}题、{len(data['aggregates'])}个harness，共{len(data['results'])}个有效样本、{len(data['results'])+len(data.get('observer_interrupted_attempts',[]))}次实际尝试。没有使用 Claude Code。",
            '正式套题完整：六题各两次、三个harness。' if data['complete_suite'] else '**仅部分数据，未覆盖完整正式套题，不可作为完整比较结论。**',
            '先看完成质量，再看资源消耗。此小规模本地套题不能推出行业综合排名。','',
            '| Harness | 正常交付 | 产物通过 | 检查平均分 | 平均秒 | 中位秒 | 平均API请求 | 总token |',
            '|---|---:|---:|---:|---:|---:|---:|---:|']
     for name,a in data['aggregates'].items():
         lines.append(f"| {name} | {a['passed']}/{a['runs']} | {a['artifact_passed']}/{a['runs']} | {a['mean_check_score']:.1%} | {a['mean_seconds']:.2f} | {a['median_seconds']:.2f} | {a['mean_api_requests']:.2f} | {a['tokens']['total_tokens']:,} |")
+    if data.get('observer_interrupted_attempts'):
+        lines += ['', '**上表为有效样本；原始计划有观察器故障中断，补测一次，不是36次首次全部正常完成。**']
+        for r in data['observer_interrupted_attempts']:
+            lines.append(f"- `{r['id']}`：{r['infrastructure_error']}。原始exit={r['exit_code']}，即使产物通过也不算正常交付；额外{r['usage']['api_requests']}请求、{r['usage']['total_tokens']:,} token、{r['seconds']:.3f}秒原样保留。仅此装置故障使用同冻源、同题、同参数的独立目录补测，普通模型失败不补测。")
+        lines += ['', '完整实际消耗（有效样本加中断尝试）：'+'；'.join(f"{h} {v['api_requests']}请求 / {v['total_tokens']:,} token" for h,v in data['actual_consumption_including_interrupted'].items())+'。资源效率配对使用有效样本，不能忽略这笔额外开销。']
+        lines += [f"全部实际尝试有{data['all_attempts_abandoned_requests']}次下游断流，该请求完整输出{data['all_attempts_abandoned_output_tokens']} token；包含断流前输出，无法全算作观测额外开销。"]
     lines+=['','产物通过要求隐藏检查全部通过且公共测试未被修改；正常交付还要求无超时、退出码0，以及观察到正常终态：ThinkFlow completed、Pi最后assistant stop、OpenCode最后step_finish stop。',
             '该计分口径不额外确认模型主动运行了任务要求的测试，也不等同于完整遵守工作流程；实际测试执行与结果证据须另看过程复核。',
             '检查分数仅为断言通过率，不是业务完成百分比。例如缺失CLI也可能通过“非零退出且未覆盖输出”的错误路径检查，因此以整题通过为主判。']
-    lines += ['', '## Token 分解', '', '| Harness | 输入（含缓存） | 缓存命中 | 非缓存输入 | 输出（含推理） | 其中推理 | 提早断流请求 |',
+    lines += ['', '## Token 分解（有效样本）', '', '| Harness | 输入（含缓存） | 缓存命中 | 非缓存输入 | 输出（含推理） | 其中推理 | 提早断流请求 |',
               '|---|---:|---:|---:|---:|---:|---:|']
     for name,a in data['aggregates'].items():
         t=a['tokens']
@@ -141,7 +188,7 @@ def render(data):
         lines.append(f"| {name} | {t['prompt_tokens']:,} | {cache} | {uncached} | {t['completion_tokens']:,} | {reasoning} | {t['abandoned_requests']} |")
     lines += ['', '总token = 输入 + 输出；推理已经包含在输出中。非缓存输入不是账单价格，缓存也不假定免费。',
               '全部实际请求均有完整输入/输出usage，包括重试和附加模型请求；细分字段缺失时标为未知。用量代理在下游断流后继续读取上游以收取末尾usage；若发生断流，消耗包含这一观测行为，不能等同于立即取消连接的成本。','',
-              '断流请求涉及的完整输出token：'+ '、'.join(f"{name} {a['output_tokens_on_abandoned_requests']:,}" for name,a in data['aggregates'].items())+'。这些包含断流前已生成的部分，不能全部当作观测额外开销；当前无法精确切分。','',
+              '有效样本中的断流请求涉及完整输出token：'+ '、'.join(f"{name} {a['output_tokens_on_abandoned_requests']:,}" for name,a in data['aggregates'].items())+'。这些包含断流前已生成的部分，不能全部当作观测额外开销；当前无法精确切分。','',
               '## 每次运行','', '| 题目 | Harness | 重复 | 检查 | 正常交付 | 执行状态 | 秒 | API | token |',
               '|---|---|---:|---:|---|---|---:|---:|---:|']
     for r in sorted(data['results'],key=lambda r:(r['task'],r['harness'],r['repeat'])):
@@ -191,8 +238,9 @@ def main():
     parser.add_argument('experiment',type=Path)
     parser.add_argument('--publish',action='store_true')
     parser.add_argument('--output',type=Path,help='Separate report directory; preserves previous published reports')
+    parser.add_argument('--recovery-experiment',type=Path,help='One documented observer-failure recovery; original attempts stay in accounting')
     args=parser.parse_args()
-    data,meters=analyze(args.experiment.resolve())
+    data,meters=analyze(args.experiment.resolve(), args.recovery_experiment.resolve() if args.recovery_experiment else None)
     if args.publish and not data['complete_suite']:
         raise ValueError('Only the complete predeclared suite can be published as the formal report')
     output=args.output if args.output is not None else (HERE/'reports' if args.publish else args.experiment/'report')
@@ -203,7 +251,8 @@ def main():
     if args.publish:
         solutions={}
         for result in data['results']:
-            source=args.experiment/result['id']/'workspace'
+            base=args.recovery_experiment if result['id'] in data['recovery_sources'] else args.experiment
+            source=base/result['id']/'workspace'
             files={}
             for file in source.rglob('*'):
                 if file.is_file() and file.suffix=='.py' and not file.is_symlink() and file.stat().st_size<=200_000:
