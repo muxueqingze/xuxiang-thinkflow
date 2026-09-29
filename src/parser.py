@@ -440,6 +440,10 @@ def _parse_attrs(attrs: str) -> dict[str, str]:
             ch = attrs[i]
             i += 1
             if escaped:
+                if ch == quote:
+                    # The scanner treats this as an escaped delimiter. Deliver
+                    # its literal quote, retaining ordinary Windows backslashes.
+                    value_chars.pop()
                 value_chars.append(ch)
                 escaped = False
                 continue
@@ -450,5 +454,7 @@ def _parse_attrs(attrs: str) -> dict[str, str]:
             if ch == quote:
                 break
             value_chars.append(ch)
-        result[name] = "".join(value_chars)
+        entities = {'quot': '"', 'apos': "'", 'lt': '<', 'gt': '>', 'amp': '&'}
+        result[name] = re.sub(r'&(quot|apos|lt|gt|amp);',
+                              lambda match: entities[match.group(1)], ''.join(value_chars))
     return result

@@ -4,126 +4,42 @@ const api = window.thinkflow;
 let state = { config: {}, messages: [], sessions: [], ledger: [], usage: {}, context: {} };
 let connected = false, busy = false, renderTimer, refreshTimer, toastTimer, lastErrorSeen = '';
 const activeTools = new Map();
-let draftKey = '', queue = [], queuePaused = true, queueEpoch = 0, sending = false;
+let draftKey = '', queue = [], queuePaused = true, sending = false;
 let composing = false, showArchived = false, messageContext = '', messageNodes = [], followBottom = true, localWarning = '';
-const localFallback = new Map();
+let projectionStream = '', projectionSeq = -1, activityPhase = '', statusNotice = '', navigationGeneration = 0;
+const retiredStreams = new Set(), localFallback = new Map();
 const contextKey = source => JSON.stringify([source.cwd || '', source.session_id || 'new']);
 const storagePrefix = 'thinkflow-v07:';
 function readLocal(key, fallback) {
   if (localFallback.has(key)) return localFallback.get(key);
   try { const value = localStorage.getItem(storagePrefix + key); return value === null ? fallback : JSON.parse(value); }
-  catch { showError('本机草稿或队列无法读取，原数据未覆盖。'); return fallback; }
+  catch { showError('本机草稿或待确认内容无法读取，原记录未覆盖。'); return fallback; }
 }
 function writeLocal(key, value) {
   if (key.startsWith('draft:')) localFallback.set(key, value);
   try { localStorage.setItem(storagePrefix + key, JSON.stringify(value)); return true; }
-  catch { localWarning = '本机保存失败；请复制草稿或待发任务后再关闭应用。'; showError(localWarning); return false; }
+  catch { localWarning = '本机保存失败；请复制草稿或待确认内容后再关闭应用。'; showError(localWarning); return false; }
 }
 function saveDraft() { return !draftKey || writeLocal('draft:' + draftKey, $('prompt').value); }
 function resizePrompt() { const prompt = $('prompt'); prompt.style.height = 'auto'; const limit = parseFloat(getComputedStyle(prompt).maxHeight) || 144; prompt.style.height = Math.min(prompt.scrollHeight, limit) + 'px'; }
-function loadQueue() {
-  const saved = readLocal('queue:' + draftKey, []);
-  queue = Array.isArray(saved) ? saved.filter(item => typeof item?.prompt === 'string' && item.prompt.length <= 200000 && item.prompt.trim()).slice(0,10) : [];
-  const outbox = readLocal('outbox:' + draftKey, null);
-  if (outbox && typeof outbox.prompt === 'string' && outbox.prompt.length <= 200000) { queue = queue.filter(item => item.id !== outbox.id); queue.unshift({ ...outbox, uncertain: true }); }
-  queuePaused = true;
-}
-function saveQueue() { return writeLocal('queue:' + draftKey, queue); }
-function pauseQueue() { queuePaused = true; queueEpoch++; renderQueue(); }
-function renderQueue() {
-  $('queue-panel').hidden = !queue.length;
-  $('queue-status').textContent = `待发 ${queue.length} 条 · ${queuePaused ? '已暂停' : '当前成功完成后继续'}`;
-  $('resume-queue').hidden = !queuePaused;
-  const list = $('queue-list'); list.replaceChildren();
-  queue.forEach((item,index) => {
-    const row = element('li'), text = element('span', '', `${index+1}. ${item.prompt.replace(/\s+/g, ' ')}`);
-    text.title = item.prompt;
-    if (item.uncertain) text.textContent = `发送状态待核对 · ${text.textContent}`;
-    const confirm = element('button', 'queue-confirm', '确认未发送');
-    confirm.hidden = !item.uncertain; confirm.disabled = sending;
-    confirm.addEventListener('click', () => { if (sending || !writeLocal('outbox:' + draftKey, null)) return; item.uncertain = false; saveQueue(); renderQueue(); updateControls(); });
-    const edit = element('button', 'queue-edit', '取回编辑'), remove = element('button', 'queue-remove', '移除');
-    edit.disabled = remove.disabled = sending;
-    edit.addEventListener('click', () => {
-      if (sending) return;
-      if ($('prompt').value.trim()) { showError('输入框已有草稿，请先发送或清空后再取回。'); $('prompt').focus(); return; }
-      // Persist the draft before removing its durable queue copy.
-      $('prompt').value = item.prompt;
-      if (!saveDraft()) { $('prompt').value = ''; return; }
-      if (item.uncertain && !writeLocal('outbox:' + draftKey, null)) { $('prompt').value = ''; saveDraft(); return; }
-      const previous = queue; queue = queue.filter(entry => entry.id !== item.id);
-      if (!saveQueue()) { queue = previous; $('prompt').value = ''; saveDraft(); return; }
-      pauseQueue(); resizePrompt(); renderQueue(); updateControls(); $('prompt').focus();
-    });
-    remove.addEventListener('click', () => {
-      if (sending) return;
-      if (item.uncertain && !writeLocal('outbox:' + draftKey, null)) return;
-      const previous = queue; queue = queue.filter(entry => entry.id !== item.id);
-      if (!saveQueue()) queue = previous;
-      renderQueue(); updateControls();
-    });
-    row.append(text, confirm, edit, remove); list.append(row);
-  });
-}
-async function sendPrompt(prompt, queuedItem = null) {
-  if (sending || busy || running() || !canRun()) return false;
-  const key = draftKey, epoch = ++queueEpoch;
-  sending = true; updateControls();
-  const candidate = queuedItem || { id: crypto.randomUUID(), prompt };
-  if (!writeLocal('outbox:' + key, { id: candidate.id, prompt })) { sending = false; pauseQueue(); updateControls(); return false; }
-  // Commit removal before run: an arriving state push must not save the old draft again.
-  if (queuedItem) {
-    const previous = queue; queue = queue.filter(item => item.id !== queuedItem.id);
-    if (!saveQueue()) { queue = previous; writeLocal('outbox:' + key, null); sending = false; pauseQueue(); updateControls(); return false; }
-    renderQueue();
-  } else {
-    $('prompt').value = '';
-    if (!saveDraft()) { $('prompt').value = prompt; writeLocal('outbox:' + key, null); sending = false; resizePrompt(); updateControls(); return false; }
-    resizePrompt();
+function acceptProjection(source, snapshot = false) {
+  if (!source.stream_id || !Number.isInteger(source.seq)) return true;
+  if (retiredStreams.has(source.stream_id)) return false;
+  if (source.stream_id !== projectionStream) {
+    if (!snapshot && projectionStream) { scheduleRefresh(); return false; }
+    if (projectionStream) retiredStreams.add(projectionStream);
+    projectionStream = source.stream_id; projectionSeq = -1;
   }
-  if (!localWarning) $('error-banner').hidden = true;
-  const result = await perform(() => api.request('run', { prompt }));
-  if (result?.started) {
-    if (writeLocal('outbox:' + key, null)) {
-      if (epoch === queueEpoch && connected) queuePaused = false;
-    } else {
-      queue.unshift({ ...candidate, uncertain: true }); pauseQueue();
-    }
-    scheduleRefresh();
-  } else if (draftKey === key) {
-    // A lost RPC reply does not prove run was rejected. Never silently replay it.
-    queue.unshift({ ...candidate, uncertain: true }); saveQueue(); pauseQueue();
-    showError('发送结果未确认，任务内容已保留为待核对项。请检查会话记录后确认未发送、取回或移除。');
-  }
-  sending = false; renderQueue(); updateControls();
-  return Boolean(result?.started);
+  if (source.seq < projectionSeq || (!snapshot && source.seq === projectionSeq)) return false;
+  if (!snapshot && projectionSeq >= 0 && source.seq > projectionSeq + 1) { scheduleRefresh(); return false; }
+  if (!snapshot && source.session_id && source.session_id !== state.session_id) { scheduleRefresh(); return false; }
+  projectionSeq = source.seq; return true;
 }
-async function drainQueue(epoch = queueEpoch, key = draftKey) {
-  if (epoch !== queueEpoch || key !== draftKey || queuePaused || !queue.length || sending || busy || running() || !canRun()) return;
-  if (queue.some(item => item.uncertain)) { pauseQueue(); showError('有任务发送状态待核对，请检查会话记录后确认未发送、取回或移除。'); return; }
-  await sendPrompt(queue[0].prompt, queue[0]);
-}
-async function finishRun() {
-  const epoch = queueEpoch, key = draftKey;
-  // The service publishes run_finished inside task finally. Wait a macrotask before dispatching.
-  setTimeout(async () => {
-    if (epoch !== queueEpoch || key !== draftKey) return;
-    try {
-      const next = await api.request('get_state');
-      if (epoch !== queueEpoch || key !== draftKey) return;
-      applyState(next);
-      if (next.status !== 'idle' || next.recovery_required || next.last_error || next.settings_warning || !connected) { pauseQueue(); return; }
-      const dispatch = () => { if (epoch !== queueEpoch || key !== draftKey) return; if (sending || busy) { setTimeout(dispatch, 16); return; } drainQueue(epoch,key); };
-      setTimeout(dispatch, 0);
-    } catch (error) { pauseQueue(); showError(error.message); }
-  }, 0);
-}
-
 const policyNames = { balanced: '平衡权限', 'read-only': '只读权限', open: '开放权限' };
 const policies = {
   balanced: '文件工具限制在工作区内，并拦截常见敏感文件；命令等高风险操作需要逐次授权。',
   'read-only': '可以读取和检索工作区，阻止文件写入与命令执行。联网与其他工具仍遵循各自规则。',
-  open: '放宽工作区边界、敏感路径与命令限制。选择前请确认您信任当前任务和工作区。'
+  open: '放宽命令及敏感读取限制，可读取工作区之外的路径；带变更记录的文件写入仍限当前工作区。'
 };
 const number = value => new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
 const running = () => ['running', 'approval'].includes(state.status);
@@ -137,12 +53,16 @@ function element(tag, className, text) {
 }
 function showError(message) { $('error-text').textContent = message; $('error-banner').hidden = false; }
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 3500); }
-async function perform(action, { notify, settings = false } = {}) {
+async function perform(action, { notify, settings = false, navigation = false } = {}) {
   if (busy) return null;
+  const generation = navigation ? ++navigationGeneration : navigationGeneration;
   busy = true; updateControls();
   try {
     const result = await action();
-    if (result?.messages && result?.config) applyState(result);
+    if (generation === navigationGeneration) {
+      if (result?.state?.messages) applyState(result.state, { navigation });
+      else if (result?.messages && result?.config) applyState(result, { navigation });
+    }
     if (notify) toast(notify);
     return result;
   } catch (error) {
@@ -151,19 +71,21 @@ async function perform(action, { notify, settings = false } = {}) {
     return null;
   } finally { busy = false; updateControls(); }
 }
-function applyState(next) {
+function applyState(next, { navigation = false } = {}) {
+  if (!navigation && projectionStream && next.stream_id === projectionStream && next.seq === projectionSeq && contextKey(next) !== contextKey(state)) return false;
+  if (!acceptProjection(next, true)) return false;
   if (!next.last_error && !next.settings_warning &&
       (next.session_id !== state.session_id || !['running', 'approval'].includes(next.status))) {
     $('error-banner').hidden = true;
     $('error-text').textContent = '';
   }
   const nextKey = contextKey(next);
-  if (draftKey !== nextKey) { saveDraft(); queueEpoch++; queuePaused = true; draftKey = nextKey; $('prompt').value = readLocal('draft:' + draftKey, ''); resizePrompt(); loadQueue(); messageContext = ''; }
-  state = next; connected = true;
+  if (draftKey !== nextKey) { saveDraft(); draftKey = nextKey; $('prompt').value = readLocal('draft:' + draftKey, ''); resizePrompt(); loadInputContext(); resetWorkspacePanel(); messageContext = ''; }
+  state = next; connected = true; queue = state.input_queue || []; queuePaused = state.queue_paused === true;
   if (state.navigation_warning) showError(state.navigation_warning);
   if (localWarning) showError(localWarning);
   if (state.settings_warning) showError(state.settings_warning);
-  if (!running()) activeTools.clear();
+  if (!running()) { activeTools.clear(); activityPhase = ''; statusNotice = ''; }
   if (state.last_error && state.last_error !== lastErrorSeen) showError(state.last_error);
   lastErrorSeen = state.last_error || '';
   render();
@@ -172,9 +94,9 @@ function updateControls() {
   const active = running();
   for (const id of ['new-session', 'workspace', 'setup-workspace', 'settings-top', 'settings-side', 'setup-model']) $(id).disabled = busy || active || !connected;
   for (const id of ['fork', 'compact', 'export']) $(id).disabled = busy || active || !connected || !state.session_id || (id === 'fork' && state.recovery_required);
-  $('send').disabled = busy || sending || !canRun() || !$('prompt').value.trim() || (active && queue.length >= 10);
+  $('send').disabled = busy || sending || !canRun() || !$('prompt').value.trim() || queue.filter(item => item.status !== 'running').length >= 20 || Boolean(pendingInput);
   $('send').hidden = false;
-  $('send').textContent = active ? '加入队列 ↑' : '发送 ↑';
+  $('send').textContent = active || queue.some(item => item.status !== 'running') ? '加入队列 ↑' : '发送 ↑';
   $('stop').hidden = !active;
   $('stop').disabled = busy || !connected;
   $('prompt').disabled = false;
@@ -187,7 +109,9 @@ function updateControls() {
   document.querySelectorAll('.session-button, .session-menu-button, .recent-item').forEach(button => { button.disabled = busy || active || !connected; });
   for (const id of ['rename-current', 'pin-current', 'archive-current', 'recent-workspaces']) $(id).disabled = busy || active || !connected || (id !== 'recent-workspaces' && !state.session_id);
   $('policy-button').disabled = $('settings-top').disabled;
-  $('resume-queue').disabled = busy || sending || active || !canRun() || queue.some(item => item.uncertain);
+  $('resume-queue').disabled = busy || sending || !canRun();
+  $('pause-queue').disabled = busy || !connected;
+  updateWorkspaceControls();
   const hint = active ? 'Enter 加入队列 · 当前成功完成后继续' : state.recovery_required ? '请先核对上次中断的操作' : !state.cwd ? '请先选择工作区' : !state.config.base_url || !state.config.model ? '请先在设置中连接模型端点' : currentSession()?.archived ? '会话已归档，请先恢复' : 'Enter 发送 · Shift + Enter 换行';
   $('composer-hint').textContent = hint;
 }
@@ -199,7 +123,10 @@ function render() {
   $('session-caption').textContent = state.session_id ? `会话 · ${state.session_id.slice(0, 8)}` : '新的会话';
   $('session-title').textContent = session?.title && session.title !== '新会话' ? session.title : '新会话';
   $('session-title').title = $('session-title').textContent;
-  const statusLabels = { idle: '准备就绪', running: '正在生成与执行', approval: '等待授权', error: '本次运行出现错误', cancelled: '已停止' };
+  const statusLabels = { idle: state.recovery_required ? '等待核对上次中断' : queuePaused && queue.length ? '待发队列已暂停' : '准备就绪', running: activeTools.size ? '持续生成 · 工具正在执行' : '正在生成', approval: '等待您授权本次操作', error: '运行失败 · 后续任务已暂停', cancelled: '已停止 · 后续任务已保留' };
+  if (activityPhase === 'waiting_feedback') statusLabels.running = '等待工具结果，随后继续生成';
+  if (activityPhase === 'thinking') statusLabels.running = '正在思考';
+  if (statusNotice && running()) statusLabels.running = statusNotice;
   $('run-status').textContent = connected ? statusLabels[state.status] || '准备就绪' : '后端已断开';
   $('status-label').className = `status-label ${state.status || ''}`;
   $('model-label').textContent = config.model || '尚未配置模型';
@@ -218,16 +145,20 @@ function render() {
   $('archived-notice').hidden = !session?.archived;
   $('pin-current').textContent = session?.pinned ? '取消置顶' : '置顶会话';
   $('archive-current').textContent = session?.archived ? '恢复会话' : '归档会话';
-  renderSessions(); renderMessages(); renderLedger(); renderApproval(); renderQueue();
+  renderSessions(); renderMessages(); renderLedger(); renderApproval(); renderQueue(); renderAttachments(); renderInputReceipt(); renderTaskPlan();
   const usage = state.usage || {};
   for (const [id, key] of [['usage-calls', 'api_calls'], ['usage-commands', 'commands'], ['usage-input', 'prompt_tokens'], ['usage-output', 'completion_tokens'], ['usage-saved', 'estimated_saved_api_calls']]) $(id).textContent = number(usage[key]);
   const usageReported = usage.reported === true || (usage.reported === undefined && (usage.prompt_tokens > 0 || usage.completion_tokens > 0));
-  if (!usageReported) { $('usage-input').textContent = '—'; $('usage-output').textContent = '—'; }
-  document.querySelector('.usage-note').textContent = `${!usageReported && usage.api_calls ? '端点未返回用量。' : ''}按成功的可预测工具调用估算，并非账单或实测成本。`;
+  if (!usageReported) {
+    $('usage-input').textContent = usage.reported_turns ? `≥ ${number(usage.prompt_tokens)}` : '—';
+    $('usage-output').textContent = usage.reported_turns ? `≥ ${number(usage.completion_tokens)}` : '—';
+  }
+  document.querySelector('.usage-note').textContent = `${!usageReported && usage.api_calls ? (usage.reported_turns ? '部分回合未返回用量，仅显示已知下限。' : '端点未返回用量。') : ''}节省调用为估算，并非账单或实测成本。`;
   $('recovery').hidden = !state.recovery_required;
   $('recovery-details').textContent = (state.recovery || []).map(item => `${item.tool || '未知工具'} · ${item.id || '无编号'}\n${item.cmd || item.input_summary || item.path || '请核对工作区实际状态'}${item.input_hash ? `\n输入摘要 ${item.input_hash}` : ''}`).join('\n\n');
   if (state.transcript_window?.total > state.transcript_window?.shown) $('context-label').textContent += ` · 显示最近 ${state.transcript_window.shown} 条；完整记录在本机，导出上限1600万字符`;
   updateControls();
+  return true;
 }
 function renderSessions() {
   const list = $('session-list'); list.replaceChildren();
@@ -253,7 +184,7 @@ function renderSessions() {
 }
 async function selectSession(id) {
   if (running() || busy || !connected) return null;
-  return perform(() => api.request('resume_session', { session_id: id }));
+  return perform(() => api.request('resume_session', { session_id: id }), { navigation: true });
 }
 function inlineText(parent, text) {
   // Render an intentionally small Markdown subset without ever parsing raw HTML.
@@ -295,23 +226,23 @@ function renderMessages() {
   const scroller = $('messages-scroll'), list = $('message-list');
   const changedContext = messageContext !== contextKey(state);
   if (changedContext) { list.replaceChildren(); messageNodes = []; messageContext = contextKey(state); followBottom = true; }
-  const messages = state.messages || [];
+  const messages = state.messages || [], previous = new Map(messageNodes.map(record => [record.id, record])), nextNodes = [];
   $('welcome').hidden = messages.length > 0;
-  while (messageNodes.length > messages.length) messageNodes.pop().article.remove();
   messages.forEach((message, index) => {
-    const isUser = message.role === 'user';
-    let record = messageNodes[index];
+    const isUser = message.role === 'user', id = message.id || `legacy-${index}-${message.role}`;
+    let record = previous.get(id);
     if (!record || record.role !== message.role) {
-      record?.article.remove();
       const article = element('article', `message ${isUser ? 'user' : 'assistant'}`), header = element('div', 'message-header');
+      article.dataset.messageId = id;
       header.append(element('span', 'message-role', isUser ? '您' : message.role === 'tool' ? '工具结果' : '续想'));
       const copy = element('button', 'message-copy', '复制'); copy.setAttribute('aria-label', '复制此消息');
       const body = element('div', 'message-body'), stream = element('div', 'stream-label');
-      record = { article, body, stream, role: message.role, content: null, message }; messageNodes[index] = record;
+      record = { id, article, body, stream, role: message.role, content: null, message };
       copy.addEventListener('click', async () => { try { await api.copyText(String(record.message.content || '')); toast('已复制消息'); } catch { showError('无法写入剪贴板，请选择文本后复制'); } });
       header.append(copy); article.append(header, body, stream);
-      list.insertBefore(article, list.children[index] || null);
     }
+    previous.delete(id); nextNodes.push(record);
+    if (list.children[index] !== record.article) list.insertBefore(record.article, list.children[index] || null);
     record.message = message;
     const content = String(message.content || '');
     if (content !== record.content) {
@@ -320,9 +251,10 @@ function renderMessages() {
       record.content = content;
     }
     record.stream.hidden = isUser || !running() || index !== messages.length - 1;
-    record.stream.textContent = state.status === 'approval' ? '等待本次操作授权' : '正在输出…';
+    record.stream.textContent = state.status === 'approval' ? '等待本次操作授权' : activeTools.size ? ([...activeTools.values()].some(item => item.flow !== 'delayed') ? '等待工具结果' : '生成继续 · 工具执行中') : '正在输出…';
   });
-  positionBottomButton();
+  for (const record of previous.values()) record.article.remove();
+  messageNodes = nextNodes; positionBottomButton();
   if (followBottom) scroller.scrollTop = scroller.scrollHeight;
   $('back-to-bottom').hidden = followBottom || messages.length === 0;
 }
@@ -334,7 +266,7 @@ function renderLedger() {
   for (const item of activeTools.values()) if (!ledger.some(record => String(record.id) === String(item.id) && record.tool === item.tool)) ledger.push(item);
   $('ledger-count').textContent = number(ledger.length);
   const latest = ledger.at(-1);
-  $('execution-summary').replaceChildren(document.createTextNode(latest ? `${latest.status === 'running' ? '执行中' : '最近执行'} · ${latest.tool || '工具'} · ${latest.path || latest.output_summary || latest.status || ''}` : '尚无执行记录'), element('span', '', '查看账本 →'));
+  $('execution-summary').replaceChildren(document.createTextNode(latest ? `${latest.status === 'running' ? (latest.flow === 'delayed' ? '工具执行中，生成继续' : '等待工具结果') : '最近执行'} · ${latest.tool || '工具'} · ${latest.path || latest.output_summary || ''}` : running() ? '正在生成，尚无工具执行' : '尚无执行记录'), element('span', '', '查看详情 →'));
   $('execution-summary').title = latest?.output_summary || latest?.path || '打开执行账本';
   if (!ledger.length) {
     const empty = element('div', 'ledger-empty'); empty.append(element('span', 'empty-ledger-mark', '≡'), element('h3', '', '尚无工具执行'), element('p', '', '文件读写、命令和联网操作将在这里逐条记录。')); list.append(empty); return;
@@ -343,7 +275,7 @@ function renderLedger() {
   const flows = { delayed: '持续执行', blocking: '等待结果', confirm: '需授权' };
   const risks = { low: '低风险', medium: '中风险', high: '高风险' };
   ledger.forEach((item, index) => {
-    const entry = element('details', 'ledger-entry'); entry.dataset.entry = `${item.id}-${index}`; entry.open = openEntries.has(entry.dataset.entry);
+    const entry = element('details', 'ledger-entry'); entry.dataset.entry = `${item.id}-${index}`; entry.dataset.receiptId = String(item.id || ''); entry.open = openEntries.has(entry.dataset.entry);
     const summary = element('summary'); const top = element('div', 'ledger-top');
     const visibleStatus = state.pending_approval?.tool === item.tool && item.status === 'running' ? 'approval' : item.status;
     const statusClass = ['failed', 'error', 'denied'].includes(visibleStatus) ? 'failed' : ['pending', 'running', 'approval'].includes(visibleStatus) ? 'pending' : '';
@@ -370,6 +302,8 @@ function openSettings() {
   if (running() || busy || !connected) return;
   const form = $('settings-form');
   for (const name of ['provider', 'model', 'base_url', 'api_path', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile']) form.elements.namedItem(name).value = state.config[name] ?? '';
+  form.elements.namedItem('thinking_mode').value = state.config.thinking_mode || 'disabled';
+  form.elements.namedItem('reasoning_effort').value = state.config.reasoning_effort || 'high';
   form.elements.namedItem('api_key').value = '';
   form.elements.namedItem('api_key').disabled = false;
   form.elements.namedItem('clear_api_key').checked = false;
@@ -379,7 +313,7 @@ function openSettings() {
 }
 function closeSettings() { if (!busy) { $('settings-dialog').close(); $('settings-form').elements.namedItem('api_key').value = ''; } }
 function updatePolicy() { $('policy-description').textContent = policies[$('settings-form').elements.namedItem('security_profile').value]; }
-async function chooseWorkspace() { await perform(() => api.chooseWorkspace()); }
+async function chooseWorkspace() { await perform(() => api.chooseWorkspace(), { navigation: true }); }
 for (const id of ['workspace', 'setup-workspace']) $(id).addEventListener('click', chooseWorkspace);
 for (const id of ['settings-top', 'settings-side', 'setup-model', 'policy-button']) $(id).addEventListener('click', openSettings);
 for (const id of ['close-settings', 'cancel-settings']) $(id).addEventListener('click', closeSettings);
@@ -391,11 +325,13 @@ $('settings-form').addEventListener('submit', async event => {
   const values = Object.fromEntries(new FormData(event.currentTarget));
   for (const field of ['max_tokens', 'max_run_turns', 'max_run_seconds']) values[field] = Number(values[field]);
   values.clear_api_key = event.currentTarget.elements.namedItem('clear_api_key').checked;
+  values.thinking_mode = event.currentTarget.elements.namedItem('thinking_mode').value;
+  values.reasoning_effort = event.currentTarget.elements.namedItem('reasoning_effort').value;
   const result = await perform(() => api.request('configure', values), { settings: true });
   if (result) { closeSettings(); $('error-banner').hidden = true; toast('接口与权限设置已保存'); }
 });
-$('new-session').addEventListener('click', () => perform(() => api.request('new_session')));
-$('fork').addEventListener('click', () => perform(() => api.request('fork_session'), { notify: '已从当前会话创建分支' }));
+$('new-session').addEventListener('click', () => perform(() => api.request('new_session'), { navigation: true }));
+$('fork').addEventListener('click', () => perform(() => api.request('fork_session'), { notify: '已从当前会话创建分支', navigation: true }));
 $('compact').addEventListener('click', () => perform(() => api.request('compact'), { notify: '上下文压缩已处理' }));
 $('export').addEventListener('click', async () => { const result = await perform(() => api.exportDialog()); if (result?.saved) toast('会话已导出'); });
 function toggleLedger(force) {
@@ -403,11 +339,13 @@ function toggleLedger(force) {
   else $('workbench').classList.toggle('ledger-hidden');
   const visible = !$('workbench').classList.contains('ledger-hidden');
   $('toggle-ledger').setAttribute('aria-expanded', String(visible));
-  $('toggle-ledger').textContent = visible ? '收起账本' : '账本';
+  $('toggle-ledger').textContent = visible ? '收起工作台' : '工作台';
+  $('inspector').setAttribute('aria-hidden', String(!visible));
+  if (visible) onWorkspacePanelShown(); else onWorkspacePanelHidden();
 }
 $('toggle-ledger').addEventListener('click', () => toggleLedger());
 $('close-ledger').addEventListener('click', () => toggleLedger(false));
-$('execution-summary').addEventListener('click', () => toggleLedger(true));
+$('execution-summary').addEventListener('click', () => { selectWorkspaceTab('execution'); toggleLedger(true); });
 $('dismiss-error').addEventListener('click', () => { $('error-banner').hidden = true; });
 $('prompt').addEventListener('input', () => { resizePrompt(); saveDraft(); updateControls(); });
 $('prompt').addEventListener('compositionstart', () => { composing = true; });
@@ -416,21 +354,12 @@ $('prompt').addEventListener('keydown', event => {
   if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.isComposing && !composing && event.keyCode !== 229) { event.preventDefault(); $('composer').requestSubmit(); }
 });
 $('composer').addEventListener('submit', async event => {
-  event.preventDefault(); if (busy || sending || !canRun() || !$('prompt').value.trim()) return;
-  const prompt = $('prompt').value;
-  if (prompt.length > 200000) { showError('每条任务最多20万字符'); return; }
-  if (running() || queue.length) {
-    if (queue.length >= 10) { showError('待发队列最多10条，请先移除或等待任务完成'); return; }
-    const item = { id: crypto.randomUUID(), prompt };
-    queue.push(item);
-    if (!saveQueue()) { queue.pop(); renderQueue(); return; }
-    $('prompt').value = ''; saveDraft(); resizePrompt(); renderQueue(); updateControls();
-    toast(running() ? '已加入队列，当前成功完成后继续' : '已加入暂停队列，请点击继续队列');
-    return;
-  }
-  await sendPrompt(prompt);
+  event.preventDefault(); if (busy || sending || pendingInput || !canRun() || !$('prompt').value.trim()) return;
+  if ($('prompt').value.length > 200000) { showError('每条任务最多20万字符'); return; }
+  if (queue.filter(item => item.status !== 'running').length >= 20) { showError('最多20条待发任务，请先移除或等待执行。'); return; }
+  await submitPrompt($('prompt').value);
 });
-$('stop').addEventListener('click', () => { pauseQueue(); perform(() => api.request('cancel'), { notify: '已停止当前运行，待发队列已暂停' }); });
+$('stop').addEventListener('click', () => perform(() => api.request('cancel'), { notify: '已停止当前运行，后续任务已保留并暂停' }));
 for (const [id, approved] of [['approve', true], ['reject', false]]) $(id).addEventListener('click', async () => {
   const request_id = state.pending_approval?.request_id;
   if (!request_id) return;
@@ -449,18 +378,25 @@ document.addEventListener('keydown', event => {
   else if (key === '/') { event.preventDefault(); $('shortcuts-dialog').showModal(); }
 });
 api.onEvent(event => {
-  if (event.type === 'state' && event.state) { clearTimeout(renderTimer); renderTimer = null; applyState(event.state); }
-  else if (event.type === 'text_delta') {
+  if (event.type === 'backend_error') { connected = false; state.status = 'error'; state.pending_approval = null; activeTools.clear(); render(); showError(`${event.message}。请重新启动续想，再查询未确认提交的回执。`); return; }
+  if (event.type === 'state' && event.state) { clearTimeout(renderTimer); renderTimer = null; applyState(event.state); return; }
+  if (!acceptProjection(event)) return;
+  if (event.type === 'text_delta') {
     state.messages ||= [];
-    if (state.messages.at(-1)?.role !== 'assistant') state.messages.push({ role: 'assistant', content: '' });
-    state.messages.at(-1).content += event.text || '';
+    let message = event.message_id ? state.messages.find(item => item.id === event.message_id) : state.messages.at(-1);
+    if (!message || message.role !== 'assistant') { message = { id: event.message_id || `stream-${projectionStream}-${projectionSeq}`, role: 'assistant', content: '' }; state.messages.push(message); }
+    message.content += event.text || '';
     if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; renderMessages(); }, 64);
-  } else if (event.type === 'backend_error') { pauseQueue(); connected = false; state.status = 'error'; state.pending_approval = null; activeTools.clear(); render(); showError(`${event.message}。请关闭并重新启动续想。`); }
-  else if (event.type === 'error') { pauseQueue(); showError(event.message || event.error || '本次运行发生错误，请查看执行账本。'); }
+  } else if (event.type === 'reasoning_activity') { activityPhase = 'thinking'; statusNotice = ''; $('run-status').textContent = '正在思考'; }
+  else if (event.type === 'stream_started') { activityPhase = 'generating'; statusNotice = ''; $('run-status').textContent = '正在生成'; }
+  else if (event.type === 'stream_finished') { activityPhase = 'waiting_feedback'; $('run-status').textContent = '等待工具结果，随后继续生成'; }
+  else if (event.type === 'status_notice') { statusNotice = event.message || ''; $('run-status').textContent = statusNotice || '正在运行'; }
+  else if (event.type === 'error') { showError(event.message || event.error || '本次运行发生错误，请查看执行详情。'); scheduleRefresh(); }
   else if (event.type === 'approval_required') { state.pending_approval = event; state.status = 'approval'; renderApproval(); updateControls(); scheduleRefresh(); }
   else if (event.type === 'tool_started') { activeTools.set(`${event.channel}:${event.id}`, { ...event, status: 'running' }); renderLedger(); scheduleRefresh(); }
-  else if (event.type === 'tool_completed') { activeTools.delete(`${event.channel}:${event.id}`); scheduleRefresh(); }
-  else if (event.type === 'run_finished') finishRun();
+  else if (event.type === 'tool_completed') { activeTools.delete(`${event.channel}:${event.id}`); renderLedger(); scheduleRefresh(); markWorkspaceDirty(); }
+  else if (event.type === 'run_finished') { scheduleRefresh(); markWorkspaceDirty(); }
+  else if (event.type.startsWith('input_') || event.type.startsWith('queue_')) scheduleRefresh();
 });
 function toggleSidebar() {
   const hidden = $('workbench').classList.toggle('sidebar-hidden');
@@ -497,7 +433,7 @@ function initializeNavigation() {
   $('cancel-rename').addEventListener('click', () => $('rename-dialog').close());
   $('rename-form').addEventListener('submit', async event => { event.preventDefault(); const title = $('rename-input').value.trim(); if (!title) return; const result = await perform(() => api.request('update_session',{session_id:state.session_id,title})); if (result) $('rename-dialog').close(); });
   $('pin-current').addEventListener('click', () => { $('more-menu').open = false; perform(() => api.request('update_session',{session_id:state.session_id,pinned:!currentSession()?.pinned})); });
-  $('archive-current').addEventListener('click', () => { $('more-menu').open = false; pauseQueue(); perform(() => api.request('update_session',{session_id:state.session_id,archived:!currentSession()?.archived})); });
+  $('archive-current').addEventListener('click', () => { $('more-menu').open = false; perform(() => api.request('update_session',{session_id:state.session_id,archived:!currentSession()?.archived})); });
   $('open-command').addEventListener('click', openCommand);
   $('close-command').addEventListener('click', () => $('command-dialog').close());
   $('command-search').addEventListener('input',renderCommand);
@@ -510,13 +446,14 @@ function initializeNavigation() {
     for (const item of state.recent_workspaces || []) {
       const button = element('button','recent-item',item.name || item.path); button.append(element('small','',item.path));
       button.disabled = busy || running() || !connected;
-      button.addEventListener('click', async () => { const result = await perform(() => api.openRecentWorkspace(item.path)); if (result) $('workspace-dialog').close(); }); list.append(button);
+      button.addEventListener('click', async () => { const result = await perform(() => api.openRecentWorkspace(item.path), { navigation: true }); if (result) $('workspace-dialog').close(); }); list.append(button);
     }
     if (!list.childElementCount) list.append(element('p','muted','暂无最近工作区'));
     $('workspace-dialog').showModal();
   });
   $('close-recent').addEventListener('click', () => $('workspace-dialog').close());
-  $('resume-queue').addEventListener('click', () => { if (running() || busy || sending || !canRun()) return; queuePaused = false; queueEpoch++; renderQueue(); drainQueue(); });
+  $('resume-queue').addEventListener('click', () => perform(() => api.request('resume_queue')));
+  $('pause-queue').addEventListener('click', () => perform(() => api.request('pause_queue')));
   $('messages-scroll').addEventListener('scroll', () => { const box = $('messages-scroll'); followBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 64; $('back-to-bottom').hidden = followBottom || !state.messages?.length; });
   $('back-to-bottom').addEventListener('click', () => { followBottom = true; $('messages-scroll').scrollTop = $('messages-scroll').scrollHeight; $('back-to-bottom').hidden = true; });
   document.addEventListener('click',event => { if (!$('more-menu').contains(event.target)) $('more-menu').open = false; });
@@ -526,5 +463,8 @@ function initializeNavigation() {
   addEventListener('beforeunload', saveDraft);
 }
 initializeNavigation();
+initializeInputController();
+initializeWorkspacePanel();
+initializeModelTools();
 updateControls();
 api.request('get_state').then(applyState).catch(error => { connected = false; render(); showError(error.message); });

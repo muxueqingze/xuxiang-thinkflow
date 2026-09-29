@@ -187,28 +187,47 @@ async function main() {
   held[4].fail(); await idle(18);
   assert.equal((await getState()).status, 'error');
   await page.waitForTimeout(350); assert.equal(requests.length, beforeFailure);
+  const originalQueued = (await getState()).input_queue.find(item => item.status !== 'running');
   await page.locator('.queue-edit').click();
-  assert.equal(await page.locator('#prompt').inputValue(), '失败后取回编辑');
-  assert.equal(await page.locator('#queue-list > li').count(), 0);
-  checks.push('Provider failure pauses queue; edit restores input without sending');
-  // Drop one UI acknowledgement after the real service accepted the request.
-  // This test-only wrapper does not alter the production preload or transport.
+  await page.locator('#queue-edit-dialog').waitFor({ state: 'visible' });
+  assert.equal(await page.locator('#queue-edit-prompt').inputValue(), '失败后取回编辑');
+  await page.locator('#queue-edit-prompt').fill('失败后已编辑的后续任务');
+  await page.locator('#save-queue-edit').click();
+  await page.locator('#queue-edit-dialog').waitFor({ state: 'hidden' });
+  const edited = (await getState()).input_queue.find(item => item.id === originalQueued.id);
+  assert.equal(edited.prompt, '失败后已编辑的后续任务');
+  assert.equal(edited.id, originalQueued.id);
+  assert.equal(requests.length, beforeFailure);
+  assert.equal(await page.locator('#prompt').inputValue(), '');
+  await page.locator('#resume-queue').click(); await idle(20);
+  assert.equal(requests.at(-1), '失败后已编辑的后续任务');
+  checks.push('Provider failure pauses authoritative queue; edit retains identity and waits for explicit resume');
+  // Discard one accepted receipt at the renderer boundary. The controller must
+  // query the exact command ID from the real service, never create a new input.
   await page.evaluate(() => {
-    const original = window.perform;
-    window.perform = async (...args) => { window.perform = original; await original(...args); return null; };
+    const original = window.acceptInputReceipt;
+    let dropped = false;
+    window.acceptInputReceipt = async (...args) => {
+      window.__receiptCommand = args[2];
+      if (!dropped) { dropped = true; return false; }
+      window.acceptInputReceipt = original;
+      return original(...args);
+    };
   });
-  await submit('回执丢失模拟'); await idle(20);
-  await page.locator('.queue-confirm').waitFor({ state: 'visible' });
-  assert.equal(await page.locator('#resume-queue').isDisabled(), true);
+  await submit('回执丢失模拟'); await idle(22);
+  await page.locator('#input-receipt-panel').waitFor({ state: 'hidden' });
+  const receiptId = await page.evaluate(() => window.__receiptCommand);
+  const receipt = await page.evaluate(async command_id => window.thinkflow.request('get_input_receipt', { command_id, session_id: state.session_id }), receiptId);
+  assert.equal(receipt.receipt.id, receiptId);
+  assert.equal(receipt.receipt.status, 'completed');
   const acceptedCount = requests.length;
   await page.reload();
   await page.waitForFunction(() => document.getElementById('connection-label').textContent === '本地后端已连接');
-  await page.locator('.queue-confirm').waitFor({ state: 'visible' });
   await page.waitForTimeout(350); assert.equal(requests.length, acceptedCount);
-  await page.locator('#prompt').fill('核对时的新草稿');
-  await page.locator('.queue-remove').click();
-  assert.equal(await page.locator('#prompt').inputValue(), '核对时的新草稿');
-  checks.push('Lost UI acknowledgement stays uncertain across reload; no replay, removing it preserves draft');
+  assert.equal(await page.locator('#input-receipt-panel').isVisible(), false);
+  await page.locator('#prompt').fill('回执核对后的新草稿');
+  assert.equal(await page.locator('#send').isEnabled(), true);
+  checks.push('Lost receipt is resolved by exact command identity; reload does not replay and input remains usable');
   assert.deepEqual(pageErrors, []);
   const evidence = { passed: true, packaged, checks, layout, settings, pageErrors, requestCount: requests.length };
   fs.writeFileSync(path.join(directory, 'results.json'), JSON.stringify(evidence, null, 2));

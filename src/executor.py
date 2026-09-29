@@ -6,17 +6,22 @@ ThinkFlow Executor — 命令执行器
 """
 
 import asyncio
+import codecs
 import fnmatch
 import os
 import re
-import shutil
 import signal
+import threading
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
 from .parser import Command
 from .security import SecurityPolicy
+from .changes import (
+    ChangeStore, MAX_GUARDED_FILE_BYTES, atomic_write_bytes, content_revision,
+    read_optional_bytes, reject_symbolic_path,
+)
 
 
 @dataclass
@@ -34,12 +39,18 @@ class ExecutionResult:
     truncated: bool = False
     timed_out: bool = False
     status: str = ""
+    revision: str = ""
+    change_id: str = ""
 
     @property
     def status_str(self) -> str:
         if self.status:
             return self.status
         return "success" if self.success else "failed"
+
+
+class FileRevisionConflict(ValueError):
+    """The requested mutation has no valid model-observed baseline."""
 
 
 class Executor:
@@ -51,6 +62,8 @@ class Executor:
         allowed_paths: Optional[list[str]] = None,
         max_read_chars: int = 200_000,
         security: Optional[SecurityPolicy] = None,
+        change_store: Optional[ChangeStore] = None,
+        require_read_revision: bool = True,
     ):
         """
         Args:
@@ -66,6 +79,35 @@ class Executor:
         self.allowed_paths = self.security.normalized_roots(self.cwd)
         self.max_read_chars = max_read_chars
         self._path_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._io_lock = threading.RLock()
+        self._read_revisions: dict[str, str] = {}
+        # Explicit legacy opt-out for trusted direct callers only. Agent defaults
+        # stay strict; no read/list/grep fallback silently authorizes overwriting.
+        self.require_read_revision = require_read_revision
+        self.change_store = None
+        self.set_change_store(change_store)
+
+    def set_change_store(self, store: Optional[ChangeStore]) -> None:
+        if store is not None and os.path.normcase(str(store.cwd)) != os.path.normcase(self.cwd):
+            raise ValueError("change_store_workspace_mismatch")
+        self.change_store = store
+
+    def grant_read_revision(self, path: str, revision: str) -> None:
+        """Grant exactly the UTF-8 attachment version delivered to the model.
+
+        Caller must only use this after admitting that immutable full content.
+        We never read the current file and silently replace the supplied hash.
+        """
+        resolved = self._resolve_path(path, "read")
+        reject_symbolic_path(resolved)
+        if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{64}", revision):
+            raise ValueError("invalid_read_revision: expected SHA256")
+        with self._io_lock:
+            self._read_revisions[self._revision_key(resolved)] = revision
+
+    @staticmethod
+    def _revision_key(path: str) -> str:
+        return os.path.normcase(os.path.abspath(path))
 
     async def execute(self, command: Command) -> ExecutionResult:
         """执行命令，返回结果。"""
@@ -108,6 +150,15 @@ class Executor:
     def _resolve_path(self, path: str, operation: str) -> str:
         resolved = self._normalize_path(path)
         self.security.check_path(resolved, self.allowed_paths, operation)
+        if self.change_store is not None:
+            canonical = os.path.normcase(os.path.realpath(resolved))
+            private_root = os.path.normcase(os.path.realpath(self.change_store.root))
+            try:
+                private = os.path.commonpath([canonical, private_root]) == private_root
+            except ValueError:
+                private = False
+            if private:
+                raise PermissionError("change_store_path: private receipts are not model inputs or tool targets")
         return resolved
 
     @staticmethod
@@ -126,14 +177,23 @@ class Executor:
         """读取文件内容，供传统 read tool 使用。"""
         try:
             resolved = self._resolve_path(path, "read")
-            loop = asyncio.get_event_loop()
-            content = await loop.run_in_executor(None, self._read_file, resolved)
+            data, complete = await self._file_io(self._read_preview, resolved, self.max_read_chars)
+            raw_content = codecs.getincrementaldecoder("utf-8")().decode(data, final=complete)
+            content = raw_content
             if not self.security.allow_sensitive_paths:
                 content = self.security.redact_text(content)
-            truncated = False
+            truncated = not complete
             if self.max_read_chars > 0 and len(content) > self.max_read_chars:
                 content = content[:self.max_read_chars]
                 truncated = True
+            revision = ""
+            if not truncated and complete and content == raw_content and "\x00" not in content:
+                revision = content_revision(data)
+                self.grant_read_revision(resolved, revision)
+            else:
+                # A later partial/redacted view cannot refresh an old full view.
+                with self._io_lock:
+                    self._read_revisions.pop(self._revision_key(resolved), None)
             return ExecutionResult(
                 success=True,
                 tool="read",
@@ -141,6 +201,7 @@ class Executor:
                 content=content,
                 bytes_written=len(content.encode("utf-8")),
                 truncated=truncated,
+                revision=revision,
             )
         except Exception as e:
             return ExecutionResult(
@@ -149,6 +210,18 @@ class Executor:
                 path=path,
                 error=f"读取失败: {e}",
             )
+
+    @staticmethod
+    def _read_preview(path: str, max_chars: int) -> tuple[bytes, bool]:
+        reject_symbolic_path(path)
+        if not os.path.isfile(path):
+            raise FileNotFoundError("file not found or not a regular file")
+        # UTF-8 needs at most four bytes per character. Read one byte beyond the
+        # bounded window to distinguish EOF without hashing or loading the tail.
+        limit = min(MAX_GUARDED_FILE_BYTES, max_chars * 4 + 4) if max_chars > 0 else MAX_GUARDED_FILE_BYTES
+        with open(path, "rb") as stream:
+            data = stream.read(limit + 1)
+        return data[:limit], len(data) <= limit
 
     async def _read_command(self, command: Command) -> ExecutionResult:
         if command.path is None:
@@ -301,158 +374,128 @@ class Executor:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
 
+    def _check_revision(self, path: str, before: bytes | None) -> None:
+        current = content_revision(before)
+        known = self._read_revisions.get(self._revision_key(path))
+        if not self.require_read_revision:
+            return
+        if known is not None and known != current:
+            raise FileRevisionConflict("revision_conflict: file changed since the model's full read; read again")
+        if before is not None and known is None:
+            raise FileRevisionConflict("read_required: existing file needs a complete unredacted read before modification")
+
     async def _write(self, command: Command) -> ExecutionResult:
-        """写入文件（覆盖）。"""
-        if command.path is None or command.content is None:
-            return ExecutionResult(
-                success=False, tool="write", path=command.path or "",
-                error="缺少 path 或 content",
-            )
+        return await self._file_command(command)
 
-        if not command.content.strip():
-            return ExecutionResult(
-                success=False,
-                tool="write",
-                path=command.path,
-                error="write 内容为空；如需创建空文件请使用 touch",
-            )
+    async def _append(self, command: Command) -> ExecutionResult:
+        return await self._file_command(command)
 
-        path = self._resolve_path(command.path, "write")
+    async def _touch(self, command: Command) -> ExecutionResult:
+        return await self._file_command(command)
 
-        # 确保目录存在
-        dir_path = os.path.dirname(path)
-        if dir_path:
-            os.makedirs(dir_path, exist_ok=True)
+    async def _copy(self, command: Command) -> ExecutionResult:
+        return await self._file_command(command)
 
-        # 写入（异步包装同步 IO）
-        data = command.content.encode("utf-8")
-        loop = asyncio.get_event_loop()
-        async with self._path_locks[path]:
-            await self._file_io(self._write_file, path, data)
+    async def _mkdir(self, command: Command) -> ExecutionResult:
+        return await self._file_command(command)
 
-        return ExecutionResult(
-            success=True,
-            tool="write",
-            path=path,
-            bytes_written=len(data),
-        )
+    async def _file_command(self, command: Command) -> ExecutionResult:
+        if command.path is None:
+            return ExecutionResult(False, tool=command.tool, error="缺少 path")
+        if command.tool in {"write", "append"}:
+            if command.content is None or not command.content.strip():
+                return ExecutionResult(False, tool=command.tool, path=command.path,
+                                       error="内容为空；创建空文件请使用 touch")
+        if command.tool == "copy" and command.dest is None:
+            return ExecutionResult(False, tool="copy", error="缺少 dest")
+        if command.tool == "edit" and (command.old_text is None or command.new_text is None):
+            return ExecutionResult(False, tool="edit", error="缺少 old_text / new_text")
+        target = command.dest if command.tool == "copy" else command.path
+        path = self._resolve_path(target, "write")
+        reject_symbolic_path(path)
+        async with self._path_locks[self._revision_key(path)]:
+            return await self._file_io(self._mutate_file, command, path)
+
+    def _mutate_file(self, command: Command, path: str) -> ExecutionResult:
+        # Store's lock also excludes a simultaneous UI revert. These locks do
+        # not claim to coordinate independent processes or external editors.
+        with self._io_lock, (self.change_store.lock if self.change_store else self._io_lock):
+            receipt = ""
+            try:
+                path = self._resolve_path(path, "write")
+                reject_symbolic_path(path)
+                if command.tool == "mkdir":
+                    if os.path.isdir(path):
+                        return ExecutionResult(True, tool="mkdir", path=path)
+                    if os.path.lexists(path):
+                        raise ValueError("not_directory: target already exists")
+                    before = after = None
+                else:
+                    before = read_optional_bytes(path)
+                    self._check_revision(path, before)
+                    if command.tool == "write":
+                        after = command.content.encode("utf-8")
+                    elif command.tool == "append":
+                        after = (before or b"") + command.content.encode("utf-8")
+                    elif command.tool == "touch":
+                        after = before if before is not None else b""
+                    elif command.tool == "copy":
+                        source = self._resolve_path(command.path, "read")
+                        after = read_optional_bytes(source)
+                        if after is None:
+                            raise FileNotFoundError("源文件不存在")
+                    elif command.tool == "edit":
+                        if before is None:
+                            raise FileNotFoundError("文件不存在")
+                        content = before.decode("utf-8")
+                        count = content.count(command.old_text)
+                        if not command.old_text or count != 1:
+                            raise ValueError(f"oldText 必须唯一且非空，当前出现 {count} 次")
+                        after = content.replace(command.old_text, command.new_text, 1).encode("utf-8")
+                    else:
+                        raise ValueError("unsupported file mutation")
+                    if len(after) > MAX_GUARDED_FILE_BYTES:
+                        raise ValueError("file_too_large: guarded file operations are limited to 8 MiB")
+                if self.change_store:
+                    receipt = self.change_store.begin(
+                        path, command.tool, before, after, command_id=command.id,
+                        kind="directory" if command.tool == "mkdir" else "file",
+                    )
+                # No workspace mkdir or write is allowed before intent commits.
+                self._resolve_path(path, "write")
+                reject_symbolic_path(path)
+                if command.tool == "mkdir":
+                    os.makedirs(path, exist_ok=True)
+                else:
+                    if content_revision(read_optional_bytes(path)) != content_revision(before):
+                        raise FileRevisionConflict("revision_conflict: file changed before write")
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    reject_symbolic_path(path)
+                    if content_revision(read_optional_bytes(path)) != content_revision(before):
+                        raise FileRevisionConflict("revision_conflict: file changed before replacement")
+                    if command.tool == "touch" and before is not None:
+                        os.utime(path, None)
+                    else:
+                        atomic_write_bytes(path, after)
+                    if content_revision(read_optional_bytes(path)) != content_revision(after):
+                        raise FileRevisionConflict("revision_conflict: file changed during write")
+                    self._read_revisions[self._revision_key(path)] = content_revision(after)
+                if receipt:
+                    self.change_store.complete(receipt)
+                size = len(command.content.encode("utf-8")) if command.tool == "append" else len(after or b"")
+                return ExecutionResult(True, tool=command.tool, path=path, bytes_written=size,
+                                       revision=content_revision(after) if command.tool != "mkdir" else "",
+                                       change_id=receipt)
+            except Exception as error:
+                # A durable intent with no success receipt is deliberately left
+                # unknown, including final receipt storage failures after a write.
+                status = "unknown" if receipt else ("conflict" if isinstance(error, FileRevisionConflict) else "failed")
+                return ExecutionResult(False, tool=command.tool, path=path,
+                                       error=str(error), status=status, change_id=receipt)
 
     @staticmethod
     def _write_file(path: str, data: bytes):
-        temp_path = f"{path}.tmp-{os.getpid()}"
-        with open(temp_path, "wb") as f:
-            f.write(data)
-        os.replace(temp_path, path)
-
-    async def _mkdir(self, command: Command) -> ExecutionResult:
-        """创建目录。"""
-        if command.path is None:
-            return ExecutionResult(
-                success=False, tool="mkdir", error="缺少 path",
-            )
-
-        path = self._resolve_path(command.path, "mkdir")
-        os.makedirs(path, exist_ok=True)
-
-        return ExecutionResult(
-            success=True, tool="mkdir", path=path,
-        )
-
-    async def _append(self, command: Command) -> ExecutionResult:
-        """追加写入文件。"""
-        if command.path is None or command.content is None:
-            return ExecutionResult(
-                success=False, tool="append", path=command.path or "",
-                error="缺少 path 或 content",
-            )
-
-        if not command.content.strip():
-            return ExecutionResult(
-                success=False,
-                tool="append",
-                path=command.path,
-                error="append 内容为空；空追加没有可审计副作用",
-            )
-
-        path = self._resolve_path(command.path, "write")
-        dir_path = os.path.dirname(path)
-        if dir_path:
-            os.makedirs(dir_path, exist_ok=True)
-
-        data = command.content.encode("utf-8")
-        loop = asyncio.get_event_loop()
-        async with self._path_locks[path]:
-            await self._file_io(self._append_file, path, data)
-
-        return ExecutionResult(
-            success=True,
-            tool="append",
-            path=path,
-            bytes_written=len(data),
-        )
-
-    @staticmethod
-    def _append_file(path: str, data: bytes):
-        with open(path, "ab") as f:
-            f.write(data)
-
-    async def _touch(self, command: Command) -> ExecutionResult:
-        """创建空文件或更新 mtime。"""
-        if command.path is None:
-            return ExecutionResult(success=False, tool="touch", error="缺少 path")
-
-
-        path = self._resolve_path(command.path, "write")
-        dir_path = os.path.dirname(path)
-        if dir_path:
-            os.makedirs(dir_path, exist_ok=True)
-
-        loop = asyncio.get_event_loop()
-        async with self._path_locks[path]:
-            await self._file_io(self._touch_file, path)
-
-        return ExecutionResult(success=True, tool="touch", path=path)
-
-    @staticmethod
-    def _touch_file(path: str):
-        with open(path, "ab"):
-            pass
-        os.utime(path, None)
-
-    async def _copy(self, command: Command) -> ExecutionResult:
-        """复制文件。"""
-        if command.path is None or command.dest is None:
-            return ExecutionResult(
-                success=False,
-                tool="copy",
-                path=command.path or "",
-                error="缺少 path 或 dest",
-            )
-
-        source = self._resolve_path(command.path, "read")
-        dest = self._resolve_path(command.dest, "write")
-        if not os.path.isfile(source):
-            return ExecutionResult(
-                success=False,
-                tool="copy",
-                path=source,
-                error=f"源文件不存在: {source}",
-            )
-        dir_path = os.path.dirname(dest)
-        if dir_path:
-            os.makedirs(dir_path, exist_ok=True)
-
-        loop = asyncio.get_event_loop()
-        async with self._path_locks[dest]:
-            await self._file_io(shutil.copyfile, source, dest)
-        bytes_written = os.path.getsize(dest)
-
-        return ExecutionResult(
-            success=True,
-            tool="copy",
-            path=dest,
-            bytes_written=bytes_written,
-        )
+        atomic_write_bytes(path, data)
 
     async def _bash(self, command: Command) -> ExecutionResult:
         """执行 shell 命令。"""
@@ -480,32 +523,40 @@ class Executor:
             **({"start_new_session": True} if os.name != "nt" else {}),
         )
 
+        # A non-positive legacy limit must not silently restore unbounded capture.
+        max_chars = min(1_000_000, self.security.max_bash_output_chars if self.security.max_bash_output_chars > 0 else 80000)
+        readers = [asyncio.create_task(self._read_bounded_output(proc.stdout, max_chars)),
+                   asyncio.create_task(self._read_bounded_output(proc.stderr, max_chars))]
+        waiter = asyncio.create_task(proc.wait())
+
+        async def exchange():
+            stdout, stderr, _ = await asyncio.gather(*readers, waiter)
+            return stdout, stderr
+
+        transfer = asyncio.create_task(exchange())
+        timed_out = False
+        cleanup_incomplete = False
         try:
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                proc.communicate(),
-                timeout=self.security.bash_timeout_seconds,
-            )
-            timed_out = False
+            outputs = await asyncio.wait_for(asyncio.shield(transfer), timeout=self.security.bash_timeout_seconds)
         except asyncio.TimeoutError:
+            # Keep both readers alive while killing: blocked pipes must not prevent
+            # the owned process tree from terminating or its readers from settling.
             await self._stop_process_tree(proc)
-            stdout_bytes, stderr_bytes = await proc.communicate()
+            outputs = await self._settle_output_capture(proc, transfer, readers, waiter)
+            cleanup_incomplete = outputs is None
             timed_out = True
         except asyncio.CancelledError:
             await self._stop_process_tree(proc)
-            await proc.communicate()
+            await self._settle_output_capture(proc, transfer, readers, waiter)
             raise
-
-        stdout = stdout_bytes.decode("utf-8", errors="replace")
-        stderr = stderr_bytes.decode("utf-8", errors="replace")
-        truncated = False
-        max_chars = self.security.max_bash_output_chars
-        if max_chars > 0:
-            if len(stdout) > max_chars:
-                stdout = stdout[:max_chars]
-                truncated = True
-            if len(stderr) > max_chars:
-                stderr = stderr[:max_chars]
-                truncated = True
+        except Exception:
+            await self._stop_process_tree(proc)
+            await self._settle_output_capture(proc, transfer, readers, waiter)
+            raise
+        if outputs is None:
+            outputs = (("", True), ("", True))
+        (stdout, stdout_truncated), (stderr, stderr_truncated) = outputs
+        truncated = stdout_truncated or stderr_truncated
 
         return ExecutionResult(
             success=(proc.returncode == 0 and not timed_out),
@@ -513,10 +564,58 @@ class Executor:
             stdout=stdout,
             stderr=stderr,
             exit_code=proc.returncode,
-            error="命令超时" if timed_out else (stderr if proc.returncode != 0 else ""),
+            error=("命令超时；后台输出管道未关闭，已停止读取。请核对仍在后台的进程。" if cleanup_incomplete
+                   else "命令超时" if timed_out else (stderr if proc.returncode != 0 else "")),
             truncated=truncated,
             timed_out=timed_out,
+            status="unknown" if cleanup_incomplete else "",
         )
+
+    @staticmethod
+    async def _read_bounded_output(pipe, max_chars: int) -> tuple[str, bool]:
+        """Drain a pipe fully while retaining a bounded UTF-8 character prefix."""
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        retained = []
+        length = 0
+        truncated = False
+        while chunk := await pipe.read(65536):
+            text = decoder.decode(chunk, final=False)
+            remaining = max(0, max_chars - length)
+            if remaining:
+                retained.append(text[:remaining])
+                length += min(len(text), remaining)
+            truncated = truncated or len(text) > remaining
+        tail = decoder.decode(b"", final=True)
+        remaining = max(0, max_chars - length)
+        if remaining:
+            retained.append(tail[:remaining])
+        truncated = truncated or len(tail) > remaining
+        return "".join(retained), truncated
+
+    @staticmethod
+    async def _settle_output_capture(proc, transfer, readers, waiter, timeout=1.0):
+        """Bound cleanup even when an exited shell left inherited pipes open."""
+        try:
+            return await asyncio.wait_for(asyncio.shield(transfer), timeout=timeout)
+        except asyncio.TimeoutError:
+            # StreamReader has no public close API. These are this process's
+            # local pipe transports; closing them does not kill unrelated PIDs.
+            transport = getattr(proc, "_transport", None)
+            if transport:
+                for descriptor in (1, 2):
+                    try:
+                        pipe = transport.get_pipe_transport(descriptor)
+                        if pipe:
+                            pipe.close()
+                    except (AttributeError, OSError):
+                        pass
+        except Exception:
+            pass
+        for task in (transfer, *readers, waiter):
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(transfer, *readers, waiter, return_exceptions=True)
+        return None
 
     @staticmethod
     async def _stop_process_tree(proc):
@@ -542,62 +641,4 @@ class Executor:
         await proc.wait()
 
     async def _edit(self, command: Command) -> ExecutionResult:
-        """编辑文件（精确替换）。"""
-        if command.path is None or command.old_text is None or command.new_text is None:
-            return ExecutionResult(
-                success=False, tool="edit", path=command.path or "",
-                error="缺少 path / old_text / new_text",
-            )
-
-        path = self._resolve_path(command.path, "edit")
-
-        if not os.path.exists(path):
-            return ExecutionResult(
-                success=False, tool="edit", path=path,
-                error=f"文件不存在: {path}",
-            )
-
-        loop = asyncio.get_event_loop()
-        async with self._path_locks[path]:
-            content, error = await self._file_io(self._do_edit, path, command.old_text, command.new_text)
-
-        if error:
-            return ExecutionResult(
-                success=False, tool="edit", path=path, error=error,
-            )
-
-        return ExecutionResult(
-            success=True, tool="edit", path=path,
-            bytes_written=len(content.encode("utf-8")),
-        )
-
-    @staticmethod
-    def _do_edit(path: str, old: str, new: str) -> tuple[str, Optional[str]]:
-        """执行编辑，返回 (新内容, 错误)。写入走临时文件 + 原子替换，崩溃不留半截文件。"""
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        count = content.count(old)
-        if count == 0:
-            return content, f"oldText 在文件中未找到"
-        if count > 1:
-            return content, f"oldText 在文件中出现 {count} 次，必须唯一"
-
-        new_content = content.replace(old, new, 1)
-
-        temp_path = f"{path}.tmp-{os.getpid()}"
-        try:
-            with open(temp_path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(temp_path, path)
-        except BaseException:
-            try:
-                os.unlink(temp_path)
-            except OSError:
-                pass
-            raise
-
-        return new_content, None
-
+        return await self._file_command(command)

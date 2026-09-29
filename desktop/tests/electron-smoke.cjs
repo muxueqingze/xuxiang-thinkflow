@@ -106,6 +106,7 @@ async function main() {
   await page.locator('#fork').click();
   await page.waitForFunction(session => document.getElementById('session-caption').textContent !== `会话 · ${session.slice(0, 8)}`, completed.session_id);
   assert.equal((await state(page)).messages.length, completed.messages.length);
+  await page.locator('#close-ledger').click();
   await page.locator('#new-session').click(); await page.waitForFunction(() => document.querySelectorAll('.message').length === 0);
   await page.locator('#prompt').fill('授权命令'); await page.locator('#send').click();
   await page.locator('#approval').waitFor({ state: 'visible' });

@@ -317,19 +317,30 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
         process = AsyncMock()
         process.returncode = None
         started = asyncio.Event()
+        release = asyncio.Event()
 
-        async def communicate():
+        async def read(size):
             started.set()
-            await asyncio.Event().wait()
+            await release.wait()
+            return b""
 
-        process.communicate.side_effect = communicate
+        async def wait():
+            await release.wait()
+            return -9
+
+        process.stdout.read.side_effect = read
+        process.stderr.read.side_effect = read
+        process.wait.side_effect = wait
         executor = Executor()
-        executor._stop_process_tree = AsyncMock()
+
+        async def cleanup(proc):
+            process.returncode = -9
+            release.set()
+
+        executor._stop_process_tree = AsyncMock(side_effect=cleanup)
         with patch("asyncio.create_subprocess_shell", AsyncMock(return_value=process)):
             task = asyncio.create_task(executor.execute(Command(id="1", tool="bash", cmd="fake")))
             await started.wait()
-            process.communicate.side_effect = None
-            process.communicate.return_value = (b"", b"")
             task.cancel()
             with self.assertRaises(asyncio.CancelledError):
                 await task

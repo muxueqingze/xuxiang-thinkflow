@@ -21,6 +21,8 @@ class ProviderProfileConfig:
     api_key: str = ""
     model: str = ""
     thinking_budget: int = 0
+    thinking_mode: str = "disabled"
+    reasoning_effort: str = "high"
     max_tokens: int = 100000
     stream_options_include_usage: bool = False
     enable_native_tools: bool = True
@@ -42,6 +44,8 @@ class ProviderConfig:
     model: str = ""
     format: str = "openai"  # "anthropic" or "openai"
     thinking_budget: int = 0  # provider-specific thinking budget, disabled by default
+    thinking_mode: str = "disabled"
+    reasoning_effort: str = "high"
     max_tokens: int = 100000
     stream_options_include_usage: bool = False
     enable_native_tools: bool = True
@@ -142,6 +146,8 @@ class OpenAIProvider:
             "stream": True,
         }
 
+        body.update(openai_thinking_options(self.config))
+
         if self.config.stream_options_include_usage:
             body["stream_options"] = {"include_usage": True}
 
@@ -170,3 +176,19 @@ def create_provider(config: ProviderConfig):
         return OpenAIProvider(config)
     else:
         raise ValueError(f"未知 format: {config.format}")
+
+
+def is_deepseek(config: ProviderConfig) -> bool:
+    from urllib.parse import urlsplit
+    return urlsplit(config.base_url).hostname == 'api.deepseek.com' or config.model.startswith('deepseek-')
+
+
+def openai_thinking_options(config: ProviderConfig) -> dict:
+    # DeepSeek defaults to thinking; other compatible APIs must not receive
+    # vendor-only options just because the desktop has a thinking selector.
+    if is_deepseek(config):
+        options = {'thinking': {'type': config.thinking_mode}}
+        if config.thinking_mode == 'enabled':
+            options['reasoning_effort'] = config.reasoning_effort
+        return options
+    return {}

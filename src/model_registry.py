@@ -10,6 +10,7 @@ import httpx
 
 
 MODEL_PREFERENCE = [
+    "deepseek-flash",
     "glm-5.2",
     "glm-5.2-air",
     "glm-5.2-thinking",
@@ -127,6 +128,8 @@ def merge_active_provider(config: dict, active_provider: str | None = None) -> d
         "api_key",
         "model",
         "thinking_budget",
+        "thinking_mode",
+        "reasoning_effort",
         "max_tokens",
         "stream_options_include_usage",
         "enable_native_tools",

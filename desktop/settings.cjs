@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: 16384, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced' });
+const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: 16384, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true });
 function normalizeConfig(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('设置格式不正确');
   const config = {};
@@ -11,6 +11,10 @@ function normalizeConfig(input) {
   }
   if (!['openai', 'anthropic'].includes(config.provider)) throw new Error('请选择支持的接口类型');
   if (!['balanced', 'read-only', 'open'].includes(config.security_profile)) throw new Error('权限策略无效');
+  config.thinking_mode = input.thinking_mode ?? 'disabled';
+  config.reasoning_effort = input.reasoning_effort ?? 'high';
+  config.stream_options_include_usage = input.stream_options_include_usage !== false;
+  if (!['disabled', 'enabled'].includes(config.thinking_mode) || !['low', 'high', 'max'].includes(config.reasoning_effort)) throw new Error('思考设置无效');
   if (config.base_url) {
     let url;
     try { url = new URL(config.base_url); } catch { throw new Error('端点地址必须是完整 URL'); }

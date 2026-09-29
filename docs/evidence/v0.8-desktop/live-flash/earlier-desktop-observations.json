@@ -1,0 +1,254 @@
+[
+  {
+    "sample": "live-package-1790675808320",
+    "reason": "Task completed via native writes; screenshot timed out under concurrent Electron tests.",
+    "status": "idle",
+    "error": "",
+    "usage": {
+      "prompt_tokens": 6299,
+      "completion_tokens": 1760,
+      "reasoning_tokens": 1020,
+      "text_tokens": 740,
+      "cached_tokens": 3584,
+      "effective_input": 2715,
+      "total_tokens": 8059,
+      "api_calls": 2,
+      "total_commands": 0,
+      "estimated_saved_api_calls": 0,
+      "estimated_avoided_prompt_tokens": 0
+    },
+    "tools": [
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": 0
+      }
+    ]
+  },
+  {
+    "sample": "live-source-1790676029502",
+    "reason": "Task completed with partial usage; old test wrongly required usage from every early-closed stream.",
+    "status": "idle",
+    "error": "",
+    "usage": {
+      "prompt_tokens": 23305,
+      "completion_tokens": 3049,
+      "reasoning_tokens": 1550,
+      "text_tokens": 1499,
+      "cached_tokens": 17408,
+      "effective_input": 5897,
+      "total_tokens": 26354,
+      "api_calls": 6,
+      "total_commands": 4,
+      "estimated_saved_api_calls": 3,
+      "estimated_avoided_prompt_tokens": 11652
+    },
+    "tools": [
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": 0
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": 0
+      }
+    ]
+  },
+  {
+    "sample": "live-package-1790676318257",
+    "reason": "Test declined malformed Windows command after first execution failure.",
+    "status": "cancelled",
+    "error": "存在未确认的执行。请核对文件后继续。",
+    "usage": {
+      "prompt_tokens": 3059,
+      "completion_tokens": 4096,
+      "reasoning_tokens": 4096,
+      "text_tokens": 0,
+      "cached_tokens": 2176,
+      "effective_input": 883,
+      "total_tokens": 7155,
+      "api_calls": 3,
+      "total_commands": 3,
+      "estimated_saved_api_calls": 2,
+      "estimated_avoided_prompt_tokens": 2039
+    },
+    "tools": [
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "failed",
+        "flow": "blocking",
+        "exit_code": 1
+      },
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "cancelled",
+        "flow": "blocking",
+        "exit_code": null
+      }
+    ]
+  },
+  {
+    "sample": "live-source-1790676477951",
+    "reason": "Reached 10-turn limit while repeatedly reading a Markdown file whose fenced payload had been filtered.",
+    "status": "error",
+    "error": "Run stopped at configured limit: max_run_turns",
+    "usage": {
+      "prompt_tokens": 49165,
+      "completion_tokens": 2898,
+      "reasoning_tokens": 2212,
+      "text_tokens": 686,
+      "cached_tokens": 40064,
+      "effective_input": 9101,
+      "total_tokens": 52063,
+      "api_calls": 10,
+      "total_commands": 2,
+      "estimated_saved_api_calls": 2,
+      "estimated_avoided_prompt_tokens": 9833
+    },
+    "tools": [
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "write",
+        "status": "success",
+        "flow": "delayed",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": 0
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": 0
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": 0
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "read",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": null
+      },
+      {
+        "tool": "bash",
+        "status": "success",
+        "flow": "blocking",
+        "exit_code": 0
+      }
+    ]
+  }
+]

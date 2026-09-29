@@ -4,7 +4,7 @@ type: software
 title: "续想 ThinkFlow"
 authors:
   - name: "沐雪清泽"
-version: "0.7.0"
+version: "0.8.0"
 license: "MIT"
 repository-code: "https://github.com/muxueqingze/xuxiang-thinkflow"
 url: "https://github.com/muxueqingze/xuxiang-thinkflow"

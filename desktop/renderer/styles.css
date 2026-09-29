@@ -254,3 +254,101 @@ input::placeholder{color:#99958b;font-size:12px}
 .error-banner{max-height:8vh;padding-top:8px;padding-bottom:8px}
 .error-banner>span{max-height:calc(8vh - 16px)}
 @media(max-height:760px){.approval-panel,.recovery-banner{max-height:26vh}.queue-panel{max-height:12vh}}
+
+/* The workbench exposes real execution, plan and file state in one optional pane. */
+.workbench{--sidebar-width:248px;--inspector-width:360px;grid-template-columns:var(--sidebar-width) minmax(0,1fr) var(--inspector-width)}
+.workbench.ledger-hidden{grid-template-columns:var(--sidebar-width) minmax(0,1fr)}
+.workbench.sidebar-hidden{grid-template-columns:minmax(0,1fr) var(--inspector-width)}
+.workbench.sidebar-hidden.ledger-hidden{grid-template-columns:minmax(0,1fr)}
+.workbench.inspector-expanded{--inspector-width:560px}
+.inspector{background:#faf9f7}
+.inspector>header{padding:16px;min-height:64px}
+.inspector>header>div{display:flex;align-items:center;gap:4px}
+.inspector-tabs{display:flex;border-bottom:1px solid var(--line);padding:0 12px;gap:4px;flex-shrink:0}
+.inspector-tabs>button{padding:12px 12px;border-radius:0;font-size:12px;position:relative;color:var(--muted)}
+.inspector-tabs>button[aria-selected=true]{color:var(--ink);box-shadow:inset 0 -2px #55544e}
+.inspector-tabs>button span{font-size:10px;margin-left:4px;color:var(--muted)}
+.inspector-panel{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+.panel-toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);flex-shrink:0;font-size:11px;min-height:44px}
+.panel-toolbar>span{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.panel-toolbar>button{flex-shrink:0}
+.panel-toolbar>button:last-child{margin-left:auto}
+.panel-feedback{padding:12px 16px;color:var(--muted);font-size:11px;line-height:1.8;flex-shrink:0;overflow-wrap:anywhere;max-height:96px;overflow:auto}
+.file-search-form{display:flex;gap:8px;padding:8px 16px;flex-shrink:0}
+.file-search-form input{margin:0;min-width:0;height:32px;font-size:12px}
+.file-search-form button{flex-shrink:0;font-size:11px;padding:4px 8px}
+.files-list,.changes-list{flex:1;min-height:0;overflow:auto;padding:0 8px 16px}
+.file-entry{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:12px 8px;border-bottom:1px solid var(--line);border-radius:0;min-width:0}
+.file-entry-kind{font-size:10px;color:var(--muted);flex-shrink:0}
+.file-entry strong{font-size:12px;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.file-entry small{font-size:10px;color:var(--muted);margin-left:auto;white-space:nowrap;flex-shrink:0}
+.file-preview,.change-preview{display:flex;flex-direction:column;min-height:0;flex:1}
+.file-preview>h3,.change-preview>h3{font-size:12px;padding:16px 16px 0;line-height:1.7;overflow-wrap:anywhere;flex-shrink:0}
+.file-preview>pre,.change-preview>pre{flex:1;min-height:0;overflow:auto;white-space:pre;font:12px/1.8 Consolas,"Microsoft YaHei",monospace;margin:0;padding:16px;background:#fff;border-top:1px solid var(--line);tab-size:2}
+.change-entry{display:block;width:100%;text-align:left;padding:16px 8px;border-bottom:1px solid var(--line);border-radius:0}
+.change-entry strong{font-size:12px;font-weight:500;display:block;overflow-wrap:anywhere;line-height:1.7}
+.change-entry small{font-size:10px;display:block;margin-top:8px;color:var(--muted)}
+.task-plan-list{flex:1;min-height:0;overflow:auto;padding:0 16px 16px}
+.task-plan-entry{padding:16px 0;border-bottom:1px solid var(--line)}
+.task-plan-status{font-size:10px;color:var(--muted)}
+.task-plan-entry.in_progress .task-plan-status{color:var(--amber)}
+.task-plan-entry.completed .task-plan-status{color:var(--green)}
+.task-plan-entry h3{font-size:13px;line-height:1.8;font-weight:500;margin-top:8px;overflow-wrap:anywhere}
+.task-acceptance{font-size:11px;color:var(--muted);line-height:1.8;margin-top:8px;overflow-wrap:anywhere}
+.task-evidence{display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:10px;color:var(--muted);margin-top:8px}
+.task-evidence>button{font-family:Consolas,monospace;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+.task-plan-note{font-size:10px;line-height:1.8;padding:16px;border-top:1px solid var(--line);color:var(--muted);flex-shrink:0}
+.attachment-chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 40px 8px;flex-shrink:0;max-height:72px;overflow:auto}
+.attachment-chip{display:flex;align-items:center;min-width:0;max-width:100%;background:var(--side);border:1px solid var(--line);border-radius:6px;font-size:11px}
+.attachment-chip>button:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:6px 8px;min-width:0}
+.attachment-chip>button:last-child{padding:6px 8px;flex-shrink:0}
+.input-notice{display:flex;align-items:center;gap:8px;margin:0 40px 8px;padding:8px 12px;background:#f5f1e8;border-radius:8px;flex-shrink:0;font-size:11px;max-height:64px;overflow:auto}
+.input-notice>span{flex:1;line-height:1.7;overflow-wrap:anywhere}
+.input-notice>div{display:flex;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.legacy-input-notice{text-align:left;font-size:11px;color:var(--amber);margin:0 40px 8px;padding:8px 12px;background:#f7f4ed;flex-shrink:0}
+.queue-heading>div{display:flex;flex-shrink:0}
+#queue-edit-prompt{display:block;width:100%;resize:vertical;min-height:120px;max-height:35vh;margin-top:8px;padding:12px;border:1px solid var(--line);border-radius:8px;line-height:1.8;color:var(--ink);background:#fff;font-size:13px}
+#legacy-input-dialog{display:none}
+#legacy-input-dialog[open]{display:flex;flex-direction:column}
+#legacy-input-dialog>.dialog-body{overflow:auto}
+.legacy-input-entry{padding:16px 0;border-bottom:1px solid var(--line)}
+.legacy-input-entry pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:160px;overflow:auto;font:12px/1.8 "Microsoft YaHei",sans-serif;margin:0 0 8px}
+#revert-path{display:block;padding:16px 0;font-size:13px;overflow-wrap:anywhere}
+#revert-diff{max-height:35vh;overflow:auto;padding:16px;background:var(--side);font:11px/1.8 Consolas,monospace;white-space:pre;margin:0}
+.model-tools{margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.model-tools>button{border:1px solid var(--line);font-size:12px}
+.model-tools>p{font-size:11px;color:var(--muted);line-height:1.8;margin-top:8px}
+.model-thinking{margin-top:16px}
+.model-probe-tools{padding:16px 0;margin-top:16px;border-top:1px solid var(--line)}
+.model-probe-tools>button{font-size:11px;border:1px solid var(--line);margin:0 8px 8px 0}
+#model-probe-result{font-size:11px;line-height:1.8;color:var(--muted);overflow-wrap:anywhere}
+#model-catalog-list{display:flex;flex-wrap:wrap;gap:8px;max-height:160px;overflow:auto;margin-top:8px}
+.model-option{border:1px solid var(--line);padding:6px 8px;font-size:11px;max-width:100%;overflow-wrap:anywhere}
+@media(max-width:1150px){
+  .workbench{--sidebar-width:216px;--inspector-width:360px}
+  .attachment-chips{padding-left:24px;padding-right:24px}
+  .input-notice,.legacy-input-notice{margin-left:24px;margin-right:24px}
+  .composer-options{flex-wrap:wrap}
+  .composer-options button{font-size:10px;max-width:140px;padding:4px 6px}
+  .workbench.inspector-expanded{--inspector-width:440px}
+}
+
+/* Queue, receipt and attachment notices share a bounded area; core controls stay visible. */
+.input-extras{min-height:0;flex-shrink:0;max-height:18vh;overflow:auto}
+.queue-panel{max-height:clamp(96px,16vh,160px)}
+.queue-panel>p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+.queue-panel ol{min-height:28px}
+.panel-feedback:empty{display:none}
+@media(max-width:1150px){
+  .composer-footer{flex-wrap:wrap}
+  .composer-options{flex-basis:100%;flex-wrap:nowrap;flex-shrink:0}
+  .composer-options button{max-width:180px}
+  .composer-footer>.stop-button{margin-left:auto}
+  .composer-footer>#send{margin-left:auto}
+  .composer-footer>.stop-button:not([hidden])+#send{margin-left:0}
+  .composer textarea{max-height:clamp(40px,calc(20vh - 108px),120px)}
+}
+
+.input-notice{flex-wrap:wrap}
+.input-notice>span{flex-basis:100%;min-width:0}
+.input-notice>div{flex-shrink:1;justify-content:flex-start}

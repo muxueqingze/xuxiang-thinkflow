@@ -38,6 +38,8 @@ class RuntimeView:
                 self.events.emit("text_delta", text=args[0], channel="text")
             elif name == "render_error":
                 self.events.emit("error", error=str(args[0]))
+            elif name == "render_info":
+                self.events.emit("status_notice", message=str(args[0]))
             if self.events.sink is None:
                 return terminal_method(*args, **kwargs)
         return render

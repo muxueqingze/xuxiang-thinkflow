@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "packaged": false,
+  "version": "0.8.0",
+  "model": "deepseek-flash",
+  "seconds": 4.929,
+  "approvals": 1,
+  "usage": {
+    "prompt_tokens": 5997,
+    "completion_tokens": 1028,
+    "reasoning_tokens": 436,
+    "text_tokens": 592,
+    "cached_tokens": 2688,
+    "effective_input": 3309,
+    "total_tokens": 7025,
+    "api_calls": 2,
+    "total_commands": 2,
+    "estimated_saved_api_calls": 2,
+    "estimated_avoided_prompt_tokens": 5997,
+    "commands": 3,
+    "reported": true,
+    "reported_turns": 2
+  },
+  "ledger": [
+    {
+      "id": "1",
+      "tool": "write",
+      "status": "success",
+      "flow": "delayed",
+      "exit_code": null
+    },
+    {
+      "id": "2",
+      "tool": "write",
+      "status": "success",
+      "flow": "delayed",
+      "exit_code": null
+    },
+    {
+      "id": "call_00_YRz5IZ3qTLrjdvl5dnbt8030",
+      "tool": "bash",
+      "status": "success",
+      "flow": "blocking",
+      "exit_code": 0
+    }
+  ],
+  "errors": []
+}

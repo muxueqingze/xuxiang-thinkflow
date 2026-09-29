@@ -508,7 +508,8 @@ def test_traditional_read_tool_uses_executor_cwd():
                 }])
                 assert agent.messages[-2]["tool_calls"][0]["id"] == "call_1"
                 assert agent.messages[-1]["role"] == "tool"
-                assert agent.messages[-1]["content"] == "read me"
+                assert agent.messages[-1]["content"].endswith("\nread me")
+                assert '[THINKFLOW RECEIPT id=' in agent.messages[-1]["content"]
             finally:
                 renderer.console = old_console
                 await agent.close()
@@ -2432,6 +2433,7 @@ def test_edit_is_atomic_and_leaves_no_temp_files():
             with open(target, "w", encoding="utf-8") as f:
                 f.write("alpha\nbeta\n")
             executor = Executor(cwd=tmp)
+            assert (await executor.read('file.txt')).success
             result = await executor.execute(Command(
                 id="1", tool="edit", path="file.txt",
                 old_text="beta", new_text="gamma",

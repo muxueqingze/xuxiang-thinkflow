@@ -4,7 +4,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > 可预测式工具调用不需要打断模型的推理与思考。
 
@@ -38,7 +38,19 @@ model stream
 
 这不是取消反馈，而是区分反馈类型：信息型工具的结果是新的推理输入；可预测副作用工具的成功结果通常只是执行确认。
 
-## v0.7：更顺手的桌面工作台
+## v0.8：完整任务工作流
+
+这一版把输入接收、文件变更和失败恢复连成完整工作流：
+
+- **后端持久队列**：稳定提交ID、内容指纹、精确回执查询；丢ACK不重复执行，停止/失败/重启后暂停。
+- **文件工作台**：目录搜索、文本预览、带版本的文件引用、逐次diff和检查当前版本后的回退。
+- **受保护的写入**：SHA256读取基线，拒绝覆盖外部新改动；确定冲突可重新读取，副作用未知则停止当前模型循环等待核对。
+- **任务与证据**：持久计划、验收条件、成功工具回执引用；完成标记仍须核验语义。
+- **真实DeepSeek Flash适配**：连接诊断、模型列表、思考开关，以及跨原生工具轮保留必要的reasoning字段。
+
+真实Flash测试已覆盖连续写入、读改写与验证、外部冲突恢复；三次独立文件写入均在同一次模型流结束前完成。详细流程见[桌面指南](docs/desktop.md)，本轮状态及证据见[v0.8接力](docs/v0.8-handoff.md)。当前不安排Pro终审。
+
+## v0.7 基础：会话工作台
 
 以连续对话为中心，参考 Codex 的会话导航和快捷操作：搜索、置顶、重命名、归档、最近工作区、重启恢复、独立草稿、可折叠账本与命令面板。Enter 发送，Shift+Enter 换行；运行中的补充消息进入待发队列，成功后继续，停止/失败/重启后暂停。具体使用与边界见 [桌面指南](docs/desktop.md)，进展与验证见 [v0.7 接力](docs/v0.7-handoff.md)。
 
@@ -56,7 +68,7 @@ v0.7 已通过源码与 Windows 独立包的本地 SSE 流程、11组交互和�
 
 ## 安装
 
-当前源码版本 **0.7.0**，尚未发布到 npm。registry 中的 0.5.1 仍可通过下面的命令安装：
+当前源码版本 **0.8.0**，尚未发布到 npm。registry 中的 0.5.1 仍可通过下面的命令安装：
 
 ```bash
 npm install -g xuxiang-agent
@@ -64,7 +76,7 @@ thinkflow --help
 xuxiang --help
 ```
 
-历史 GitHub Release 保留旧版 tarball。0.7.0 请从当前源码安装或使用本地 Windows 桌面包。
+历史 GitHub Release 保留旧版 tarball。0.8.0 请从当前源码安装或使用本地 Windows 桌面包。
 
 要求：
 

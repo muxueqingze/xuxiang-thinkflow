@@ -23,7 +23,8 @@ from .parser import StreamingParser, Command, TOOLS
 from .executor import Executor, ExecutionResult
 from .context import ContextManager, _command_hash
 from .streaming import EventType, StreamEvent
-from .provider import ProviderConfig
+from .provider import ProviderConfig, is_deepseek, openai_thinking_options
+from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
 from .compaction import CompactionConfig, CompactionStats, compact_messages, estimate_message_chars
 from .text_filter import MarkdownFenceCommandGate, SafeTextStreamFilter
@@ -240,6 +241,8 @@ class AgentLoop:
         )
         self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd)
         self.skill_manager = SkillManager(config.cwd, config.skills)
+        self.task_plan = {'explanation': '', 'steps': []}
+        self.native_write_fallback = False
         self.tool_registry = self._build_tool_registry()
         if event_sink is None:
             renderer.set_tool_kind_map(self.tool_registry.kind_map())
@@ -249,7 +252,7 @@ class AgentLoop:
         self.parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_filter = SafeTextStreamFilter(allow_legacy_tags=config.allow_legacy_tool_tags)
-        self.text_command_gate = MarkdownFenceCommandGate()
+        self.text_command_gate = MarkdownFenceCommandGate(allow_legacy_tags=config.allow_legacy_tool_tags)
         if event_sink is None:
             renderer.set_allow_legacy_tool_tags(config.allow_legacy_tool_tags)
         # 执行层去重；滚动窗口防长会话无限增长（戳记单调递增，只需防近期重复）
@@ -518,7 +521,23 @@ class AgentLoop:
                 flow=TOOL_FLOW_CONFIRM,
                 risk=TOOL_RISK_HIGH,
             ), self.interfaces.custom_tool_handler(custom_tool))
+        registry.register(ToolSpec(
+            name='update_plan', kind=TOOL_KIND_INPUT,
+            description='保存多步骤任务的计划与验收条件。完成项必须引用成功工具回执id；仅代表模型标记，用户仍可核验。简单任务不必调用。',
+            parameters=PLAN_SCHEMA,
+        ), self._update_plan_tool)
         return registry
+
+    async def _update_plan_tool(self, tool_input):
+        plan = validate_plan(tool_input, records=self.context.records, previous=self.task_plan)
+        previous = self.task_plan
+        self.task_plan = plan
+        try:
+            self.events.emit('plan_updated', plan=plan)
+        except Exception:
+            self.task_plan = previous
+            raise
+        return '任务计划已保存。完成标记附有执行回执，但不代替用户对验收条件的核对。'
 
     async def _list_skills_tool(self, tool_input: dict) -> str:
         return self.skill_manager.render_list(
@@ -571,7 +590,19 @@ class AgentLoop:
 
     def build_runtime_status_message(self) -> dict:
         """Build per-request runtime state without persisting it in session history."""
-        return {"role": "user", "content": self.context.build_system_prompt_suffix()}
+        content = self.context.build_system_prompt_suffix()
+        shell = os.path.basename(os.environ.get('COMSPEC', 'cmd.exe')) if os.name == 'nt' else '/bin/sh'
+        content += '\n[EXECUTION ENVIRONMENT]\n' + json.dumps({
+            'platform': 'Windows' if os.name == 'nt' else sys.platform,
+            'cwd': self.executor.cwd, 'shell': shell,
+        }, ensure_ascii=False)
+        if os.name == 'nt':
+            content += '\nWindows命令工具使用cmd.exe，不是Bash/PowerShell。不要用反斜线转义空格或单引号。优先原生bash传cmd字符串，Python验证可写成脚本后直接运行，避免嵌套多层引号。'
+        if self.task_plan['steps']:
+            content += '\n[CURRENT TASK PLAN]\n' + json.dumps(self.task_plan, ensure_ascii=False)
+        if self.native_write_fallback:
+            content += '\n[PROTOCOL FALLBACK] 本轮流式标签曾解析失败，现已提供原生文件工具作为保底。先核对已有回执，不要重放已成功操作。'
+        return {"role": "user", "content": content}
 
     def _messages_with_runtime_status(self) -> list[dict]:
         return [*self.messages, self.build_runtime_status_message()]
@@ -612,6 +643,13 @@ class AgentLoop:
                 "messages": full_messages,
                 "stream": True,
             }
+            body.update(openai_thinking_options(p))
+            if is_deepseek(p):
+                # Old snapshots may predate reasoning retention. Preserve every
+                # available field and supply an empty field for legacy turns.
+                body['messages'] = [({**message, 'reasoning_content': message.get('reasoning_content', '')}
+                                     if message.get('role') == 'assistant' else message)
+                                    for message in full_messages]
             if p.stream_options_include_usage:
                 body["stream_options"] = {"include_usage": True}
             tools = self._openai_provider_tools()
@@ -643,6 +681,8 @@ class AgentLoop:
         deny = {name for name in p.disabled_native_tools if name}
         if allow:
             return allow - deny
+        if not self.native_write_fallback:
+            deny |= {'write', 'append', 'edit', 'mkdir', 'touch', 'copy'}
         if deny:
             return {
                 schema["name"]
@@ -678,6 +718,7 @@ class AgentLoop:
             raise RuntimeError("This agent already has an active run")
         self._run_active = True
         self.last_error = ""
+        self.native_write_fallback = False
         self.stopped_reason = "completed"
         self._auto_continue_count = 0
         self._delivery_fix_count = 0
@@ -699,6 +740,8 @@ class AgentLoop:
                     self.stopped_reason = "max_run_seconds"
                     break
                 turns += 1
+                if self.stopped_reason == 'unconfirmed_side_effect':
+                    break
                 failures = failures + 1 if self._last_turn_failed else 0
                 if failures >= max(1, self.config.max_consecutive_failures):
                     self.stopped_reason = "max_consecutive_failures"
@@ -792,6 +835,7 @@ class AgentLoop:
         response = await self._send_stream_request(path, body)
         if response is None:
             return False
+        self.events.emit('stream_started')
 
         # 2. 处理流
         abort_reason = AbortReason.NONE
@@ -806,6 +850,7 @@ class AgentLoop:
         )
         parser_error_message = ""
         assistant_text = ""
+        assistant_reasoning = ""
         parser_error_count = len(self.parser.errors)
         text_parser_error_count = len(self.text_parser.errors)
         self.text_filter.reset()
@@ -816,6 +861,8 @@ class AgentLoop:
             async for event in event_stream:
                 # thinking delta → 喂给解析器
                 if event.type == EventType.THINKING_DELTA:
+                    assistant_reasoning += event.thinking_text
+                    self.events.emit('reasoning_activity', chars=len(event.thinking_text))
                     self.note_text_tool_stream(event.thinking_text)
                     commands = self.parser.feed(event.thinking_text)
                     new_errors = self._consume_new_parser_errors(self.parser, parser_error_count)
@@ -954,6 +1001,7 @@ class AgentLoop:
                     await event_stream.aclose()
                 finally:
                     await response.aclose()
+                    self.events.emit('stream_finished', reason=abort_reason, finish_reason=finish_reason)
             finally:
                 # Cancellation and unexpected errors must not strand a worker.
                 if sys.exc_info()[0] is not None:
@@ -1006,15 +1054,24 @@ class AgentLoop:
             pass  # 不在正文打印 usage
 
         # 3. 记录 assistant 输出
-        if assistant_text:
-            clean_text = self.view.strip_command_blocks(assistant_text)
-            if clean_text:
-                self.messages.append({"role": "assistant", "content": clean_text})
+        clean_text = self.view.strip_command_blocks(assistant_text) if assistant_text else ''
+        if abort_reason != AbortReason.TOOL_USE and (clean_text or assistant_reasoning):
+            message = {"role": "assistant", "content": clean_text}
+            if self.config.provider.format == 'openai' and (assistant_reasoning or is_deepseek(self.config.provider)):
+                message['reasoning_content'] = assistant_reasoning
+            self.messages.append(message)
+        elif abort_reason == AbortReason.TOOL_USE and self.config.provider.format != 'openai' and clean_text:
+            self.messages.append({"role": "assistant", "content": clean_text})
 
         # 4. 处理中断原因
         if abort_reason == AbortReason.TOOL_FAILED:
             self._last_turn_failed = True
+            if self._stop_for_uncertain_effect(self.context.records[record_start_index:]):
+                return False
             if parser_error_message:
+                if self.config.provider.enable_native_tools and not self.config.provider.native_tools:
+                    self.native_write_fallback = True
+                    self.view.render_info('流式命令格式有误，已开放原生文件工具保底；已成功的操作不会重放。')
                 self.messages.append({
                     "role": "user",
                     "content": (
@@ -1077,7 +1134,10 @@ class AgentLoop:
 
         elif abort_reason == AbortReason.TOOL_USE:
             if traditional_tools:
-                await self._handle_traditional_tools(list(traditional_tools.values()))
+                await self._handle_traditional_tools(list(traditional_tools.values()),
+                                                     assistant_text=clean_text, reasoning=assistant_reasoning)
+            if self._stop_for_uncertain_effect(self.context.records[record_start_index:]):
+                return False
             self.context.clear_flags()
             return True
 
@@ -1487,7 +1547,8 @@ class AgentLoop:
     def _tool_event(self, kind: str, command: Command, channel: str, result=None, tool_input=None):
         payload = {
             "id": command.id, "tool": command.tool, "channel": channel,
-            "flow": self.tool_registry.flow(command.tool),
+            "flow": (TOOL_FLOW_BLOCKING if channel == 'native' and self.tool_registry.flow(command.tool) == TOOL_FLOW_DELAYED
+                     else self.tool_registry.flow(command.tool)),
             "risk": self.tool_registry.risk(command.tool),
             "path": command.path or "", "dest": command.dest or "",
             "need_result": command.need_result,
@@ -1497,7 +1558,8 @@ class AgentLoop:
         }
         if result is not None:
             payload.update(success=result.success, error=result.error,
-                           status=result.status_str, bytes_written=result.bytes_written)
+                           status=result.status_str, bytes_written=result.bytes_written,
+                           change_id=getattr(result, 'change_id', ''))
         if tool_input is not None:
             summary = {key: value for key, value in tool_input.items() if key not in ("content", "old_text", "new_text")}
             payload["input_summary"] = self.config.security.redact_text(json.dumps(summary, ensure_ascii=False))[:2000]
@@ -1585,7 +1647,15 @@ class AgentLoop:
                                       success=result.success, extra=extra, need_result=command.need_result)
         return result
 
-    async def _handle_traditional_tools(self, tool_calls: list[dict]):
+    def _stop_for_uncertain_effect(self, records):
+        if any(record.status == 'unknown' for record in records):
+            self.last_error = '工具可能已经修改文件，但执行回执未完整保存。已停止自动继续，请核对实际文件后恢复。'
+            self.stopped_reason = 'unconfirmed_side_effect'
+            self.view.render_error(self.last_error)
+            return True
+        return False
+
+    async def _handle_traditional_tools(self, tool_calls: list[dict], *, assistant_text='', reasoning=''):
         """处理传统 tool_use（read 等），支持分片参数和多工具并发返回。"""
         normalized = []
         results = []
@@ -1611,6 +1681,7 @@ class AgentLoop:
                              if batch_failed else ""))
             batch_failed = batch_failed or not result.success
             result_text = self._native_result_text(result)
+            result_text = f'[THINKFLOW RECEIPT id="{tool_id}" tool="{tool_name}" status="{result.status_str}"]\n' + result_text
             self.view.render_tool_result(tool_name, result_text)
 
             normalized.append({
@@ -1628,7 +1699,8 @@ class AgentLoop:
         if self.config.provider.format == "openai":
             self.messages.append({
                 "role": "assistant",
-                "content": None,
+                "content": assistant_text or None,
+                **({'reasoning_content': reasoning} if reasoning or is_deepseek(self.config.provider) else {}),
                 "tool_calls": [
                     {
                         "id": item["id"],
@@ -1689,6 +1761,9 @@ class AgentLoop:
 
     async def _execute_traditional_result(self, tool_name: str, tool_input: dict, *, tool_id=None,
                                           input_error="", skip_reason="") -> ExecutionResult:
+        actual_flow = self.tool_registry.flow(tool_name)
+        if actual_flow == TOOL_FLOW_DELAYED:
+            actual_flow = TOOL_FLOW_BLOCKING
         fields = {}
         for key in ("path", "dest", "cmd", "content", "old_text", "new_text"):
             value = tool_input.get(key)
@@ -1703,7 +1778,7 @@ class AgentLoop:
         ).encode("utf-8")).hexdigest()
         if skip_reason:
             result = ExecutionResult(success=False, tool=tool_name, status="skipped", error=skip_reason)
-            self.context.record(command, result, flow=self.tool_registry.flow(tool_name),
+            self.context.record(command, result, flow=actual_flow,
                                 risk=self.tool_registry.risk(tool_name))
             self._tool_event("tool_completed", command, "native", result)
             return result
@@ -1736,13 +1811,13 @@ class AgentLoop:
         except asyncio.CancelledError:
             result = ExecutionResult(success=False, tool=tool_name, status="cancelled",
                                      error="Execution cancelled; inspect any operation already in progress.")
-            self.context.record(command, result, flow=self.tool_registry.flow(tool_name),
+            self.context.record(command, result, flow=actual_flow,
                                 risk=self.tool_registry.risk(tool_name))
             self._tool_event("tool_completed", command, "native", result)
             raise
         except Exception as exc:
             result = ExecutionResult(success=False, tool=tool_name, error=str(exc))
-        self.context.record(command, result, flow=self.tool_registry.flow(tool_name),
+        self.context.record(command, result, flow=actual_flow,
                             risk=self.tool_registry.risk(tool_name))
         self._tool_event("tool_completed", command, "native", result)
         if not result.success:
@@ -1796,6 +1871,8 @@ class AgentLoop:
         return {
             "version": 1,
             "messages": self.messages,
+            "task_plan": self.task_plan,
+            "native_write_fallback": self.native_write_fallback,
             "context": self.context.to_dict(),
             # 按 deque 顺序导出，恢复时直接截尾保最近，避免排序猜测丢错端。
             "executed_ids": list(self._executed_ids_order),
@@ -1809,6 +1886,8 @@ class AgentLoop:
     def load_snapshot(self, data: dict):
         """恢复会话状态。"""
         self.messages = list(data.get("messages", []))
+        self.task_plan = validate_plan(data.get('task_plan', {'explanation': '', 'steps': []}))
+        self.native_write_fallback = data.get('native_write_fallback') is True
         self.context = ContextManager.from_dict(data.get("context", {}))
         restored = [
             str(item) for item in data.get("executed_ids", []) if item

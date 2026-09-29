@@ -1,0 +1,21 @@
+{
+  "catalog": {
+    "models": [
+      "deepseek-flash",
+      "deepseek-v4-pro"
+    ],
+    "latency_ms": 671
+  },
+  "probe": {
+    "ok": true,
+    "model": "deepseek-flash",
+    "latency_ms": 1047,
+    "usage": {
+      "prompt_tokens": 9,
+      "completion_tokens": 1,
+      "total_tokens": 10,
+      "prompt_cache_hit_tokens": 0,
+      "prompt_cache_miss_tokens": 9
+    }
+  }
+}

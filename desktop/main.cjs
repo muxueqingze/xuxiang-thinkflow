@@ -5,7 +5,7 @@ const { pathToFileURL } = require('node:url');
 const { BackendClient } = require('./backend.cjs');
 const { SettingsStore } = require('./settings.cjs');
 const { NavigationStore, openWorkspace, openRecentWorkspace, restoreWorkspace } = require('./navigation.cjs');
-const PUBLIC_METHODS = new Set(['get_state', 'configure', 'new_session', 'resume_session', 'fork_session', 'update_session', 'run', 'cancel', 'approve', 'compact', 'acknowledge_recovery']);
+const PUBLIC_METHODS = new Set(['get_state', 'configure', 'new_session', 'resume_session', 'fork_session', 'update_session', 'run', 'cancel', 'approve', 'compact', 'acknowledge_recovery', 'submit_input', 'get_input_receipt', 'update_input', 'resume_queue', 'pause_queue', 'workspace_files', 'read_workspace_file', 'workspace_changes', 'workspace_diff', 'revert_workspace_change', 'model_probe', 'model_catalog']);
 let window, backend, store, navigation, initialized, quitting = false, settingsWarning = '', navigationWarning = '';
 if (!app.isPackaged && process.env.THINKFLOW_TEST_USER_DATA) app.setPath('userData', path.resolve(process.env.THINKFLOW_TEST_USER_DATA));
 const hasLock = app.requestSingleInstanceLock();
@@ -16,9 +16,17 @@ function validateSender(event) {
 }
 function validateParams(method, params) {
   if (!params || typeof params !== 'object' || Array.isArray(params) || JSON.stringify(params).length > 1024 * 1024) throw new Error('请求参数无效或过大');
-  const fields = { get_state: [], configure: ['provider', 'base_url', 'api_path', 'model', 'api_key', 'clear_api_key', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile'], new_session: [], resume_session: ['session_id'], fork_session: [], update_session: ['session_id', 'title', 'pinned', 'archived'], run: ['prompt'], cancel: [], approve: ['request_id', 'approved'], compact: [], acknowledge_recovery: [] }[method];
+  const fields = { get_state: [], configure: ['provider', 'base_url', 'api_path', 'model', 'api_key', 'clear_api_key', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile', 'thinking_mode', 'reasoning_effort', 'stream_options_include_usage'], new_session: [], resume_session: ['session_id'], fork_session: [], update_session: ['session_id', 'title', 'pinned', 'archived'], run: ['prompt'], cancel: [], approve: ['request_id', 'approved'], compact: [], acknowledge_recovery: [], submit_input: ['command_id', 'prompt', 'session_id', 'attachments'], get_input_receipt: ['command_id', 'session_id'], update_input: ['command_id', 'action', 'prompt'], resume_queue: [], pause_queue: [], workspace_files: ['path', 'query'], read_workspace_file: ['path'], workspace_changes: [], workspace_diff: ['change_id'], revert_workspace_change: ['change_id', 'expected_revision'], model_probe: [], model_catalog: [] }[method];
   if (!fields || Object.keys(params).some(key => !fields.includes(key))) throw new Error('不支持的请求参数');
-  if (method === 'run' && (typeof params.prompt !== 'string' || !params.prompt.trim() || params.prompt.length > 200000)) throw new Error('请输入有效任务，最多 20 万字符');
+  if (['run', 'submit_input'].includes(method) && (typeof params.prompt !== 'string' || !params.prompt.trim() || params.prompt.length > 200000)) throw new Error('请输入有效任务，最多 20 万字符');
+  if (['submit_input', 'get_input_receipt', 'update_input'].includes(method) && (typeof params.command_id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(params.command_id))) throw new Error('输入命令编号无效');
+  if (['submit_input', 'get_input_receipt'].includes(method) && (typeof params.session_id !== 'string' || !/^[a-f0-9]{32}$/.test(params.session_id))) throw new Error('会话标识无效');
+  if (method === 'submit_input' && params.attachments !== undefined && (!Array.isArray(params.attachments) || params.attachments.length > 8 || params.attachments.some(item => !item || typeof item !== 'object' || Array.isArray(item) || Object.keys(item).sort().join(',') !== 'path,revision' || typeof item.path !== 'string' || item.path.length > 32768 || typeof item.revision !== 'string' || item.revision.length > 128))) throw new Error('附件参数无效');
+  if (method === 'update_input' && (!['remove', 'edit'].includes(params.action) || (params.action === 'edit' && (typeof params.prompt !== 'string' || !params.prompt.trim() || params.prompt.length > 200000)))) throw new Error('队列编辑参数无效');
+  for (const field of ['path', 'query', 'change_id', 'expected_revision']) if (field in params && (typeof params[field] !== 'string' || params[field].length > (field === 'path' ? 32768 : 2048))) throw new Error('文件参数无效');
+  if (method === 'read_workspace_file' && typeof params.path !== 'string') throw new Error('缺少文件路径');
+  if (['workspace_diff', 'revert_workspace_change'].includes(method) && (typeof params.change_id !== 'string' || !params.change_id)) throw new Error('缺少变更编号');
+  if (method === 'revert_workspace_change' && (typeof params.expected_revision !== 'string' || !/^[a-f0-9]{64}$/.test(params.expected_revision))) throw new Error('文件版本无效');
   if (['resume_session', 'update_session'].includes(method) && (typeof params.session_id !== 'string' || !/^[a-f0-9]{32}$/.test(params.session_id))) throw new Error('会话标识无效');
   if (method === 'update_session') {
     if ('title' in params && (typeof params.title !== 'string' || !params.title.trim() || params.title.trim().length > 120)) throw new Error('会话标题须为 1–120 字符');
@@ -37,6 +45,7 @@ async function wrapped(event, action) {
   catch (error) { return { ok: false, error: cleanError(error) }; }
 }
 function decorateState(state) {
+  if (state?.state) state.state = decorateState(state.state);
   if (!state?.messages) return state;
   if (settingsWarning) state.settings_warning = settingsWarning;
   state.recent_workspaces = navigation.recent();
