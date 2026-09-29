@@ -179,11 +179,11 @@ Interactive slash commands include:
 
 ## Benchmark
 
-The [2026-09-29 same-model benchmark](bench/harness_benchmark_20260929/README.md) compares ThinkFlow 0.8.0, Pi 0.87.1 and OpenCode 1.18.33 on official DeepSeek Flash: six engineering tasks, two repetitions each. It distinguishes artifact correctness, normal completion and complete request usage. This run does not use Claude Code.
+The [complete rerun after recovery fixes](bench/harness_benchmark_20260929/reports-rerun/README.md) compares ThinkFlow 0.8.0 (34119c6), Pi 0.87.1 and OpenCode 1.18.33 on official DeepSeek Flash: the same six tasks, two repetitions each, 36 fresh runs. Claude Code was not used. Artifact correctness plus normal termination was 12/12, 10/12 and 12/12; total tokens were 2,123,456, 1,264,618 and 1,898,716 respectively.
 
-Normal completion was 7/12, 10/12 and 12/12 respectively. ThinkFlow did not show an overall token advantage in this suite. [All results and limitations](bench/harness_benchmark_20260929/reports/summary.md) retain failures; protocol recovery and task completion are the next priorities.
+ThinkFlow improved from 7/12 normal completions in the [original round](bench/harness_benchmark_20260929/reports/summary.md), with 16.4% fewer observed total tokens, but still used 11.8% more tokens and 27.4% more time than OpenCode in the rerun. Only 6/12 have reliable evidence of successful tests on the final implementation; other runs skipped tests, masked their exit status, or changed code without rerunning. The score is not complete workflow verification. Time was essentially unchanged across the seven cases successful in both rounds.
 
-A subsequent [monitored investigation](docs/benchmark-debug-20260929.md) fixed protocol recovery, truncation/stop handling and receipt references, and restored native file tools from the first request. Across the same two tasks repeated twice, normal completion changed from 2/4 to 4/4 and total tokens from 1,844,477 to 1,014,056, while retaining 14 file operations completed before their output streams closed. The fastest run did not execute its tests. These are small diagnostic samples, not a new ranking; the original 36 results remain unchanged and the existing 0.8 portable package does not contain these source patches.
+The [monitored investigation](docs/benchmark-debug-20260929.md) fixed protocol recovery, truncation/stop handling and receipt references, and restored native file tools from the first request. The rerun retained 30 file operations completed before their streams closed, without establishing an overall efficiency advantage. All original and diagnostic results remain unchanged. The existing 0.8 portable package does not contain these source patches.
 
 Historical benchmark materials remain available; their results must not be mixed with the new suite:
 

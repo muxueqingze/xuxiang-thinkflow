@@ -1,5 +1,7 @@
 # 2026-09-29 同模型 harness 实测
 
+**最新：** [34119c6修复后完整复测](reports-rerun/README.md)重新跑了36次，ThinkFlow/Pi/OpenCode产物全过且正常结束为12/12、10/12、12/12；全部请求与失败单独保存。下文是e49b717原轮记录，未被新结果覆盖。
+
 状态：36次正式运行完成。源码基线 `e49b717`，未运行 Claude Code。
 
 后续[16次受监控的诊断](reports/recovery-summary.md)与[恢复修复说明](../../docs/benchmark-debug-20260929.md)单独记录，不替换本报告。当前源码已修复恢复链并让原生文件工具首轮可用；下述“冻结生产核心”指原36次阶段，复现该基准须还原e49b717核心及记录的装置指纹，不能把当前HEAD结果混入原样本。
@@ -47,6 +49,8 @@ python -B bench/harness_benchmark_20260929/run.py --run --name formal
 python -B bench/harness_benchmark_20260929/analyze.py artifacts/benchmark-20260929/formal
 python -B bench/harness_benchmark_20260929/regrade.py repair_routes-thinkflow-r1
 ```
+
+修复后复测使用独立名称`formal-recovery-34119c6`。离线报告通过`analyze.py artifacts/benchmark-20260929/formal-recovery-34119c6 --publish --output bench/harness_benchmark_20260929/reports-rerun`导出，避免覆盖原reports；重验新产物时给regrade.py追加`--reports bench/harness_benchmark_20260929/reports-rerun`。
 
 提供`DEEPSEEK_API_KEY`环境变量，或本机已配置的用户级DPAPI凭据；不要把key写入配置或命令参数。不带`--run`只显示帮助。新实验使用不同`--name`；同名恢复要求源码、任务、配置、版本与预算指纹完全一致，任何变化都拒绝混入旧结果。
 

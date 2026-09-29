@@ -122,6 +122,7 @@ def render(data):
     for name,a in data['aggregates'].items():
         lines.append(f"| {name} | {a['passed']}/{a['runs']} | {a['artifact_passed']}/{a['runs']} | {a['mean_check_score']:.1%} | {a['mean_seconds']:.2f} | {a['median_seconds']:.2f} | {a['mean_api_requests']:.2f} | {a['tokens']['total_tokens']:,} |")
     lines+=['','产物通过要求隐藏检查全部通过且公共测试未被修改；正常交付还要求无超时、退出码0，以及观察到正常终态：ThinkFlow completed、Pi最后assistant stop、OpenCode最后step_finish stop。',
+            '该计分口径不额外确认模型主动运行了任务要求的测试，也不等同于完整遵守工作流程；实际测试执行与结果证据须另看过程复核。',
             '检查分数仅为断言通过率，不是业务完成百分比。例如缺失CLI也可能通过“非零退出且未覆盖输出”的错误路径检查，因此以整题通过为主判。']
     lines += ['', '## Token 分解', '', '| Harness | 输入（含缓存） | 缓存命中 | 非缓存输入 | 输出（含推理） | 其中推理 | 提早断流请求 |',
               '|---|---:|---:|---:|---:|---:|---:|']
@@ -177,11 +178,12 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('experiment',type=Path)
     parser.add_argument('--publish',action='store_true')
+    parser.add_argument('--output',type=Path,help='Separate report directory; preserves previous published reports')
     args=parser.parse_args()
     data,meters=analyze(args.experiment.resolve())
     if args.publish and not data['complete_suite']:
         raise ValueError('Only the complete predeclared suite can be published as the formal report')
-    output=HERE/'reports' if args.publish else args.experiment/'report'
+    output=args.output if args.output is not None else (HERE/'reports' if args.publish else args.experiment/'report')
     output.mkdir(parents=True,exist_ok=True)
     for name,value in [('results.json',data),('requests.json',meters)]:
         (output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
