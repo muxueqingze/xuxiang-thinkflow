@@ -179,19 +179,23 @@ Interactive slash commands include:
 
 ## Benchmark
 
-The repository includes two benchmark areas:
+The [2026-09-29 same-model benchmark](bench/harness_benchmark_20260929/README.md) compares ThinkFlow 0.8.0, Pi 0.87.1 and OpenCode 1.18.33 on official DeepSeek Flash: six engineering tasks, two repetitions each. It distinguishes artifact correctness, normal completion and complete request usage. This run does not use Claude Code.
+
+Normal completion was 7/12, 10/12 and 12/12 respectively. ThinkFlow did not show an overall token advantage in this suite. [All results and limitations](bench/harness_benchmark_20260929/reports/summary.md) retain failures; protocol recovery and task completion are the next priorities.
+
+Historical benchmark materials remain available; their results must not be mixed with the new suite:
 
 - `bench/reproducible_agent_efficiency/`: early reproducible efficiency experiment.
 - `bench/agent_comparison_20260704/`: same-prompt comparison between Claude Code and ThinkFlow, with `glm-5.2` and `deepseek-v4-flash` runs.
 
-Core reports:
+Historical reports:
 
 - `bench/agent_comparison_20260704/reports_normal_app/summary.md`
 - `bench/agent_comparison_20260704/reports_normal_app/technical_report.md`
 - `bench/agent_comparison_20260704/reports_deepseek_v4_flash/summary.md`
 - `bench/agent_comparison_20260704/reports_deepseek_v4_flash/technical_report.md`
 
-Raw runs, logs, `node_modules`, local sessions, and build artifacts are intentionally excluded from the repository and npm package.
+Full model transcripts, `node_modules`, local sessions and build artifacts remain excluded. The new suite publishes sanitized scores, provider usage and generated code as inert data for offline regrading.
 
 ## Current Capabilities
 

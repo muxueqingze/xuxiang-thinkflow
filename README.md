@@ -215,19 +215,23 @@ thinkflow --config config.json --sandbox balanced
 
 ## Benchmark
 
-仓库包含两组 benchmark 材料：
+最新的同模型对照见 [2026-09-29 benchmark](bench/harness_benchmark_20260929/README.md)：ThinkFlow 0.8.0、Pi 0.87.1、OpenCode 1.18.33，官方 DeepSeek Flash，六道工程题各两次。区分产物检查、正常终态及完整请求用量；本轮不使用 Claude Code。
+
+本组正常交付分别为7/12、10/12、12/12；续想目前没有表现出整体省token优势。[完整结果与限制](bench/harness_benchmark_20260929/reports/summary.md)保留全部失败，后续优先改进协议纠错与任务收尾。
+
+历史 benchmark 材料保留，不能与新套题直接混算：
 
 - `bench/reproducible_agent_efficiency/`：早期可重复效率实验。
 - `bench/agent_comparison_20260704/`：Claude Code 与续想在同 prompt 下的对照实验，包含 `glm-5.2` 与 `deepseek-v4-flash` 两轮结果。
 
-核心报告：
+历史报告：
 
 - `bench/agent_comparison_20260704/reports_normal_app/summary.md`
 - `bench/agent_comparison_20260704/reports_normal_app/technical_report.md`
 - `bench/agent_comparison_20260704/reports_deepseek_v4_flash/summary.md`
 - `bench/agent_comparison_20260704/reports_deepseek_v4_flash/technical_report.md`
 
-raw runs、日志、`node_modules`、本地 session 与构建产物不进入仓库和 npm 包。
+完整模型日志、`node_modules`、本地 session 与构建产物不进入仓库和 npm 包；新基准发布脱敏评分、原始usage计量和非执行格式的代码产物，便于离线复核。
 
 ## 当前能力
 
