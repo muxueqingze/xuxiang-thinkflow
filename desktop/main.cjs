@@ -4,8 +4,9 @@ const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { BackendClient } = require('./backend.cjs');
 const { SettingsStore } = require('./settings.cjs');
-const PUBLIC_METHODS = new Set(['get_state', 'configure', 'new_session', 'resume_session', 'fork_session', 'run', 'cancel', 'approve', 'compact', 'acknowledge_recovery']);
-let window, backend, store, initialized, quitting = false, settingsWarning = '';
+const { NavigationStore, openWorkspace, openRecentWorkspace, restoreWorkspace } = require('./navigation.cjs');
+const PUBLIC_METHODS = new Set(['get_state', 'configure', 'new_session', 'resume_session', 'fork_session', 'update_session', 'run', 'cancel', 'approve', 'compact', 'acknowledge_recovery']);
+let window, backend, store, navigation, initialized, quitting = false, settingsWarning = '', navigationWarning = '';
 if (!app.isPackaged && process.env.THINKFLOW_TEST_USER_DATA) app.setPath('userData', path.resolve(process.env.THINKFLOW_TEST_USER_DATA));
 const hasLock = app.requestSingleInstanceLock();
 if (!hasLock) app.quit();
@@ -15,10 +16,14 @@ function validateSender(event) {
 }
 function validateParams(method, params) {
   if (!params || typeof params !== 'object' || Array.isArray(params) || JSON.stringify(params).length > 1024 * 1024) throw new Error('请求参数无效或过大');
-  const fields = { get_state: [], configure: ['provider', 'base_url', 'api_path', 'model', 'api_key', 'clear_api_key', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile'], new_session: [], resume_session: ['session_id'], fork_session: [], run: ['prompt'], cancel: [], approve: ['request_id', 'approved'], compact: [], acknowledge_recovery: [] }[method];
+  const fields = { get_state: [], configure: ['provider', 'base_url', 'api_path', 'model', 'api_key', 'clear_api_key', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile'], new_session: [], resume_session: ['session_id'], fork_session: [], update_session: ['session_id', 'title', 'pinned', 'archived'], run: ['prompt'], cancel: [], approve: ['request_id', 'approved'], compact: [], acknowledge_recovery: [] }[method];
   if (!fields || Object.keys(params).some(key => !fields.includes(key))) throw new Error('不支持的请求参数');
   if (method === 'run' && (typeof params.prompt !== 'string' || !params.prompt.trim() || params.prompt.length > 200000)) throw new Error('请输入有效任务，最多 20 万字符');
-  if (method === 'resume_session' && (typeof params.session_id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(params.session_id))) throw new Error('会话标识无效');
+  if (['resume_session', 'update_session'].includes(method) && (typeof params.session_id !== 'string' || !/^[a-f0-9]{32}$/.test(params.session_id))) throw new Error('会话标识无效');
+  if (method === 'update_session') {
+    if ('title' in params && (typeof params.title !== 'string' || !params.title.trim() || params.title.trim().length > 120)) throw new Error('会话标题须为 1–120 字符');
+    for (const name of ['pinned', 'archived']) if (name in params && typeof params[name] !== 'boolean') throw new Error('置顶和归档须为布尔值');
+  }
   if (method === 'approve' && (typeof params.request_id !== 'string' || typeof params.approved !== 'boolean')) throw new Error('授权参数无效');
 }
 function cleanError(error) {
@@ -28,8 +33,23 @@ function cleanError(error) {
   return message.replace(/(?:sk-|Bearer\s+)[A-Za-z0-9_.-]{8,}/gi, '[凭据已隐藏]').slice(0, 2000);
 }
 async function wrapped(event, action) {
-  try { validateSender(event); await initialized; const result = await action(); if (result?.messages && settingsWarning) result.settings_warning = settingsWarning; return { ok: true, result }; }
+  try { validateSender(event); await initialized; return { ok: true, result: decorateState(await action()) }; }
   catch (error) { return { ok: false, error: cleanError(error) }; }
+}
+function decorateState(state) {
+  if (!state?.messages) return state;
+  if (settingsWarning) state.settings_warning = settingsWarning;
+  state.recent_workspaces = navigation.recent();
+  state.navigation_warning = [navigationWarning, state.navigation_warning].filter(Boolean).join(' ');
+  return state;
+}
+function rememberState(state) {
+  try {
+    navigation.remember(state);
+    if (navigation.recoveryBackup) navigationWarning = '工作区历史已重新保存；损坏原件已保留为用户目录中的 navigation.json.corrupt-*.bak。';
+  }
+  catch (error) { navigationWarning = cleanError(error); }
+  return state;
 }
 function registerIPC() {
   ipcMain.handle('thinkflow:copy', (event, text) => wrapped(event, async () => {
@@ -40,7 +60,11 @@ function registerIPC() {
   ipcMain.handle('thinkflow:request', (event, method, params = {}) => wrapped(event, async () => {
     if (!PUBLIC_METHODS.has(method)) throw new Error('不支持的操作');
     validateParams(method, params);
-    if (method !== 'configure') return backend.request(method, params);
+    if (method !== 'configure') {
+      const result = await backend.request(method, params);
+      if (['new_session', 'resume_session', 'fork_session'].includes(method)) rememberState(result);
+      return result;
+    }
     const prepared = store.prepare(params);
     let previous;
     try { previous = store.backendConfig(); } catch { previous = { ...store.current.config, api_key: '' }; }
@@ -53,8 +77,9 @@ function registerIPC() {
   ipcMain.handle('thinkflow:workspace', event => wrapped(event, async () => {
     const selected = await dialog.showOpenDialog(window, { title: '选择工作区', properties: ['openDirectory'] });
     if (selected.canceled) return null;
-    return backend.request('open_workspace', { cwd: selected.filePaths[0] });
+    return rememberState(await openWorkspace(backend, navigation, selected.filePaths[0]));
   }));
+  ipcMain.handle('thinkflow:recent-workspace', (event, directory) => wrapped(event, async () => rememberState(await openRecentWorkspace(backend, navigation, directory))));
   ipcMain.handle('thinkflow:export', event => wrapped(event, async () => {
     const { markdown } = await backend.request('export_session');
     const selected = await dialog.showSaveDialog(window, { title: '导出会话', defaultPath: '续想会话.md', filters: [{ name: 'Markdown 文档', extensions: ['md'] }] });
@@ -67,6 +92,8 @@ async function createWindow() {
   const root = path.resolve(__dirname, '..');
   store = new SettingsStore(app.getPath('userData'), safeStorage);
   try { store.load(); } catch (error) { settingsWarning = error.message; }
+  navigation = new NavigationStore(app.getPath('userData'));
+  try { navigation.load(); } catch (error) { navigationWarning = error.message; }
   const environment = { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' };
   for (const key of Object.keys(environment)) if (/^THINKFLOW_/.test(key) || /^(OPENAI|ANTHROPIC)_API_KEY$/.test(key)) delete environment[key];
   const command = app.isPackaged ? path.join(process.resourcesPath, 'backend', 'thinkflow-service.exe') : (process.env.THINKFLOW_PYTHON || 'python');
@@ -76,7 +103,10 @@ async function createWindow() {
     let config;
     try { config = store.backendConfig(); }
     catch (error) { settingsWarning = `${error.message}。请在设置中替换或明确清除密钥。`; config = { ...store.current.config, api_key: '' }; }
-    return backend.request('initialize', { data_dir: path.join(app.getPath('userData'), 'data'), config });
+    const state = await backend.request('initialize', { data_dir: path.join(app.getPath('userData'), 'data'), config });
+    const restored = await restoreWorkspace(backend, navigation);
+    if (restored.warning) navigationWarning = [navigationWarning, restored.warning].filter(Boolean).join(' ');
+    return restored.state ? rememberState(restored.state) : state;
   })();
   // Retain rejection for RPC callers without creating an unhandled rejection before the UI loads.
   initialized.catch(() => {});
@@ -87,7 +117,7 @@ async function createWindow() {
   window.webContents.on('will-redirect', event => event.preventDefault());
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
-  backend.on('event', event => { if (event.type === 'state' && event.state && settingsWarning) event.state.settings_warning = settingsWarning; if (!window.isDestroyed()) window.webContents.send('thinkflow:event', event); });
+  backend.on('event', event => { if (event.type === 'state' && event.state) decorateState(event.state); if (!window.isDestroyed()) window.webContents.send('thinkflow:event', event); });
   window.once('ready-to-show', () => window.show());
   registerIPC();
   await window.loadURL(entry);

@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "packaged": true,
+  "checks": [
+    "Enter sends, Shift+Enter newline, composition Enter does not send",
+    "FIFO follow-up after successful run; existing message DOM preserved",
+    "Cancel pauses queued follow-up until explicit resume",
+    "Session draft isolation, rename, pin, reversible archive",
+    "Command search and sidebar keyboard shortcuts",
+    "Recent project restores correct session and draft; arbitrary path rejected",
+    "Restart restores project/session/draft and leaves queue paused",
+    "Reading older messages does not follow stream; jump-to-latest works",
+    "1000×700: composer/ledger do not overlap; settings actions visible with one scroll area",
+    "Provider failure pauses queue; edit restores input without sending",
+    "Lost UI acknowledgement stays uncertain across reload; no replay, removing it preserves draft"
+  ],
+  "layout": {
+    "viewport": [
+      986,
+      664
+    ],
+    "scroll": [
+      986,
+      664
+    ],
+    "composer": {
+      "x": 240,
+      "y": 514,
+      "width": 450,
+      "height": 109.33333587646484,
+      "top": 514,
+      "right": 690,
+      "bottom": 623.3333358764648,
+      "left": 240
+    },
+    "inspector": {
+      "x": 714,
+      "y": 0,
+      "width": 272,
+      "height": 664,
+      "top": 0,
+      "right": 986,
+      "bottom": 664,
+      "left": 714
+    }
+  },
+  "settings": {
+    "bottom": 616.6666870117188,
+    "height": 664,
+    "client": 599,
+    "scroll": 600
+  },
+  "pageErrors": [],
+  "requestCount": 10
+}

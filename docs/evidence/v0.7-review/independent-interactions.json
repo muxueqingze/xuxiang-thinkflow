@@ -1,0 +1,51 @@
+{
+  "checks": [
+    {
+      "name": "IME/Shift",
+      "pass": true
+    },
+    {
+      "name": "edit does not overwrite existing draft",
+      "pass": true
+    },
+    {
+      "name": "edit empty composer retrieves and pauses",
+      "pass": true
+    },
+    {
+      "name": "denied approval leaves queue paused",
+      "pass": true
+    },
+    {
+      "name": "session draft restored",
+      "pass": true
+    },
+    {
+      "name": "rapid switch state matches backend",
+      "pass": true
+    },
+    {
+      "name": "workspace draft isolation",
+      "pass": true
+    },
+    {
+      "name": "recent workspace preserves selected session draft",
+      "pass": true
+    },
+    {
+      "name": "restart sends nothing",
+      "pass": true
+    },
+    {
+      "name": "restart retains paused queue",
+      "pass": true
+    }
+  ],
+  "problems": [],
+  "errors": [],
+  "requests": [
+    "独立正常对话",
+    "独立授权压力",
+    "独立授权压力"
+  ]
+}

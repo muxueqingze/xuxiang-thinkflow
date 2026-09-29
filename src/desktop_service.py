@@ -10,6 +10,7 @@ import contextlib
 import copy
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -40,6 +41,10 @@ class DesktopService:
         self.store = None
         self.session_id = ""
         self.title = "新会话"
+        self.title_custom = False
+        self.pinned = False
+        self.archived = False
+        self.navigation_warning = ""
         self.transcript: list[dict] = []
         self.status = "idle"
         self.last_error = ""
@@ -105,6 +110,8 @@ class DesktopService:
         snapshot = self.agent.to_snapshot()
         snapshot["desktop"] = {
             "id": self.session_id, "cwd": self.cwd, "title": self.title,
+            "title_custom": self.title_custom,
+            "pinned": self.pinned, "archived": self.archived,
             "updated_at": time.time(), "status": self.status,
             "transcript": self.transcript, "recovery": self.recovery,
             "last_error": self.last_error,
@@ -119,7 +126,7 @@ class DesktopService:
         config["verbose"] = False
         return config
 
-    async def _replace_agent(self, snapshot=None):
+    async def _replace_agent(self, snapshot=None, *, close_previous=True):
         config = self._config_for_agent()
         system = resolve_system_prompt(config, cwd=self.cwd)
         candidate = create_agent(config, system, self.cwd,
@@ -127,10 +134,14 @@ class DesktopService:
         try:
             if snapshot:
                 candidate.load_snapshot(snapshot)
+                # A syntactically valid snapshot can still contain unusable runtime
+                # state. Check presentation inputs before closing the current agent.
+                candidate.message_stats()
+                candidate.usage.to_dict()["totals"]
         except Exception:
             await candidate.close()
             raise
-        if self.agent:
+        if self.agent and close_previous:
             await self.agent.close()
         self.agent = candidate
 
@@ -184,8 +195,17 @@ class DesktopService:
                 meta = data.get("desktop", {})
                 if meta.get("cwd") != self.cwd:
                     continue
-                result.append({"id": path.stem, "title": meta.get("title", "新会话"),
-                               "updated_at": meta.get("updated_at", path.stat().st_mtime)})
+                title = meta.get("title", "新会话")
+                if not isinstance(title, str):
+                    continue
+                updated_at = meta.get("updated_at", path.stat().st_mtime)
+                if (not SESSION_ID.fullmatch(path.stem) or isinstance(updated_at, bool)
+                        or not isinstance(updated_at, (int, float)) or not math.isfinite(updated_at)):
+                    continue
+                result.append({"id": path.stem, "title": title,
+                               "pinned": meta.get("pinned") is True,
+                               "archived": meta.get("archived") is True,
+                               "updated_at": updated_at})
             except (OSError, ValueError, TypeError, AttributeError):
                 continue
         return sorted(result, key=lambda item: item["updated_at"], reverse=True)
@@ -220,6 +240,7 @@ class DesktopService:
                 "has_api_key": bool(self.config.get("api_key")),
             },
             "session_id": self.session_id, "sessions": self.sessions(),
+            "navigation_warning": self.navigation_warning,
             "messages": visible_messages, "ledger": ledger, "usage": usage,
             "transcript_window": {"total": len(self.transcript), "shown": len(visible_messages)},
             "context": context, "pending_approval": self.pending_approval,
@@ -274,15 +295,18 @@ class DesktopService:
             raise
         return self.state()
 
-    async def _new_session(self, *, snapshot=None, transcript=None):
+    async def _new_session(self, *, snapshot=None, transcript=None, close_previous=True):
         self._require_idle()
         if not self.cwd:
             raise ValueError("请先选择工作区。")
-        await self._replace_agent(snapshot)
+        await self._replace_agent(snapshot, close_previous=close_previous)
         self.session_id = uuid.uuid4().hex
         self.store = SessionStore(str(self._session_path(self.session_id)), cwd=self.cwd)
         self.transcript = copy.deepcopy(transcript or [])
         self.title = "新会话" if not transcript else self.title + " · 分支"
+        self.title_custom = False
+        self.pinned = False
+        self.archived = False
         self.status = "idle"
         self.last_error = ""
         self.recovery = []
@@ -291,11 +315,12 @@ class DesktopService:
         self._save()
         return self.state()
 
-    def _unresolved_intents(self):
+    def _unresolved_intents(self, session_id=None):
         pending = {}
-        if not self.journal_path.exists():
+        journal_path = self._session_path(session_id).with_suffix(".jsonl") if session_id else self.journal_path
+        if not journal_path.exists():
             return []
-        with self.journal_path.open(encoding="utf-8") as stream:
+        with journal_path.open(encoding="utf-8") as stream:
             for line in stream:
                 try:
                     event = json.loads(line)
@@ -314,24 +339,117 @@ class DesktopService:
                     pending.clear()
         return list(pending.values())
 
-    async def resume(self, session_id):
+    async def resume(self, session_id, *, close_previous=True):
         self._require_idle()
         path = self._session_path(session_id)
         store = SessionStore(str(path), cwd=self.cwd)
         data = store.load()
         if data.get("desktop", {}).get("cwd") != self.cwd:
             raise ValueError("该会话不属于当前工作区。")
-        await self._replace_agent(data)
+        meta = data["desktop"]
+        transcript = meta.get("transcript", [])
+        if (not isinstance(meta.get("title", "恢复的会话"), str)
+                or not isinstance(transcript, list)
+                or any(not isinstance(item, dict) or item.get("role") not in ("user", "assistant")
+                       or not isinstance(item.get("content"), str) for item in transcript)):
+            raise ValueError("会话显示记录损坏；原文件仍保留在本机。")
+        recovery = self._unresolved_intents(session_id)
+        await self._replace_agent(data, close_previous=close_previous)
         self.store = store
         self.session_id = session_id
-        meta = data["desktop"]
         self.title = meta.get("title", "恢复的会话")
+        self.title_custom = meta.get("title_custom") is True
+        self.pinned = meta.get("pinned") is True
+        self.archived = meta.get("archived") is True
         self.transcript = copy.deepcopy(meta.get("transcript", []))
-        self.recovery = self._unresolved_intents()
+        self.recovery = recovery
         self.active_intents = {}
         self.status = "error" if self.recovery else "idle"
         self.last_error = "上次执行意外中断。请核对实际文件后继续，不会自动重放操作。" if self.recovery else ""
         self._reply_index = None
+        return self.state()
+
+    async def open_workspace(self, params):
+        self._require_idle()
+        path = Path(params.get("cwd", "")).expanduser()
+        if not path.is_absolute() or not path.is_dir():
+            raise ValueError("请选择存在的绝对目录。")
+        self._save()
+        previous_cwd, previous_warning = self.cwd, self.navigation_warning
+        runtime_fields = ("agent", "store", "session_id", "title", "title_custom", "pinned", "archived",
+                          "transcript", "status", "last_error", "recovery", "active_intents", "_reply_index")
+        previous_runtime = {name: getattr(self, name) for name in runtime_fields}
+
+        async def restore_runtime():
+            if self.agent is not previous_runtime["agent"] and self.agent:
+                with contextlib.suppress(Exception):
+                    await self.agent.close()
+            for name, value in previous_runtime.items():
+                setattr(self, name, value)
+
+        async def finish(state):
+            previous_agent = previous_runtime["agent"]
+            if previous_agent and previous_agent is not self.agent:
+                with contextlib.suppress(Exception):
+                    await previous_agent.close()
+            return state
+
+        self.cwd = str(path.resolve())
+        self.navigation_warning = ""
+        sessions = [item for item in self.sessions() if not item["archived"]]
+        preferred = params.get("session_id")
+        candidates = [item["id"] for item in sessions]
+        if preferred in candidates:
+            candidates.remove(preferred)
+            candidates.insert(0, preferred)
+        elif preferred:
+            self.navigation_warning = ("上次会话已归档、丢失或无法读取，已恢复其他可用会话。" if candidates
+                                       else "上次会话已归档、丢失或无法读取，已新建会话。")
+        try:
+            for identifier in candidates:
+                try:
+                    state = await self.resume(identifier, close_previous=False)
+                    return await finish(state)
+                except (OSError, ValueError, TypeError, AttributeError, KeyError):
+                    await restore_runtime()
+                    self.navigation_warning = "部分历史会话无法读取，已跳过；原文件仍保留在本机。"
+            state = await self._new_session(close_previous=False)
+            return await finish(state)
+        except Exception:
+            await restore_runtime()
+            self.cwd, self.navigation_warning = previous_cwd, previous_warning
+            raise
+
+    def update_session(self, params):
+        self._require_idle()
+        if set(params) - {"session_id", "title", "pinned", "archived"}:
+            raise ValueError("不支持的会话参数。")
+        identifier = params.get("session_id", "")
+        path = self._session_path(identifier)
+        changes = {}
+        if "title" in params:
+            title = params["title"]
+            if not isinstance(title, str) or not title.strip() or len(title.strip()) > 120:
+                raise ValueError("会话标题须为 1–120 字符。")
+            changes["title"] = title.strip()
+            changes["title_custom"] = True
+        for name in ("pinned", "archived"):
+            if name in params:
+                if type(params[name]) is not bool:
+                    raise ValueError("置顶和归档须为布尔值。")
+                changes[name] = params[name]
+        if not changes:
+            raise ValueError("请提供要修改的会话信息。")
+        store = SessionStore(str(path), cwd=self.cwd)
+        snapshot = store.load()
+        meta = snapshot.get("desktop", {})
+        if meta.get("cwd") != self.cwd:
+            raise ValueError("该会话不属于当前工作区。")
+        snapshot["desktop"] = {**meta, **changes}
+        store.save(self._clean(snapshot), history=False)
+        if identifier == self.session_id:
+            for name, value in changes.items():
+                setattr(self, name, value)
         return self.state()
 
     async def _run(self, prompt):
@@ -384,13 +502,9 @@ class DesktopService:
         if method == "configure":
             return await self.configure(params)
         if method == "open_workspace":
-            self._require_idle()
-            path = Path(params.get("cwd", "")).expanduser()
-            if not path.is_absolute() or not path.is_dir():
-                raise ValueError("请选择存在的绝对目录。")
-            self._save()
-            self.cwd = str(path.resolve())
-            return await self._new_session()
+            return await self.open_workspace(params)
+        if method == "update_session":
+            return self.update_session(params)
         if method == "new_session":
             self._require_idle()
             self._save()
@@ -417,6 +531,8 @@ class DesktopService:
             self._require_idle()
             if not self.agent or not self.cwd:
                 raise ValueError("请先选择工作区。")
+            if self.archived:
+                raise ValueError("该会话已归档，请先取消归档或创建新会话。")
             if self.recovery:
                 raise ValueError("请先核对并确认上次中断的执行。")
             if not self.config["base_url"] or not self.config["model"]:
@@ -425,7 +541,7 @@ class DesktopService:
             if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 200000:
                 raise ValueError("输入须为 1–200000 字符的文本。")
             self.transcript.append({"role": "user", "content": prompt})
-            if self.title == "新会话":
+            if self.title == "新会话" and not self.title_custom:
                 self.title = prompt.strip().replace("\n", " ")[:48]
             self.status = "running"
             self.last_error = ""

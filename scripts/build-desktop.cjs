@@ -7,6 +7,7 @@ const { pathToFileURL } = require('node:url');
 async function main() {
   if (process.platform !== 'win32') throw new Error('Windows distribution must be built on Windows.');
   const root = path.resolve(__dirname, '..');
+  const version = JSON.parse(fs.readFileSync(path.join(root, 'desktop', 'package.json'), 'utf8')).version;
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const output = path.join(root, 'artifacts', `desktop-${stamp}`);
   const work = path.join(root, 'temp', 'desktop-build', stamp);
@@ -33,14 +34,14 @@ async function main() {
     platform: 'win32', arch: 'x64', asar: true, prune: true,
     electronVersion, ...(cachedZip ? { electronZipDir: cachedZip } : {}),
     ignore: [/^\/tests($|\/)/, /^\/test-results($|\/)/, /^\/temp($|\/)/, /^\/artifacts($|\/)/],
-    appVersion: '0.6.0', appCopyright: 'ThinkFlow Contributors',
+    appVersion: version, appCopyright: 'ThinkFlow Contributors',
     win32metadata: { CompanyName: 'ThinkFlow Contributors', FileDescription: '续想 ThinkFlow', ProductName: '续想 ThinkFlow' },
   });
   fs.cpSync(path.join(output, 'runtime', 'thinkflow-service'), path.join(appDir, 'resources', 'backend'), { recursive: true });
   fs.copyFileSync(path.join(root, 'LICENSE'), path.join(appDir, 'ThinkFlow-LICENSE.txt'));
   fs.writeFileSync(path.join(appDir, '使用说明.txt'),
-    '续想 ThinkFlow 0.6.0\r\n\r\n双击 ThinkFlow.exe。首次使用选择工作区，在设置中填写兼容端点与模型。\r\n此文件夹包含 Python 与 Electron 运行时；请整体保存，勿只移动 exe。\r\n会话与加密凭据保存在当前用户的应用数据目录。无需 Python、Node.js 或管理员权限。\r\n应用未做商业代码签名。模型调用使用您配置的端点。\r\n', 'utf8');
-  fs.writeFileSync(path.join(root, 'artifacts', 'latest-desktop.json'), JSON.stringify({ path: appDir, version: '0.6.0' }, null, 2));
+    `续想 ThinkFlow ${version}\r\n\r\n双击 ThinkFlow.exe。首次使用选择工作区，在设置中填写兼容端点与模型。\r\nEnter 发送，Shift+Enter 换行，Ctrl+K 搜索会话与操作。运行中发送的消息进入队列，停止/失败/重启后须手动继续队列。\r\n此文件夹包含 Python 与 Electron 运行时；请整体保存，勿只移动 exe。\r\n会话与加密凭据保存在当前用户的应用数据目录。无需 Python、Node.js 或管理员权限。\r\n应用未做商业代码签名。模型调用使用您配置的端点。\r\n`, 'utf8');
+  fs.writeFileSync(path.join(root, 'artifacts', 'latest-desktop.json'), JSON.stringify({ path: appDir, version }, null, 2));
   console.log(`Desktop distribution: ${appDir}`);
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -1,0 +1,108 @@
+{
+  "viewport": [
+    1366,
+    864
+  ],
+  "scrollWidth": 1366,
+  "elements": {
+    "approval": {
+      "x": 288,
+      "y": 198.6666717529297,
+      "width": 734,
+      "height": 293.75,
+      "right": 1022,
+      "bottom": 492.4166717529297,
+      "visible": true
+    },
+    "approve": {
+      "x": 925.3333740234375,
+      "y": 443.75,
+      "width": 80,
+      "height": 32,
+      "right": 1005.3333740234375,
+      "bottom": 475.75,
+      "visible": true
+    },
+    "reject": {
+      "x": 869.3333740234375,
+      "y": 443.75,
+      "width": 48,
+      "height": 32,
+      "right": 917.3333740234375,
+      "bottom": 475.75,
+      "visible": true
+    },
+    "composer": {
+      "x": 288,
+      "y": 668.4166870117188,
+      "width": 734,
+      "height": 253.33334350585938,
+      "right": 1022,
+      "bottom": 921.7500305175781,
+      "visible": true
+    },
+    "prompt": {
+      "x": 304.66668701171875,
+      "y": 685.0833740234375,
+      "width": 700.6666870117188,
+      "height": 180,
+      "right": 1005.3333740234375,
+      "bottom": 865.0833740234375,
+      "visible": true
+    },
+    "send": {
+      "x": 916.375,
+      "y": 873.0833740234375,
+      "width": 88.95833587646484,
+      "height": 32,
+      "right": 1005.3333358764648,
+      "bottom": 905.0833740234375,
+      "visible": true
+    },
+    "stop": {
+      "x": 848.5521240234375,
+      "y": 873.0833740234375,
+      "width": 59.82291793823242,
+      "height": 32,
+      "right": 908.3750419616699,
+      "bottom": 905.0833740234375,
+      "visible": true
+    },
+    "queue-panel": {
+      "x": 288,
+      "y": 500.41668701171875,
+      "width": 734,
+      "height": 160,
+      "right": 1022,
+      "bottom": 660.4166870117188,
+      "visible": true
+    },
+    "messages-scroll": {
+      "x": 248,
+      "y": 102.66667175292969,
+      "width": 814,
+      "height": 56,
+      "right": 1062,
+      "bottom": 158.6666717529297,
+      "visible": true
+    },
+    "execution-summary": {
+      "x": 288,
+      "y": 158.6666717529297,
+      "width": 734,
+      "height": 32,
+      "right": 1022,
+      "bottom": 190.6666717529297,
+      "visible": true
+    },
+    "inspector": {
+      "x": 1062,
+      "y": 0,
+      "width": 304,
+      "height": 864,
+      "right": 1366,
+      "bottom": 864,
+      "visible": true
+    }
+  }
+}

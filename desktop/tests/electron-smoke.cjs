@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const directory = path.resolve(__dirname, '../temp', `smoke-${Date.now()}`);
+const packaged = process.argv.includes('--packaged');
+const directory = path.resolve(__dirname, '../temp', `smoke-${packaged ? 'package-' : ''}${Date.now()}`);
 const workspace = path.join(directory, 'workspace');
 fs.mkdirSync(workspace, { recursive: true });
 let application;
@@ -51,7 +52,12 @@ async function main() {
   const port = server.address().port;
   const environment = { ...process.env, THINKFLOW_TEST_USER_DATA: path.join(directory, 'user-data') };
   delete environment.ELECTRON_RUN_AS_NODE;
-  application = await electron.launch({ args: [path.resolve(__dirname, '..')], env: environment });
+  application = await electron.launch(packaged ? {
+    executablePath: path.join(JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../artifacts/latest-desktop.json'), 'utf8')).path, 'ThinkFlow.exe'),
+    args: [`--user-data-dir=${path.join(directory, 'user-data')}`], env: environment,
+  } : { args: [path.resolve(__dirname, '..')], env: environment });
+  const actual = await application.evaluate(({ app }) => ({ packaged: app.isPackaged, userData: app.getPath('userData') }));
+  assert.equal(actual.packaged, packaged); assert.equal(path.resolve(actual.userData), path.join(directory, 'user-data'));
   const page = await application.firstWindow();
   const errors = []; page.on('pageerror', error => errors.push(error.message));
   await page.waitForFunction(() => document.getElementById('connection-label').textContent === '本地后端已连接', null, { timeout: 20000 });
@@ -88,6 +94,7 @@ async function main() {
   assert.equal(completed.ledger[0]?.status, 'success', JSON.stringify(completed));
   await page.waitForFunction(() => document.querySelectorAll('.ledger-entry').length === 1);
   assert.equal(await page.locator('#message-list script').count(), 0);
+  await page.locator('#toggle-ledger').click();
   await page.locator('.message-copy').first().click();
   await page.waitForFunction(() => document.getElementById('toast').textContent === '已复制消息');
   await page.screenshot({ path: path.join(directory, 'conversation-1380.png') });
@@ -95,6 +102,7 @@ async function main() {
   await page.screenshot({ path: path.join(directory, 'conversation-1000.png') });
   const layout = await page.evaluate(() => ({ width: window.innerWidth, scrollWidth: document.documentElement.scrollWidth, composer: document.getElementById('composer').getBoundingClientRect().toJSON(), inspector: document.getElementById('inspector').getBoundingClientRect().toJSON() }));
   assert.equal(layout.width >= layout.scrollWidth, true); assert.equal(layout.composer.right <= layout.inspector.left, true); assert.equal(layout.composer.bottom <= 700, true);
+  await page.locator('#more-menu > summary').click();
   await page.locator('#fork').click();
   await page.waitForFunction(session => document.getElementById('session-caption').textContent !== `会话 · ${session.slice(0, 8)}`, completed.session_id);
   assert.equal((await state(page)).messages.length, completed.messages.length);
@@ -113,6 +121,7 @@ async function main() {
   const cancelled = await waitIdle(page); assert.equal(cancelled.status, 'cancelled');
   const exported = path.join(directory, 'export.md');
   await application.evaluate(({ dialog }, file) => { dialog.showSaveDialog = async () => ({ canceled: false, filePath: file }); }, exported);
+  await page.locator('#more-menu > summary').click();
   await page.locator('#export').click();
   await page.waitForFunction(() => document.getElementById('toast').textContent === '会话已导出');
   assert.match(fs.readFileSync(exported, 'utf8'), /等待停止/);

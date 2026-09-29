@@ -4,7 +4,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > 可预测式工具调用不需要打断模型的推理与思考。
 
@@ -38,7 +38,13 @@ model stream
 
 这不是取消反馈，而是区分反馈类型：信息型工具的结果是新的推理输入；可预测副作用工具的成功结果通常只是执行确认。
 
-## v0.6：桌面与可靠执行
+## v0.7：更顺手的桌面工作台
+
+以连续对话为中心，参考 Codex 的会话导航和快捷操作：搜索、置顶、重命名、归档、最近工作区、重启恢复、独立草稿、可折叠账本与命令面板。Enter 发送，Shift+Enter 换行；运行中的补充消息进入待发队列，成功后继续，停止/失败/重启后暂停。具体使用与边界见 [桌面指南](docs/desktop.md)，进展与验证见 [v0.7 接力](docs/v0.7-handoff.md)。
+
+v0.7 已通过源码与 Windows 独立包的本地 SSE 流程、11组交互和两种窗口尺寸的压力验证。独立专家发现的长授权/队列布局问题已修复并复核，见 [本轮验收](docs/reviews/v0.7-ux.md)。真实端点体验与版本级 Pro 终审仍待。
+
+## v0.6 基础：桌面与可靠执行
 
 新增 **Windows 桌面端**：选择工作区、模型设置、会话恢复/分支、流式消息、执行账本、用量、单次授权、停止与导出。独立文件夹包含运行时，无需用户安装Python/Node；使用方式见 [桌面指南](docs/desktop.md)。
 
@@ -46,11 +52,11 @@ model stream
 
 2026-09-29：两轮独立专家对抗及原失败项复核完成，功能/视觉定向验收通过；独立Windows包已实测。未验证真实商业端点、长时负载和多平台，待用户试玩与Pro版本终审。报告见 [第1轮](docs/reviews/round-1.md)、[第2轮及最终复核](docs/reviews/round-2.md)。
 
-[架构](DESIGN.md) · [harness能力地图与扩展建议](docs/harness-roadmap.md) · [本次接力与验证状态](docs/v0.6-handoff.md)
+[架构](DESIGN.md) · [harness能力地图与扩展建议](docs/harness-roadmap.md) · [v0.6 接力与验证状态](docs/v0.6-handoff.md)
 
 ## 安装
 
-当前源码版本 **0.6.0**。本次增加桌面端并修复流式执行边界；尚未发布到 npm。registry 中的 0.5.1 仍可通过下面的命令安装：
+当前源码版本 **0.7.0**，尚未发布到 npm。registry 中的 0.5.1 仍可通过下面的命令安装：
 
 ```bash
 npm install -g xuxiang-agent
@@ -58,7 +64,7 @@ thinkflow --help
 xuxiang --help
 ```
 
-历史 GitHub Release 保留旧版 tarball。0.6.0 请从当前源码安装或使用本地 Windows 桌面包。
+历史 GitHub Release 保留旧版 tarball。0.7.0 请从当前源码安装或使用本地 Windows 桌面包。
 
 要求：
 

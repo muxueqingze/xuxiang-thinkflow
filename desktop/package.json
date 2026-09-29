@@ -1,6 +1,6 @@
 {
   "name": "thinkflow-desktop",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "private": true,
   "description": "续想 ThinkFlow Windows 桌面应用",
   "main": "main.cjs",
@@ -8,7 +8,8 @@
     "start": "electron .",
     "test": "node --test tests/*.test.cjs",
     "test:smoke": "node tests/electron-smoke.cjs",
-    "package": "node build.cjs"
+    "package": "node build.cjs",
+    "test:ux": "node tests/electron-ux.cjs"
   },
   "devDependencies": {
     "@electron/packager": "20.3.0",

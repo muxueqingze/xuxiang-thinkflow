@@ -7,6 +7,7 @@ async function invoke(channel, ...args) {
 contextBridge.exposeInMainWorld('thinkflow', Object.freeze({
   request: (method, params = {}) => invoke('thinkflow:request', method, params),
   chooseWorkspace: () => invoke('thinkflow:workspace'),
+  openRecentWorkspace: path => invoke('thinkflow:recent-workspace', path),
   exportDialog: () => invoke('thinkflow:export'),
   copyText: text => invoke('thinkflow:copy', text),
   onEvent: callback => {

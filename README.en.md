@@ -1,4 +1,4 @@
-> Source version 0.6.0: Windows desktop, strict feedback boundaries, cancellation cleanup, bounded runs and crash-aware session recovery. This version has not been published to npm yet; the existing registry release is 0.5.1. See [desktop guide](docs/desktop.md), [architecture](DESIGN.md) and [harness roadmap](docs/harness-roadmap.md). The installation and benchmark sections below describe the previous public release where stated.
+> Source version 0.7.0: conversation-focused Windows desktop with searchable, pinned, renamed and archived sessions, recent workspaces, restart recovery, per-session drafts, a follow-up queue and keyboard commands. Builds on the 0.6 feedback boundaries and crash-aware runtime. This version has not been published to npm yet; the existing registry release is 0.5.1. See [desktop guide](docs/desktop.md), [handoff and verification](docs/v0.7-handoff.md), [architecture](DESIGN.md) and [harness roadmap](docs/harness-roadmap.md). The installation and benchmark sections below describe the previous public release where stated.
 
 # Xuxiang ThinkFlow
 
@@ -6,7 +6,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
@@ -42,7 +42,7 @@ This does not remove feedback. It distinguishes feedback types: information tool
 
 ## Installation
 
-The public npm version is 0.5.1; source version 0.6.0 has not been published yet:
+The public npm version is 0.5.1; source version 0.7.0 has not been published yet:
 
 ```bash
 npm install -g xuxiang-agent
