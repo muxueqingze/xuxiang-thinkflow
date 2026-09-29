@@ -1,0 +1,49 @@
+{
+  "root": "<repo>\\temp\\review-2\\focused-recheck-1790670123477",
+  "eof": {
+    "state": "error",
+    "banner": "Stream ended without a finish reason or completion marker; response is incomplete."
+  },
+  "errorAfterNew": {
+    "status": "idle",
+    "bannerVisible": false,
+    "text": ""
+  },
+  "longError": {
+    "viewport": [
+      986,
+      664
+    ],
+    "banner": {
+      "x": 224,
+      "y": 137.33334350585938,
+      "width": 474,
+      "height": 128,
+      "top": 137.33334350585938,
+      "right": 698,
+      "bottom": 265.3333435058594,
+      "left": 224
+    },
+    "composer": {
+      "x": 216,
+      "y": 473.7395935058594,
+      "width": 490,
+      "height": 148.92709350585938,
+      "top": 473.7395935058594,
+      "right": 706,
+      "bottom": 622.6666870117188,
+      "left": 216
+    },
+    "dismiss": {
+      "x": 660.34375,
+      "y": 149.33334350585938,
+      "width": 21.65625,
+      "height": 30.125,
+      "top": 149.33334350585938,
+      "right": 682,
+      "bottom": 179.45834350585938,
+      "left": 660.34375
+    },
+    "mainScroll": 664
+  }
+}

@@ -4,7 +4,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > 可预测式工具调用不需要打断模型的推理与思考。
 
@@ -38,9 +38,19 @@ model stream
 
 这不是取消反馈，而是区分反馈类型：信息型工具的结果是新的推理输入；可预测副作用工具的成功结果通常只是执行确认。
 
+## v0.6：桌面与可靠执行
+
+新增 **Windows 桌面端**：选择工作区、模型设置、会话恢复/分支、流式消息、执行账本、用量、单次授权、停止与导出。独立文件夹包含运行时，无需用户安装Python/Node；使用方式见 [桌面指南](docs/desktop.md)。
+
+内核继续与CLI共用：信息型工具强制反馈、后台失败及时中断、取消清理、native工具分片正确合并、完整命令恢复、有限运行。桌面执行前后记录意图和回执，异常退出不自动重放未知副作用。
+
+2026-09-29：两轮独立专家对抗及原失败项复核完成，功能/视觉定向验收通过；独立Windows包已实测。未验证真实商业端点、长时负载和多平台，待用户试玩与Pro版本终审。报告见 [第1轮](docs/reviews/round-1.md)、[第2轮及最终复核](docs/reviews/round-2.md)。
+
+[架构](DESIGN.md) · [harness能力地图与扩展建议](docs/harness-roadmap.md) · [本次接力与验证状态](docs/v0.6-handoff.md)
+
 ## 安装
 
-当前版本 0.5.0，已发布到 npm registry：
+当前源码版本 **0.6.0**。本次增加桌面端并修复流式执行边界；尚未发布到 npm。registry 中的 0.5.1 仍可通过下面的命令安装：
 
 ```bash
 npm install -g xuxiang-agent
@@ -48,7 +58,7 @@ thinkflow --help
 xuxiang --help
 ```
 
-GitHub Release 仍保留同版本 tarball，适合离线归档或复现实验。
+历史 GitHub Release 保留旧版 tarball。0.6.0 请从当前源码安装或使用本地 Windows 桌面包。
 
 要求：
 
@@ -220,7 +230,7 @@ raw runs、日志、`node_modules`、本地 session 与构建产物不进入仓�
 
 - 文件工具默认只能访问当前 `cwd` 内路径。
 - read 默认拒绝 `.env`、私钥、npm/PyPI 凭证等常见密钥文件。
-- bash 默认使用 `safe` 策略，并设置超时和输出截断。
+- bash 默认使用 `safe` 策略，并设置超时和输出截断；命令过滤不等于操作系统沙箱。桌面平衡模式会逐次询问高风险调用。
 - bash 子进程默认不继承 API key。
 
 需要更高权限时必须显式打开：

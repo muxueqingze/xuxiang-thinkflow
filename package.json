@@ -1,6 +1,6 @@
 {
   "name": "xuxiang-agent",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Xuxiang / ThinkFlow streaming execution agent harness.",
   "author": "沐雪清泽",
   "license": "MIT",
@@ -28,7 +28,9 @@
   ],
   "scripts": {
     "postinstall": "node scripts/npm-postinstall.js",
-    "test": "python tests/run_all.py"
+    "test": "python tests/run_all.py",
+    "desktop": "npm --prefix desktop start",
+    "desktop:build": "node scripts/build-desktop.cjs"
   },
   "engines": {
     "node": ">=18"

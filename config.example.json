@@ -14,7 +14,7 @@
     "stream_options_include_usage": false,
     "enable_native_tools": true,
     "max_retries": 2,
-    "retry_backoff_seconds": 1.0,
+    "retry_backoff_seconds": 1,
     "max_auto_continues": 8,
     "max_read_chars": 200000,
     "verbose": false,
@@ -89,5 +89,7 @@
         "enabled": true,
         "files": [],
         "max_chars": 80000
-    }
+    },
+    "max_run_turns": 40,
+    "max_run_seconds": 1800
 }

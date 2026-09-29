@@ -1,0 +1,18 @@
+
+> thinkflow-desktop@0.6.0 test
+> node --test tests/*.test.cjs
+
+✔ private stdio handles split NDJSON, events, RPC errors and shutdown (59.6496ms)
+✔ backend exit rejects outstanding requests without leaking stderr (71.3696ms)
+✔ only ciphertext persists; blank preserves and explicit clear removes a key (3.3722ms)
+✔ encryption failure refuses to persist plaintext (0.3891ms)
+✔ a damaged saved key can be explicitly cleared or replaced without decryption (0.2007ms)
+✔ config rejects credentials, foreign protocols, path overrides, and invalid bounds (0.3827ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 207.377

@@ -10,6 +10,7 @@ import fnmatch
 import os
 import re
 import shutil
+import signal
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Optional
@@ -108,6 +109,18 @@ class Executor:
         resolved = self._normalize_path(path)
         self.security.check_path(resolved, self.allowed_paths, operation)
         return resolved
+
+    @staticmethod
+    async def _file_io(function, *args):
+        """A thread cannot be cancelled: settle it before releasing path locks."""
+        work = asyncio.get_running_loop().run_in_executor(None, function, *args)
+        try:
+            return await asyncio.shield(work)
+        except asyncio.CancelledError:
+            try:
+                await work
+            finally:
+                raise
 
     async def read(self, path: str) -> ExecutionResult:
         """读取文件内容，供传统 read tool 使用。"""
@@ -315,7 +328,7 @@ class Executor:
         data = command.content.encode("utf-8")
         loop = asyncio.get_event_loop()
         async with self._path_locks[path]:
-            await loop.run_in_executor(None, self._write_file, path, data)
+            await self._file_io(self._write_file, path, data)
 
         return ExecutionResult(
             success=True,
@@ -369,7 +382,7 @@ class Executor:
         data = command.content.encode("utf-8")
         loop = asyncio.get_event_loop()
         async with self._path_locks[path]:
-            await loop.run_in_executor(None, self._append_file, path, data)
+            await self._file_io(self._append_file, path, data)
 
         return ExecutionResult(
             success=True,
@@ -396,7 +409,7 @@ class Executor:
 
         loop = asyncio.get_event_loop()
         async with self._path_locks[path]:
-            await loop.run_in_executor(None, self._touch_file, path)
+            await self._file_io(self._touch_file, path)
 
         return ExecutionResult(success=True, tool="touch", path=path)
 
@@ -431,7 +444,7 @@ class Executor:
 
         loop = asyncio.get_event_loop()
         async with self._path_locks[dest]:
-            await loop.run_in_executor(None, shutil.copyfile, source, dest)
+            await self._file_io(shutil.copyfile, source, dest)
         bytes_written = os.path.getsize(dest)
 
         return ExecutionResult(
@@ -464,6 +477,7 @@ class Executor:
             stderr=asyncio.subprocess.PIPE,
             cwd=self.cwd,
             env=self.security.command_env(),
+            **({"start_new_session": True} if os.name != "nt" else {}),
         )
 
         try:
@@ -473,9 +487,13 @@ class Executor:
             )
             timed_out = False
         except asyncio.TimeoutError:
-            proc.kill()
+            await self._stop_process_tree(proc)
             stdout_bytes, stderr_bytes = await proc.communicate()
             timed_out = True
+        except asyncio.CancelledError:
+            await self._stop_process_tree(proc)
+            await proc.communicate()
+            raise
 
         stdout = stdout_bytes.decode("utf-8", errors="replace")
         stderr = stderr_bytes.decode("utf-8", errors="replace")
@@ -500,6 +518,29 @@ class Executor:
             timed_out=timed_out,
         )
 
+    @staticmethod
+    async def _stop_process_tree(proc):
+        """Only terminate the process tree created by this executor."""
+        if proc.returncode is not None:
+            return
+        if os.name == "nt":
+            killer = await asyncio.create_subprocess_exec(
+                "taskkill", "/PID", str(proc.pid), "/T", "/F",
+                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
+            )
+            await killer.wait()
+        else:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        if proc.returncode is None:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
+        await proc.wait()
+
     async def _edit(self, command: Command) -> ExecutionResult:
         """编辑文件（精确替换）。"""
         if command.path is None or command.old_text is None or command.new_text is None:
@@ -518,9 +559,7 @@ class Executor:
 
         loop = asyncio.get_event_loop()
         async with self._path_locks[path]:
-            content, error = await loop.run_in_executor(
-                None, self._do_edit, path, command.old_text, command.new_text
-            )
+            content, error = await self._file_io(self._do_edit, path, command.old_text, command.new_text)
 
         if error:
             return ExecutionResult(

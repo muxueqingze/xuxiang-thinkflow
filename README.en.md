@@ -1,10 +1,12 @@
+> Source version 0.6.0: Windows desktop, strict feedback boundaries, cancellation cleanup, bounded runs and crash-aware session recovery. This version has not been published to npm yet; the existing registry release is 0.5.1. See [desktop guide](docs/desktop.md), [architecture](DESIGN.md) and [harness roadmap](docs/harness-roadmap.md). The installation and benchmark sections below describe the previous public release where stated.
+
 # Xuxiang ThinkFlow
 
 Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
@@ -40,7 +42,7 @@ This does not remove feedback. It distinguishes feedback types: information tool
 
 ## Installation
 
-The current version is 0.5.0 and is published on the npm registry:
+The public npm version is 0.5.1; source version 0.6.0 has not been published yet:
 
 ```bash
 npm install -g xuxiang-agent

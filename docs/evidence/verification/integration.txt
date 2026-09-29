@@ -1,0 +1,180 @@
+==================================================
+ThinkFlow Parser 测试
+==================================================
+
+测试: 单个 write 命令
+  ✓ 提取到 write#1 path=./test.md
+  ✓ content 长度: 12
+
+测试: 流式输入（分片）
+  分片0: 得到 0 条命令
+  分片1: 得到 0 条命令
+  分片2: 得到 1 条命令
+  ✓ 最终提取到 write#1
+
+测试: 多命令连续输出
+  ✓ 提取到 4 条命令: ['write', 'mkdir', 'bash', 'write']
+
+测试: 自闭合命令
+  ✓ mkdir#1 自闭合
+
+测试: append / touch / copy
+  ✓ append / touch / copy 解析正确
+
+测试: read 命令
+  ✓ read#1 解析正确
+
+测试: need_result 标记
+  ✓ bash#1 need_result=True
+  ✓ bash#1 need_result=False（默认）
+
+测试: edit 命令
+  ✓ edit#1: old='print("hello")'
+
+测试: 不完整命令（flush 检测）
+  ✓ flush 检测到: 检测到未闭合的 <write> 命令块（流被截断）
+
+测试: id 重复
+  ✓ 重复 id 被拒绝: id=1 重复
+
+测试: 中文正文
+  ✓ 中文正文提取: 48 字符
+
+测试: 属性顺序不固定
+  ✓ 属性乱序正确解析
+
+测试: 属性中的 > 和单引号
+  ✓ 属性值中的 > 不截断开标签
+
+测试: 开标签属性跨分片
+  ✓ 属性中跨分片的 > 被正确处理
+
+测试: 正文中的特殊字符
+  ✓ 特殊字符正文提取成功
+
+测试: 大正文（模拟 1 万字）
+  ✓ 大正文提取: 9501 字符
+
+测试: thinking 文本与命令块混合
+  ✓ 从混合文本中提取 3 条命令
+
+测试: 转义命令标签的还原
+  ✓ 转义标签还原: 规则示例：正文里写关闭标签要转义成 </tf-write> 这样。
+
+==================================================
+全部通过 ✓
+==================================================
+✓ test_executor_resolves_relative_paths_to_cwd
+✓ test_executor_append_touch_and_copy
+✓ test_executor_rejects_empty_write_and_append
+✓ test_executor_read_truncates_large_files
+✓ test_executor_blocks_outside_cwd_by_default
+✓ test_executor_blocks_sensitive_reads_by_default
+✓ test_executor_blocks_config_json_and_redacts_secret_fields
+✓ test_executor_can_explicitly_allow_sensitive_reads
+✓ test_bash_safe_policy_blocks_dangerous_commands
+✓ test_bash_env_does_not_leak_api_key_by_default
+  流式工具调用：bash 执行 等待 高 #1 echo blocked
+  FAIL 流式工具失败：bash 执行 等待 高 #1 echo blocked [THINKFLOW APPROVAL 
+REQUIRED] tool=bash risk=high flow=blocking. 当前 security.app
+✓ test_approval_request_all_blocks_high_risk_tools
+  流式工具调用：bash 执行 等待 高 #1 echo allowed
+  OK 流式工具完成：bash 执行 等待 高 #1 echo allowed exit=0
+.......................................Executing <Task pending name='Task-524' coro=<DesktopServiceTests.test_real_localhost_endpoint_accepts_no_api_key() running at <repo>\tests\test_desktop_service.py:449> wait_for=<Task pending name='Task-525' coro=<DesktopService._run() running at <repo>\tests\..\src\desktop_service.py:337> cb=[Task.task_wakeup()] created at <Python312>\Lib\asyncio\tasks.py:420> cb=[_run_until_complete_cb() at <Python312>\Lib\asyncio\base_events.py:181] created at <Python312>\Lib\asyncio\runners.py:100> took 0.578 seconds
+Executing <Task finished name='Task-524' coro=<DesktopServiceTests.test_real_localhost_endpoint_accepts_no_api_key() done, defined at <repo>\tests\test_desktop_service.py:444> result=None created at <Python312>\Lib\asyncio\runners.py:100> took 0.484 seconds
+.Executing <Task pending name='Task-542' coro=<DesktopServiceTests.test_real_localhost_risky_tool_waits_for_valid_approval_then_denial_has_no_side_effect() running at <repo>\tests\test_desktop_service.py:462> wait_for=<Future pending cb=[Task.task_wakeup()] created at <Python312>\Lib\asyncio\base_events.py:448> cb=[_run_until_complete_cb() at <Python312>\Lib\asyncio\base_events.py:181] created at <Python312>\Lib\asyncio\runners.py:100> took 0.563 seconds
+Executing <Task finished name='Task-542' coro=<DesktopServiceTests.test_real_localhost_risky_tool_waits_for_valid_approval_then_denial_has_no_side_effect() done, defined at <repo>\tests\test_desktop_service.py:455> result=None created at <Python312>\Lib\asyncio\runners.py:100> took 0.454 seconds
+.Executing <Task pending name='Task-572' coro=<DesktopServiceTests.test_real_localhost_sse_executes_tool_and_restores_receipt() running at <repo>\tests\test_desktop_service.py:486> wait_for=<Task pending name='Task-573' coro=<DesktopService._run() running at <repo>\tests\..\src\desktop_service.py:337> cb=[Task.task_wakeup()] created at <Python312>\Lib\asyncio\tasks.py:420> cb=[_run_until_complete_cb() at <Python312>\Lib\asyncio\base_events.py:181] created at <Python312>\Lib\asyncio\runners.py:100> took 0.547 seconds
+Executing <Task finished name='Task-572' coro=<DesktopServiceTests.test_real_localhost_sse_executes_tool_and_restores_receipt() done, defined at <repo>\tests\test_desktop_service.py:478> result=None created at <Python312>\Lib\asyncio\runners.py:100> took 1.454 seconds
+.....Executing <Task finished name='Task-618' coro=<AnthropicUsageTests.test_usage_start_and_delta_are_combined() done, defined at <repo>\tests\test_runtime_metadata.py:59> result=None created at <Python312>\Lib\asyncio\runners.py:100> took 0.547 seconds
+.....
+----------------------------------------------------------------------
+Ran 51 tests in 20.835s
+
+OK
+✓ test_approval_approve_all_allows_high_risk_tools_through_policy
+✓ test_permission_modes_map_and_read_only_blocks_side_effects
+✓ test_security_open_profile_is_explicitly_permissive
+✓ test_context_snapshot_roundtrip_and_mark_injected
+✓ test_command_ledger_injection_includes_hash_flow_risk_and_summary
+✓ test_agent_snapshot_roundtrip
+✓ test_agent_keeps_system_prompt_stable_and_appends_runtime_status
+✓ test_traditional_read_tool_uses_executor_cwd
+✓ test_executor_list_glob_and_grep_tools
+✓ test_traditional_tools_cover_main_agent_actions
+✓ test_tool_registry_exposes_open_interfaces
+✓ test_skill_manager_reads_codex_and_claude_style_skills
+✓ test_interfaces_block_private_fetch_and_explain_disabled_image_generation
+✓ test_interfaces_block_dns_private_hosts
+✓ test_configured_custom_tool_executes_as_native_tool
+✓ test_openai_stream_split_tool_arguments
+✓ test_openai_stream_bad_json_reports_error_event
+✓ test_agent_sets_last_error_on_stream_event_error
+✓ test_anthropic_message_delta_preserves_stop_reason
+✓ test_env_defaults_do_not_override_config
+✓ test_global_session_and_context_injection_use_thinkflow_home
+✓ test_system_prompt_defaults_to_builtin_and_context_is_appended
+✓ test_compaction_keeps_recent_messages_and_summarizes_old
+✓ test_compaction_keeps_tool_result_with_tool_call
+✓ test_agent_manual_compaction_updates_snapshot_count
+✓ test_context_injection_clips_large_write_content
+✓ test_write_config_template_creates_starter_config_without_key
+✓ test_named_provider_profile_merges_without_overwriting_legacy_shape
+✓ test_named_provider_profile_keeps_env_or_cli_overrides_when_profile_field_is_empty
+✓ test_auto_discovery_skips_unrelated_or_malformed_config_json
+✓ test_auto_model_prefers_glm_then_kimi_then_deepseek
+✓ test_provider_request_defaults_are_protocol_neutral
+✓ test_create_agent_accepts_native_tool_string_or_list_config
+✓ test_safe_text_filter_streams_text_and_removes_command_blocks
+✓ test_safe_text_filter_removes_self_closing_commands
+✓ test_safe_text_filter_preserves_non_tool_angle_text
+✓ test_filters_preserve_fenced_tool_examples_and_strip_executable_text
+✓ test_strict_parser_requires_tf_prefix
+✓ test_renderer_flushes_streamed_markdown
+✓ test_renderer_tool_summary_lists_command_paths
+✓ test_renderer_distinguishes_native_tool_kinds_and_running_state
+✓ test_agent_notices_streaming_tool_hint_before_command_closes
+
+✓ test_agent_executes_text_channel_command_without_history_leak
+
+✓ test_agent_executes_text_commands_fifo_even_when_stream_is_fast
+
+✓ test_agent_records_skipped_commands_after_queue_failure
+
+✓ test_agent_does_not_execute_fenced_text_channel_command
+
+✓ test_agent_auto_continues_after_length_finish_reason
+
+✓ test_agent_auto_continues_after_blocking_text_command_result
+
+✓ test_agent_auto_continues_after_text_read_command_result
+
+✓ test_agent_auto_continues_after_delivery_verification_failure
+
+✓ test_agent_auto_continues_after_runnable_script_write_without_execution
+
+✓ test_runnable_script_write_does_not_auto_continue_by_default
+
+✓ test_parser_error_continues_with_successful_receipts_injected
+
+✓ test_agent_auto_continues_incomplete_text_command_block
+
+✓ test_agent_auto_continues_after_max_tokens_finish_reason
+
+✓ test_agent_auto_continues_after_transport_error
+✓ test_slash_inspection_commands_do_not_fail
+✓ test_slash_model_and_thinking_switch_current_session
+✓ test_selection_items_include_channel_and_session_metadata
+✓ test_inline_selector_style_html_is_valid
+✓ test_model_selection_spans_provider_profiles_and_switches_endpoint
+✓ test_provider_catalog_does_not_overlay_active_profile_onto_other_profiles
+✓ test_slash_new_and_resume_roundtrip_session
+✓ test_session_store_keeps_history_snapshots_for_resume_choices
+✓ test_slash_completer_lists_matching_commands_and_sandbox_options
+✓ test_builtin_skill_ships_and_reads
+✓ test_user_skill_overrides_builtin
+✓ test_edit_is_atomic_and_leaves_no_temp_files
+✓ test_cli_version_flag_prints_version
+✓ test_parser_seen_ids_use_rolling_window
+✓ test_executed_ids_snapshot_keeps_most_recent
+全部测试通过 ✓

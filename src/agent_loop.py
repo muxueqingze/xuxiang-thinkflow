@@ -11,6 +11,7 @@ ThinkFlow Agent Loop — 主循环
 import asyncio
 import os
 import json
+import hashlib
 import sys
 import time
 from collections import deque
@@ -20,7 +21,7 @@ from urllib.parse import urlparse
 
 from .parser import StreamingParser, Command, TOOLS
 from .executor import Executor, ExecutionResult
-from .context import ContextManager
+from .context import ContextManager, _command_hash
 from .streaming import EventType, StreamEvent
 from .provider import ProviderConfig
 from .security import SecurityPolicy
@@ -37,6 +38,7 @@ from .tool_registry import (
     TOOL_KIND_EXEC,
     TOOL_KIND_GENERATE,
     TOOL_KIND_INPUT,
+    TOOL_KIND_OUTPUT,
     TOOL_RISK_HIGH,
     TOOL_RISK_LOW,
     TOOL_RISK_MEDIUM,
@@ -45,6 +47,7 @@ from .tool_registry import (
 )
 from .usage_tracker import SessionUsage, TurnUsage, parse_usage_from_data
 from . import renderer
+from .events import RuntimeEvents, RuntimeView
 
 import httpx
 
@@ -81,6 +84,9 @@ class AgentConfig:
     delivery_verify: bool = False
     auto_verify_runnable_artifacts: bool = False
     max_delivery_fix_attempts: int = 3
+    max_run_turns: int = 40
+    max_run_seconds: float = 1800.0
+    max_consecutive_failures: int = 3
 
 
 class AbortReason:
@@ -119,6 +125,8 @@ class CommandExecutionQueue:
         self._worker: Optional[asyncio.Task] = None
         self._failed_result: Optional[ExecutionResult] = None
         self._closed = False
+        self.failed = asyncio.Event()
+        self._exception: Exception | None = None
 
     @property
     def failed_result(self) -> Optional[ExecutionResult]:
@@ -134,6 +142,8 @@ class CommandExecutionQueue:
         """Wait until all commands enqueued so far finish; return first failure."""
         if self._worker:
             await self._queue.join()
+        if self._exception:
+            raise self._exception
         return self._failed_result
 
     async def close(self) -> Optional[ExecutionResult]:
@@ -141,6 +151,8 @@ class CommandExecutionQueue:
         if self._worker:
             self._queue.put_nowait(None)
             await self._worker
+        if self._exception:
+            raise self._exception
         return self._failed_result
 
     def _ensure_worker(self) -> None:
@@ -161,38 +173,66 @@ class CommandExecutionQueue:
                 result = await self._execute(command)
                 if not result.success and self._failed_result is None:
                     self._failed_result = result
+                    self.failed.set()
             except Exception as exc:
+                self._exception = exc
                 if self._failed_result is None:
                     self._failed_result = ExecutionResult(
                         success=False,
                         tool="queue",
                         error=f"Command queue execution error: {exc}",
                     )
+                    self.failed.set()
             finally:
                 if command is not None and self._on_done:
                     self._on_done(command)
                 self._queue.task_done()
 
-    def _record_skipped(self, command: Command) -> None:
+    async def abort(self) -> None:
+        """Stop queued work and join the owned worker before returning."""
+        self._closed = True
+        while not self._queue.empty():
+            command = self._queue.get_nowait()
+            if command is not None:
+                self._record_skipped(command, "Cancelled before execution; no side effect was executed.")
+            self._queue.task_done()
+        if self._worker and not self._worker.done():
+            self._worker.cancel()
+        if self._worker:
+            await asyncio.gather(self._worker, return_exceptions=True)
+
+    def _record_skipped(self, command: Command, reason: str = "Skipped because an earlier queued command failed; no side effect was executed.") -> None:
         result = ExecutionResult(
             success=False,
             tool=command.tool,
             path=command.path or "",
-            error="Skipped because an earlier queued command failed; no side effect was executed.",
+            error=reason,
             status="skipped",
         )
+        original_failure = self._context.last_failure
+        original_need_result = self._context.last_need_result
+        original_auto_result = self._context.pending_auto_result
         self._context.record(
             command,
             result,
             flow=self._tool_registry.flow(command.tool),
             risk=self._tool_registry.risk(command.tool),
         )
+        self._context._last_failure = original_failure
+        self._context._last_need_result = original_need_result
+        self._context._pending_auto_result = original_auto_result
 
 class AgentLoop:
     """ThinkFlow 主循环"""
 
-    def __init__(self, config: AgentConfig):
+    def __init__(self, config: AgentConfig, *, event_sink=None, approval_handler=None):
         self.config = config
+        self.events = RuntimeEvents(event_sink)
+        self.view = RuntimeView(self.events, allow_legacy_tags=config.allow_legacy_tool_tags)
+        self.approval_handler = approval_handler
+        self._run_active = False
+        self._last_turn_failed = False
+        self.stopped_reason = ""
         self.executor = Executor(
             cwd=config.cwd,
             max_read_chars=config.max_read_chars,
@@ -201,18 +241,21 @@ class AgentLoop:
         self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd)
         self.skill_manager = SkillManager(config.cwd, config.skills)
         self.tool_registry = self._build_tool_registry()
-        renderer.set_tool_kind_map(self.tool_registry.kind_map())
-        renderer.set_tool_flow_map(self.tool_registry.flow_map())
-        renderer.set_tool_risk_map(self.tool_registry.risk_map())
+        if event_sink is None:
+            renderer.set_tool_kind_map(self.tool_registry.kind_map())
+            renderer.set_tool_flow_map(self.tool_registry.flow_map())
+            renderer.set_tool_risk_map(self.tool_registry.risk_map())
         self.context = ContextManager()
         self.parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_filter = SafeTextStreamFilter(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_command_gate = MarkdownFenceCommandGate()
-        renderer.set_allow_legacy_tool_tags(config.allow_legacy_tool_tags)
+        if event_sink is None:
+            renderer.set_allow_legacy_tool_tags(config.allow_legacy_tool_tags)
         # 执行层去重；滚动窗口防长会话无限增长（戳记单调递增，只需防近期重复）
         self._executed_ids: set[str] = set()
         self._executed_ids_order: deque[str] = deque()
+        self._command_fingerprints: dict[str, str] = {}
         self.active_text_tool_count = 0
         self.active_text_tool_name = ""
         self.active_text_tool_streaming = False
@@ -491,13 +534,13 @@ class AgentLoop:
         p = self.config.provider
         if p.format == "anthropic":
             return {
-                "x-api-key": p.api_key,
+                **({"x-api-key": p.api_key} if p.api_key else {}),
                 "anthropic-version": "2023-06-01",
                 "content-type": "application/json",
             }
         else:
             return {
-                "Authorization": f"Bearer {p.api_key}",
+                **({"Authorization": f"Bearer {p.api_key}"} if p.api_key else {}),
                 "content-type": "application/json",
             }
 
@@ -631,16 +674,57 @@ class AgentLoop:
 
     async def run(self, user_input: str):
         """主入口。"""
+        if self._run_active:
+            raise RuntimeError("This agent already has an active run")
+        self._run_active = True
         self.last_error = ""
+        self.stopped_reason = "completed"
         self._auto_continue_count = 0
-        self._append_pending_injection()
-        self.messages.append({"role": "user", "content": user_input})
-
-        while True:
-            should_continue = await self._run_one_turn()
-            if not should_continue:
-                break
-        self.compact(force=False)
+        self._delivery_fix_count = 0
+        cancelled = False
+        failures = 0
+        turns = 0
+        deadline = time.monotonic() + max(0.01, self.config.max_run_seconds)
+        try:
+            self._append_pending_injection()
+            self.messages.append({"role": "user", "content": user_input})
+            while turns < max(1, self.config.max_run_turns):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    self.stopped_reason = "max_run_seconds"
+                    break
+                try:
+                    should_continue = await asyncio.wait_for(self._run_one_turn(), remaining)
+                except asyncio.TimeoutError:
+                    self.stopped_reason = "max_run_seconds"
+                    break
+                turns += 1
+                failures = failures + 1 if self._last_turn_failed else 0
+                if failures >= max(1, self.config.max_consecutive_failures):
+                    self.stopped_reason = "max_consecutive_failures"
+                    break
+                if not should_continue:
+                    if self.last_error:
+                        self.stopped_reason = "error"
+                    break
+            else:
+                self.stopped_reason = "max_run_turns"
+            if self.stopped_reason.startswith("max_"):
+                self.last_error = f"Run stopped at configured limit: {self.stopped_reason}"
+                self.view.render_error(self.last_error)
+            self.compact(force=False)
+        except asyncio.CancelledError:
+            cancelled = True
+            self.stopped_reason = "cancelled"
+            raise
+        except Exception as exc:
+            self.stopped_reason = "error"
+            self.last_error = str(exc)
+            raise
+        finally:
+            self._run_active = False
+            self.events.emit("run_finished", cancelled=cancelled, error=self.last_error,
+                             stopped_reason=self.stopped_reason, turns=turns)
 
     def _append_pending_injection(self):
         """把未注入的 ThinkFlow 工具日志补进消息历史。"""
@@ -659,6 +743,7 @@ class AgentLoop:
             self.messages = compacted
             self.compaction_count += 1
             self.last_compaction = stats
+        self.context.compact_history()
         return stats
 
     def message_stats(self) -> dict:
@@ -669,13 +754,22 @@ class AgentLoop:
         }
 
     async def _run_one_turn(self) -> bool:
+        self._last_turn_failed = False
+        self.events.turn = self._turn_count + 1
+        self.events.emit("turn_started")
+        try:
+            return await self._run_one_turn_impl()
+        finally:
+            self.events.emit("turn_finished", error=self.last_error,
+                             failed=self._last_turn_failed)
+
+    async def _run_one_turn_impl(self) -> bool:
         """运行一轮。"""
         self._turn_count += 1
         turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time())
         self.usage.add_turn(turn_usage)  # 先加入，_process_stream 会更新它
         commands_this_turn = 0
         tools_this_turn = 0
-        record_start_index = len(self.context.records)
 
         # 0. 注入上一轮未注入的命令
         injection = self.context.build_injection()
@@ -683,6 +777,7 @@ class AgentLoop:
             self.messages.append({"role": "user", "content": injection})
 
         compact_stats = self.compact(force=False)
+        record_start_index = len(self.context.records)
         if compact_stats.changed:
             turn_usage.abort_reason = "context_compacted"
 
@@ -702,7 +797,6 @@ class AgentLoop:
         abort_reason = AbortReason.NONE
         finish_reason = ""
         traditional_tools: dict[str, dict] = {}
-        current_tool_key: Optional[str] = None
         command_queue = CommandExecutionQueue(
             self._execute_command,
             self.context,
@@ -717,8 +811,9 @@ class AgentLoop:
         self.text_filter.reset()
         self.text_command_gate.reset()
 
+        event_stream = self._events_until_failure(response, command_queue)
         try:
-            async for event in self._process_stream(response):
+            async for event in event_stream:
                 # thinking delta → 喂给解析器
                 if event.type == EventType.THINKING_DELTA:
                     self.note_text_tool_stream(event.thinking_text)
@@ -727,19 +822,19 @@ class AgentLoop:
                     parser_error_count += len(new_errors)
                     if new_errors:
                         parser_error_message = new_errors[-1].message
-                        renderer.flush_text()
+                        self.view.flush_text()
                         abort_reason = AbortReason.TOOL_FAILED
                         break
 
                     if self.config.verbose:
-                        renderer.render_thinking_snapshot(event.thinking_text)
+                        self.view.render_thinking_snapshot(event.thinking_text)
                     dispatched, dispatch_abort = await self._dispatch_text_commands(
                         commands,
                         command_queue,
                     )
                     commands_this_turn += dispatched
                     if dispatch_abort != AbortReason.NONE:
-                        renderer.flush_text()
+                        self.view.flush_text()
                         abort_reason = dispatch_abort
 
                     if abort_reason != AbortReason.NONE:
@@ -755,7 +850,7 @@ class AgentLoop:
                     text_parser_error_count += len(new_errors)
                     if new_errors:
                         parser_error_message = new_errors[-1].message
-                        renderer.flush_text()
+                        self.view.flush_text()
                         abort_reason = AbortReason.TOOL_FAILED
                         break
                     dispatched, dispatch_abort = await self._dispatch_text_commands(
@@ -764,25 +859,24 @@ class AgentLoop:
                     )
                     commands_this_turn += dispatched
                     if dispatch_abort != AbortReason.NONE:
-                        renderer.flush_text()
+                        self.view.flush_text()
                         abort_reason = dispatch_abort
                     if abort_reason != AbortReason.NONE:
                         break
                     visible_text = self.text_filter.feed(event.text)
                     if visible_text:
-                        renderer.render_text_chunk(visible_text)
+                        self.view.render_text_chunk(visible_text)
                     assistant_text += event.text
 
                 # tool_use → 收集（不立即 break，继续读完流拿参数）
                 elif event.type == EventType.TOOL_USE_START:
                     visible_text = self.text_filter.flush()
                     if visible_text:
-                        renderer.render_text_chunk(visible_text)
-                    renderer.flush_text()
+                        self.view.render_text_chunk(visible_text)
+                    self.view.flush_text()
                     if abort_reason == AbortReason.NONE:
                         abort_reason = AbortReason.TOOL_USE
-                    key = event.tool_id or f"idx:{event.tool_index}"
-                    current_tool_key = key
+                    key = f"idx:{event.tool_index}"
                     if key not in traditional_tools:
                         traditional_tools[key] = {
                             "name": event.tool_name,
@@ -790,12 +884,15 @@ class AgentLoop:
                             "index": event.tool_index,
                             "input": "",
                         }
-                    tools_this_turn += 1
+                        tools_this_turn += 1
+                    else:
+                        if event.tool_name:
+                            traditional_tools[key]["name"] = event.tool_name
+                        if event.tool_id:
+                            traditional_tools[key]["id"] = event.tool_id
 
                 elif event.type == EventType.TOOL_USE_DELTA:
-                    key = event.tool_id or f"idx:{event.tool_index}"
-                    if key not in traditional_tools and current_tool_key:
-                        key = current_tool_key
+                    key = f"idx:{event.tool_index}"
                     if key not in traditional_tools:
                         traditional_tools[key] = {
                             "name": event.tool_name,
@@ -815,7 +912,7 @@ class AgentLoop:
                         text_parser_error_count += len(new_errors)
                         if new_errors:
                             parser_error_message = new_errors[-1].message
-                            renderer.flush_text()
+                            self.view.flush_text()
                             abort_reason = AbortReason.TOOL_FAILED
                             break
                         dispatched, dispatch_abort = await self._dispatch_text_commands(
@@ -824,14 +921,14 @@ class AgentLoop:
                         )
                         commands_this_turn += dispatched
                         if dispatch_abort != AbortReason.NONE:
-                            renderer.flush_text()
+                            self.view.flush_text()
                             abort_reason = dispatch_abort
                     if abort_reason != AbortReason.NONE:
                         break
                     visible_text = self.text_filter.flush()
                     if visible_text:
-                        renderer.render_text_chunk(visible_text)
-                    renderer.flush_text()
+                        self.view.render_text_chunk(visible_text)
+                    self.view.flush_text()
                     if abort_reason == AbortReason.NONE:
                         abort_reason = (
                             AbortReason.LENGTH
@@ -842,30 +939,45 @@ class AgentLoop:
 
                 elif event.type == EventType.ERROR:
                     self.last_error = event.error or "stream event error"
-                    print(f"\n[API ERROR] {self.last_error}", file=sys.stderr)
+                    self.view.render_error(self.last_error)
                     abort_reason = AbortReason.ERROR
                     break
 
         except httpx.TransportError as e:
             self.last_error = f"stream interrupted: {e}"
-            print(f"\n[ThinkFlow] 连接中断，将尝试续写: {e}", file=sys.stderr)
+            self.view.render_info(f"连接中断，将尝试续写: {e}")
             finish_reason = "transport_error"
             abort_reason = AbortReason.LENGTH
         finally:
-            await response.aclose()
+            try:
+                try:
+                    await event_stream.aclose()
+                finally:
+                    await response.aclose()
+            finally:
+                # Cancellation and unexpected errors must not strand a worker.
+                if sys.exc_info()[0] is not None:
+                    await command_queue.abort()
+                    self.parser.flush()
+                    self.text_parser.flush()
+                    self.clear_text_tool_activity()
 
-        background_failure = await command_queue.close()
+        try:
+            background_failure = await command_queue.close()
+        except BaseException:
+            await command_queue.abort()
+            raise
         self.finish_text_tool_stream()
         if background_failure and abort_reason not in (AbortReason.TOOL_FAILED, AbortReason.NEED_RESULT):
             abort_reason = AbortReason.TOOL_FAILED
 
-        # flush parser. 截断/断连时保留 parser buffer，下一轮续写可能补完整命令块。
+        # Do not carry incomplete command bodies into a retry.
         if abort_reason != AbortReason.LENGTH:
             error = self.parser.flush()
             if error:
                 parser_error_message = error.message
                 if self.config.verbose:
-                    print(f"\n[ThinkFlow PARSER] {error.message}", file=sys.stderr)
+                    self.view.render_info(error.message)
                 if abort_reason == AbortReason.END_TURN:
                     abort_reason = AbortReason.TOOL_FAILED
             text_error = self.text_parser.flush()
@@ -873,11 +985,20 @@ class AgentLoop:
                 parser_error_message = text_error.message
                 if abort_reason == AbortReason.END_TURN:
                     abort_reason = AbortReason.TOOL_FAILED
+        else:
+            # Continuation instructions request a fresh complete command.
+            # Keeping an old body would concatenate its prefix with that retry.
+            self.parser.flush()
+            self.text_parser.flush()
         self.text_filter.reset()
         self.text_command_gate.reset()
 
         # 记录 usage（turn_usage 已在开头 add，这里更新字段）
         turn_usage.commands_executed = commands_this_turn
+        turn_usage.delayed_successes = sum(
+            record.status == "success" and record.flow == TOOL_FLOW_DELAYED and not record.need_result
+            for record in self.context.records[record_start_index:]
+        )
         turn_usage.tool_calls_traditional = tools_this_turn
         turn_usage.abort_reason = abort_reason
 
@@ -886,12 +1007,13 @@ class AgentLoop:
 
         # 3. 记录 assistant 输出
         if assistant_text:
-            clean_text = renderer.strip_command_blocks(assistant_text)
+            clean_text = self.view.strip_command_blocks(assistant_text)
             if clean_text:
                 self.messages.append({"role": "assistant", "content": clean_text})
 
         # 4. 处理中断原因
         if abort_reason == AbortReason.TOOL_FAILED:
+            self._last_turn_failed = True
             if parser_error_message:
                 self.messages.append({
                     "role": "user",
@@ -901,7 +1023,7 @@ class AgentLoop:
                         "请修正命令格式后继续。"
                     ),
                 })
-                renderer.render_error("命令格式错误，推理已打断")
+                self.view.render_error("命令格式错误，推理已打断")
             else:
                 msg = self.context.build_failure_message()
                 if msg:
@@ -909,7 +1031,7 @@ class AgentLoop:
                     if failed:
                         self.context.mark_injected(failed.id)
                     self.messages.append({"role": "user", "content": msg})
-                    renderer.render_error("命令执行失败，推理已打断")
+                    self.view.render_error("命令执行失败，推理已打断")
             self.context.clear_flags()
             return True
 
@@ -920,7 +1042,7 @@ class AgentLoop:
                 if requested:
                     self.context.mark_injected(requested.id)
                 self.messages.append({"role": "user", "content": msg})
-                renderer.render_need_result_return(
+                self.view.render_need_result_return(
                     requested.tool if requested else "",
                     requested.id if requested else "",
                 )
@@ -928,7 +1050,7 @@ class AgentLoop:
             return True
 
         elif abort_reason == AbortReason.LENGTH:
-            renderer.render_stream_stop(finish_reason or "length")
+            self.view.render_stream_stop(finish_reason or "length")
             self.context.clear_flags()
             if self._auto_continue_count < self.config.max_auto_continues:
                 self._auto_continue_count += 1
@@ -950,7 +1072,7 @@ class AgentLoop:
                     "content": continue_message,
                 })
                 return True
-            renderer.render_error("模型连续达到 max_tokens，已停止自动续写")
+            self.view.render_error("模型连续达到 max_tokens，已停止自动续写")
             return False
 
         elif abort_reason == AbortReason.TOOL_USE:
@@ -966,7 +1088,7 @@ class AgentLoop:
                 if pending:
                     self.context.mark_injected(pending.id)
                 self.messages.append({"role": "user", "content": msg})
-                renderer.render_need_result_return(
+                self.view.render_need_result_return(
                     pending.tool if pending else "",
                     pending.id if pending else "",
                 )
@@ -983,7 +1105,7 @@ class AgentLoop:
                         self._delivery_fix_count += 1
                         self.messages.append({"role": "user", "content": verification.to_feedback()})
                         return True
-                    renderer.render_error("交付前验证失败，已达到自动修复上限")
+                    self.view.render_error("交付前验证失败，已达到自动修复上限")
             runnable_feedback = (
                 self._build_runnable_artifact_feedback(turn_records)
                 if self.config.auto_verify_runnable_artifacts
@@ -992,12 +1114,12 @@ class AgentLoop:
             if runnable_feedback and self._auto_continue_count < self.config.max_auto_continues:
                 self._auto_continue_count += 1
                 self.messages.append({"role": "user", "content": runnable_feedback})
-                renderer.render_info("检测到脚本写入后尚未运行，已要求模型继续验证")
+                self.view.render_info("检测到脚本写入后尚未运行，已要求模型继续验证")
                 return True
             if turn_records:
-                renderer.render_tool_summary(turn_records)
+                self.view.render_tool_summary(turn_records)
             self.context.clear_flags()
-            print()  # 换行
+            self.view.newline()
             return False
 
         self.context.clear_flags()
@@ -1069,20 +1191,50 @@ class AgentLoop:
         commands run concurrently or out of order.
         """
         dispatched = 0
-        for cmd in commands:
+        for index, cmd in enumerate(commands):
             dispatched += 1
-            if cmd.need_result:
+            if cmd.need_result or self.tool_registry.flow(cmd.tool) in (TOOL_FLOW_BLOCKING, TOOL_FLOW_CONFIRM):
+                cmd.need_result = True
                 prior_failure = await command_queue.barrier()
                 if prior_failure:
+                    for remainder in commands[index:]:
+                        command_queue._record_skipped(remainder)
                     return dispatched, AbortReason.TOOL_FAILED
                 self.mark_text_tool_start(cmd)
                 try:
                     result = await self._execute_command(cmd)
+                    for remainder in commands[index + 1:]:
+                        command_queue._record_skipped(
+                            remainder, "Skipped because an earlier command requires feedback before continuing; no side effect was executed.")
                     return dispatched, AbortReason.NEED_RESULT if result.success else AbortReason.TOOL_FAILED
                 finally:
                     self.mark_text_tool_done(cmd)
             command_queue.enqueue(cmd)
         return dispatched, AbortReason.NONE
+
+    async def _events_until_failure(self, response, queue):
+        """Race socket reads against execution failure, including stalled SSE."""
+        iterator = self._process_stream(response).__aiter__()
+        failed = asyncio.create_task(queue.failed.wait())
+        pending = None
+        try:
+            while not queue.failed.is_set():
+                pending = asyncio.create_task(anext(iterator))
+                done, _ = await asyncio.wait((pending, failed), return_when=asyncio.FIRST_COMPLETED)
+                if failed in done:
+                    break
+                try:
+                    event = pending.result()
+                except StopAsyncIteration:
+                    return
+                pending = None
+                yield event
+        finally:
+            for task in (pending, failed):
+                if task and not task.done():
+                    task.cancel()
+            await asyncio.gather(*(t for t in (pending, failed) if t), return_exceptions=True)
+            await iterator.aclose()
 
     async def _send_stream_request(self, path: str, body: dict) -> Optional[httpx.Response]:
         """发送流式请求，针对网络错误和临时 HTTP 错误做轻量重试。"""
@@ -1100,10 +1252,11 @@ class AgentLoop:
                     await asyncio.sleep(self.config.retry_backoff_seconds * (2 ** attempt))
                     continue
                 self.last_error = f"API 调用失败: {e}"
-                print(f"\n[ThinkFlow ERROR] {self.last_error}", file=sys.stderr)
+                self.view.render_error(self.last_error)
                 return None
 
             if response.status_code == 200:
+                self.last_error = ""
                 return response
 
             error_text = ""
@@ -1116,7 +1269,7 @@ class AgentLoop:
                 continue
 
             self.last_error = f"HTTP {response.status_code}: {error_text[:500]}"
-            print(f"\n[ThinkFlow ERROR] {self.last_error}", file=sys.stderr)
+            self.view.render_error(self.last_error)
             return None
 
         return None
@@ -1167,6 +1320,20 @@ class AgentLoop:
 
             # Anthropic 格式
             data_type = data.get("type", "")
+            if data_type in ("message_start", "message_delta") and self.usage.turns:
+                provider_usage = (data.get("message", {}).get("usage") if data_type == "message_start"
+                                  else data.get("usage"))
+                if isinstance(provider_usage, dict) and provider_usage:
+                    current_usage = self.usage.turns[-1]
+                    current_usage.usage_reported = True
+                    if "input_tokens" in provider_usage:
+                        current_usage.cached_tokens = int(provider_usage.get("cache_read_input_tokens", 0) or 0)
+                        current_usage.prompt_tokens = (int(provider_usage["input_tokens"] or 0)
+                                                       + current_usage.cached_tokens
+                                                       + int(provider_usage.get("cache_creation_input_tokens", 0) or 0))
+                    if "output_tokens" in provider_usage:
+                        current_usage.completion_tokens = int(provider_usage["output_tokens"] or 0)
+                        current_usage.text_tokens = current_usage.completion_tokens
             if data_type == "content_block_delta":
                 delta = data.get("delta", {})
                 dt = delta.get("type", "")
@@ -1230,6 +1397,7 @@ class AgentLoop:
                     # 更新当前轮的 usage
                     turn_usage = self.usage.turns[-1] if self.usage.turns else None
                     if turn_usage:
+                        turn_usage.usage_reported = True
                         turn_usage.prompt_tokens = parsed.prompt_tokens
                         turn_usage.completion_tokens = parsed.completion_tokens
                         turn_usage.reasoning_tokens = parsed.reasoning_tokens
@@ -1294,6 +1462,9 @@ class AgentLoop:
                 type=EventType.MESSAGE_STOP,
                 finish_reason=pending_openai_finish_reason,
             )
+        else:
+            yield StreamEvent(type=EventType.ERROR,
+                              error="Stream ended without a finish reason or completion marker; response is incomplete.")
 
     import re as _re
     _CMD_TAG_RE = _re.compile(r'<(?:tf-)?(?:read|write|append|mkdir|touch|copy|bash|edit)[/ >]')
@@ -1313,75 +1484,134 @@ class AgentLoop:
             return f"{command.path} -> {command.dest}"
         return command.path or command.dest or command.cmd or ""
 
-    async def _execute_command(self, command: Command) -> ExecutionResult:
-        """执行 ThinkFlow 命令。"""
-        # 执行层去重
-        if command.id in self._executed_ids:
-            return ExecutionResult(success=True, tool=command.tool)  # 假装成功
-        self._executed_ids.add(command.id)
-        self._executed_ids_order.append(command.id)
+    def _tool_event(self, kind: str, command: Command, channel: str, result=None, tool_input=None):
+        payload = {
+            "id": command.id, "tool": command.tool, "channel": channel,
+            "flow": self.tool_registry.flow(command.tool),
+            "risk": self.tool_registry.risk(command.tool),
+            "path": command.path or "", "dest": command.dest or "",
+            "need_result": command.need_result,
+            "input_hash": self._command_fingerprints.get(command.id, _command_hash(command)),
+            "cmd": self.config.security.redact_text(command.cmd or "")[:2000],
+            "content_bytes": len((command.content or "").encode("utf-8")),
+        }
+        if result is not None:
+            payload.update(success=result.success, error=result.error,
+                           status=result.status_str, bytes_written=result.bytes_written)
+        if tool_input is not None:
+            summary = {key: value for key, value in tool_input.items() if key not in ("content", "old_text", "new_text")}
+            payload["input_summary"] = self.config.security.redact_text(json.dumps(summary, ensure_ascii=False))[:2000]
+        self.events.emit(kind, **payload)
+
+    async def _authorize_tool(self, command: Command, tool_input: dict) -> str:
+        error = self._approval_error(command.tool)
+        if not error:
+            return ""
+        self.events.emit("approval_required", id=command.id, tool=command.tool,
+                         path=command.path or "", risk=self.tool_registry.risk(command.tool),
+                         flow=self.tool_registry.flow(command.tool))
+        if self.approval_handler is None:
+            return error
+        if await self.approval_handler(command.tool, tool_input):
+            return ""
+        return f"[THINKFLOW APPROVAL DENIED] tool={command.tool}; no side effect was executed."
+
+    def _prior_receipt(self, command: Command, fingerprint: str):
+        if command.id not in self._executed_ids:
+            return None
+        previous = next((r for r in self.context.records if r.id == command.id and r.status != "skipped"), None)
+        expected = self._command_fingerprints.get(command.id)
+        if expected is None and previous is not None:
+            expected = previous.content_hash  # Legacy text-only snapshots.
+        if previous and expected == fingerprint:
+            if previous.status != "success":
+                self.context._last_failure = previous
+            if command.need_result:
+                self.context._last_need_result = previous
+            return ExecutionResult(success=previous.status == "success", tool=command.tool,
+                                   path=previous.path or "", error=previous.error,
+                                   stdout=previous.stdout, content=previous.stdout, stderr=previous.stderr,
+                                   bytes_written=previous.bytes_written, exit_code=previous.exit_code,
+                                   status=previous.status)
+        result = ExecutionResult(success=False, tool=command.tool,
+                                 error=f"Command id={command.id} conflicts with an earlier or unresolved command; use a new id.")
+        self.context.record(command, result, flow=self.tool_registry.flow(command.tool),
+                            risk=self.tool_registry.risk(command.tool))
+        return result
+
+    def _remember_command(self, command_id: str, fingerprint: str):
+        self._executed_ids.add(command_id)
+        self._executed_ids_order.append(command_id)
+        self._command_fingerprints[command_id] = fingerprint
         if len(self._executed_ids_order) > MAX_EXECUTED_IDS:
             oldest = self._executed_ids_order.popleft()
             self._executed_ids.discard(oldest)
+            self._command_fingerprints.pop(oldest, None)
+
+    async def _execute_command(self, command: Command) -> ExecutionResult:
+        """Execute an approved text command with a durable, instance-scoped receipt."""
+        fingerprint = _command_hash(command)
+        previous = self._prior_receipt(command, fingerprint)
+        if previous is not None:
+            return previous
+        self._remember_command(command.id, fingerprint)
         path_info = self._command_detail(command)
-
-        renderer.render_command_start(
-            command.tool,
-            command.id,
-            path_info,
-            need_result=command.need_result,
-        )
-
-        approval_error = self._approval_error(command.tool)
-        if approval_error:
-            result = ExecutionResult(
-                success=False,
-                tool=command.tool,
-                path=command.path or "",
-                error=approval_error,
-                exit_code=126 if command.tool == "bash" else None,
-            )
-        else:
-            result = await self.executor.execute(command)
-        self.context.record(
-            command,
-            result,
-            flow=self.tool_registry.flow(command.tool),
-            risk=self.tool_registry.risk(command.tool),
-        )
-
-        extra = ""
-        if result.bytes_written:
-            extra = f"{result.bytes_written:,} bytes"
-        elif result.exit_code is not None:
-            extra = f"exit={result.exit_code}"
-        if not result.success:
-            extra = result.error[:80]
-
-        renderer.render_command_exec(
-            command.tool, command.id, path_info,
-            success=result.success, extra=extra, need_result=command.need_result
-        )
-
+        self.view.render_command_start(command.tool, command.id, path_info, need_result=command.need_result)
+        self._tool_event("tool_started", command, "text")
+        try:
+            approval_error = await self._authorize_tool(command, {
+                "path": command.path, "dest": command.dest, "cmd": command.cmd,
+                "content": command.content, "old_text": command.old_text, "new_text": command.new_text,
+            })
+            if approval_error:
+                result = ExecutionResult(success=False, tool=command.tool, path=command.path or "",
+                                         error=approval_error, exit_code=126 if command.tool == "bash" else None)
+            else:
+                result = await self.executor.execute(command)
+        except asyncio.CancelledError:
+            result = ExecutionResult(success=False, tool=command.tool, path=command.path or "",
+                                     status="cancelled", error="Execution cancelled; inspect any operation already in progress.")
+            self.context.record(command, result, flow=self.tool_registry.flow(command.tool),
+                                risk=self.tool_registry.risk(command.tool))
+            self._tool_event("tool_completed", command, "text", result)
+            raise
+        self.context.record(command, result, flow=self.tool_registry.flow(command.tool),
+                            risk=self.tool_registry.risk(command.tool))
+        self._tool_event("tool_completed", command, "text", result)
+        extra = result.error[:80] if not result.success else (
+            f"{result.bytes_written:,} bytes" if result.bytes_written else
+            f"exit={result.exit_code}" if result.exit_code is not None else "")
+        self.view.render_command_exec(command.tool, command.id, path_info,
+                                      success=result.success, extra=extra, need_result=command.need_result)
         return result
 
     async def _handle_traditional_tools(self, tool_calls: list[dict]):
         """处理传统 tool_use（read 等），支持分片参数和多工具并发返回。"""
         normalized = []
         results = []
+        batch_failed = False
 
         for idx, tool_data in enumerate(tool_calls):
             tool_name = tool_data.get("name", "")
             tool_id = tool_data.get("id") or f"tool_{self._turn_count}_{idx}"
             raw_input = tool_data.get("input", "")
+            input_error = ""
             try:
                 tool_input = json.loads(raw_input) if raw_input else {}
-            except json.JSONDecodeError:
+                if not isinstance(tool_input, dict):
+                    raise ValueError("tool input must be a JSON object")
+            except (ValueError, TypeError) as exc:
                 tool_input = {}
+                input_error = f"Invalid tool arguments: {exc}"
 
-            renderer.render_tool_call(tool_name, tool_input)
-            result_text = await self._execute_traditional_tool(tool_name, tool_input)
-            renderer.render_tool_result(tool_name, result_text)
+            self.view.render_tool_call(tool_name, tool_input)
+            result = await self._execute_traditional_result(
+                tool_name, tool_input, tool_id=tool_id, input_error=input_error,
+                skip_reason=("Skipped because an earlier native command failed; no side effect was executed."
+                             if batch_failed else ""))
+            batch_failed = batch_failed or not result.success
+            result_text = self._native_result_text(result)
+            self.view.render_tool_result(tool_name, result_text)
 
             normalized.append({
                 "id": tool_id,
@@ -1391,6 +1621,7 @@ class AgentLoop:
             results.append({
                 "id": tool_id,
                 "content": result_text,
+                "is_error": not result.success,
             })
 
         # 添加到 messages（OpenAI 格式）
@@ -1436,17 +1667,87 @@ class AgentLoop:
                         "type": "tool_result",
                         "tool_use_id": result["id"],
                         "content": result["content"],
+                        "is_error": result["is_error"],
                     }
                     for result in results
                 ],
             })
+        # Mark only after provider result messages exist. A durable tool event
+        # snapshot taken earlier must retain pending feedback for crash recovery.
+        for result in results:
+            self.context.mark_injected(result["id"])
 
-    async def _execute_traditional_tool(self, tool_name: str, tool_input: dict) -> str:
-        """Execute native provider tool_use calls."""
-        approval_error = self._approval_error(tool_name)
-        if approval_error:
-            return approval_error
-        return await self.tool_registry.execute(tool_name, tool_input)
+    async def _execute_traditional_tool(self, tool_name: str, tool_input: dict, *, tool_id=None, input_error="") -> str:
+        result = await self._execute_traditional_result(tool_name, tool_input, tool_id=tool_id,
+                                                      input_error=input_error)
+        return self._native_result_text(result)
+
+    def _native_result_text(self, result: ExecutionResult) -> str:
+        if result.tool in TOOLS or result.tool in ("list_files", "glob", "grep") or not result.success:
+            return self._format_tool_result(result)
+        return result.content
+
+    async def _execute_traditional_result(self, tool_name: str, tool_input: dict, *, tool_id=None,
+                                          input_error="", skip_reason="") -> ExecutionResult:
+        fields = {}
+        for key in ("path", "dest", "cmd", "content", "old_text", "new_text"):
+            value = tool_input.get(key)
+            fields[key] = value if isinstance(value, str) else None
+            if tool_name in TOOLS and value is not None and not isinstance(value, str):
+                input_error = input_error or f"Invalid tool arguments: {key} must be a string"
+        command = Command(id=tool_id or f"native_{self._turn_count}_{len(self.context.records)}",
+                          tool=tool_name, need_result=True, **fields)
+        fingerprint = "native:" + hashlib.sha256(json.dumps(
+            {"tool": tool_name, "input": tool_input, "input_error": input_error},
+            sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+        ).encode("utf-8")).hexdigest()
+        if skip_reason:
+            result = ExecutionResult(success=False, tool=tool_name, status="skipped", error=skip_reason)
+            self.context.record(command, result, flow=self.tool_registry.flow(tool_name),
+                                risk=self.tool_registry.risk(tool_name))
+            self._tool_event("tool_completed", command, "native", result)
+            return result
+        previous = self._prior_receipt(command, fingerprint)
+        if previous is not None:
+            if not previous.success:
+                self._last_turn_failed = True
+            return previous
+        self._remember_command(command.id, fingerprint)
+        self._tool_event("tool_started", command, "native", tool_input=tool_input)
+        try:
+            read_only_denial = (
+                self.config.security.read_only and
+                self.tool_registry.kind(tool_name) in (TOOL_KIND_OUTPUT, TOOL_KIND_EXEC, TOOL_KIND_GENERATE)
+            )
+            error = input_error or (
+                f"read-only permission mode blocks side-effect operation: {tool_name}" if read_only_denial
+                else await self._authorize_tool(command, tool_input)
+            )
+            if error:
+                result = ExecutionResult(success=False, tool=tool_name, error=error)
+            elif tool_name in TOOLS:
+                result = await self.executor.execute(command)
+            elif tool_name in ("list_files", "glob", "grep"):
+                result = await getattr(self.executor, tool_name)(**tool_input)
+            else:
+                output = await self.tool_registry.execute(tool_name, tool_input)
+                result = ExecutionResult(success=output.success, tool=tool_name,
+                                         content=str(output), error=output.error)
+        except asyncio.CancelledError:
+            result = ExecutionResult(success=False, tool=tool_name, status="cancelled",
+                                     error="Execution cancelled; inspect any operation already in progress.")
+            self.context.record(command, result, flow=self.tool_registry.flow(tool_name),
+                                risk=self.tool_registry.risk(tool_name))
+            self._tool_event("tool_completed", command, "native", result)
+            raise
+        except Exception as exc:
+            result = ExecutionResult(success=False, tool=tool_name, error=str(exc))
+        self.context.record(command, result, flow=self.tool_registry.flow(tool_name),
+                            risk=self.tool_registry.risk(tool_name))
+        self._tool_event("tool_completed", command, "native", result)
+        if not result.success:
+            self._last_turn_failed = True
+        return result
 
     def _approval_error(self, tool_name: str) -> str:
         """Return an execution-blocking approval error for risky tools, if any."""
@@ -1464,6 +1765,17 @@ class AgentLoop:
         return ""
 
     def _format_tool_result(self, result: ExecutionResult) -> str:
+        if result.tool == "bash":
+            parts = [f"exit_code: {result.exit_code}"]
+            if result.stdout:
+                parts.append(f"stdout:\n{result.stdout}")
+            if result.stderr:
+                parts.append(f"stderr:\n{result.stderr}")
+            if not result.success:
+                parts.append(f"error: {result.error or 'bash failed'}")
+            if result.truncated:
+                parts.append("[THINKFLOW TRUNCATED] 输出已截断。")
+            return "\n".join(parts)
         if not result.success:
             return result.error or f"{result.tool} failed"
         if result.tool in ("read", "list_files", "glob", "grep"):
@@ -1471,15 +1783,6 @@ class AgentLoop:
             if result.truncated:
                 text += "\n\n[THINKFLOW TRUNCATED] 结果已截断。"
             return text
-        if result.tool == "bash":
-            parts = [f"exit_code: {result.exit_code}"]
-            if result.stdout:
-                parts.append(f"stdout:\n{result.stdout}")
-            if result.stderr:
-                parts.append(f"stderr:\n{result.stderr}")
-            if result.truncated:
-                parts.append("[THINKFLOW TRUNCATED] 输出已截断。")
-            return "\n".join(parts)
         if result.bytes_written:
             return f"{result.tool} ok: {result.bytes_written} bytes"
         return f"{result.tool} ok"
@@ -1496,8 +1799,10 @@ class AgentLoop:
             "context": self.context.to_dict(),
             # 按 deque 顺序导出，恢复时直接截尾保最近，避免排序猜测丢错端。
             "executed_ids": list(self._executed_ids_order),
+            "command_fingerprints": dict(self._command_fingerprints),
             "turn_count": self._turn_count,
             "compaction_count": self.compaction_count,
+            "event_sequence": self.events.sequence,
             "usage": self.usage.to_dict(),
         }
 
@@ -1512,8 +1817,13 @@ class AgentLoop:
             restored = restored[-MAX_EXECUTED_IDS:]
         self._executed_ids = set(restored)
         self._executed_ids_order = deque(restored)
+        self._command_fingerprints = {
+            str(key): str(value) for key, value in data.get("command_fingerprints", {}).items()
+            if str(key) in self._executed_ids
+        }
         self._turn_count = int(data.get("turn_count", 0) or 0)
         self.compaction_count = int(data.get("compaction_count", 0) or 0)
+        self.events.sequence = int(data.get("event_sequence", 0) or 0)
         # Usage is diagnostic; old snapshots may not contain it.
         usage_data = data.get("usage") or {}
         if isinstance(usage_data, dict):

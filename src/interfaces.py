@@ -15,6 +15,9 @@ from typing import Any
 
 import httpx
 
+from .tool_registry import ToolResult
+from .executor import Executor
+
 
 @dataclass
 class WebInterfaceConfig:
@@ -127,18 +130,18 @@ class ExternalInterfaces:
     async def web_search(self, tool_input: dict) -> str:
         web = self.config.web
         if not web.enabled:
-            return "web_search 未启用。请在 config.interfaces.web.enabled 打开。"
+            return ToolResult.failure("web_search 未启用。请在 config.interfaces.web.enabled 打开。")
 
         query = str(tool_input.get("query", "") or "").strip()
         if not query:
-            return "缺少 query"
+            return ToolResult.failure("缺少 query")
         max_results = _bounded_int(tool_input.get("max_results"), 1, 10, web.search_max_results)
         url = "https://lite.duckduckgo.com/lite/?q=" + urllib.parse.quote(query)
 
         try:
             text = await self._get_text(url, max_chars=200000, web=web)
         except Exception as exc:
-            return f"web_search 失败: {exc}"
+            return ToolResult.failure(f"web_search 失败: {exc}")
 
         results = _parse_duckduckgo_lite(text, max_results=max_results)
         if not results:
@@ -157,17 +160,17 @@ class ExternalInterfaces:
     async def fetch_url(self, tool_input: dict) -> str:
         web = self.config.web
         if not web.enabled:
-            return "fetch_url 未启用。请在 config.interfaces.web.enabled 打开。"
+            return ToolResult.failure("fetch_url 未启用。请在 config.interfaces.web.enabled 打开。")
 
         url = str(tool_input.get("url", "") or "").strip()
         if not url:
-            return "缺少 url"
+            return ToolResult.failure("缺少 url")
         max_chars = _bounded_int(tool_input.get("max_chars"), 1000, 50000, web.max_chars)
 
         try:
             raw = await self._get_text(url, max_chars=max_chars, web=web)
         except Exception as exc:
-            return f"fetch_url 失败: {exc}"
+            return ToolResult.failure(f"fetch_url 失败: {exc}")
 
         text = _html_to_text(raw)
         if len(text) > max_chars:
@@ -178,9 +181,9 @@ class ExternalInterfaces:
         image = self.config.image_generation
         prompt = str(tool_input.get("prompt", "") or "").strip()
         if not prompt:
-            return "缺少 prompt"
+            return ToolResult.failure("缺少 prompt")
         if not image.enabled or image.provider == "disabled":
-            return (
+            return ToolResult.failure(
                 "image_generate 接口已存在，但尚未配置生成器。"
                 "可在 config.interfaces.image_generation 中启用 provider=command 或 provider=webhook。"
             )
@@ -191,7 +194,7 @@ class ExternalInterfaces:
         if not os.path.isabs(output_path):
             output_path = os.path.abspath(os.path.join(self.cwd, output_path))
         if not image.allow_outside_cwd and not _is_relative_to(output_path, self.cwd):
-            return f"image_generate 拒绝写入 cwd 外路径: {output_path}"
+            return ToolResult.failure(f"image_generate 拒绝写入 cwd 外路径: {output_path}")
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
         payload = {
@@ -204,7 +207,7 @@ class ExternalInterfaces:
             return await self._run_image_command(image, payload)
         if image.provider == "webhook":
             return await self._call_image_webhook(image, payload)
-        return f"未知 image_generation provider: {image.provider}"
+        return ToolResult.failure(f"未知 image_generation provider: {image.provider}")
 
     def custom_tool_handler(self, tool: CustomToolConfig):
         async def handler(tool_input: dict) -> str:
@@ -214,11 +217,11 @@ class ExternalInterfaces:
 
     async def run_custom_tool(self, tool: CustomToolConfig, tool_input: dict) -> str:
         if not tool.enabled:
-            return f"{tool.name} 已禁用"
+            return ToolResult.failure(f"{tool.name} 已禁用")
         if not _valid_tool_name(tool.name):
-            return f"custom tool 名称非法: {tool.name}"
+            return ToolResult.failure(f"custom tool 名称非法: {tool.name}")
         if not tool.command:
-            return f"custom tool {tool.name} 缺少 command"
+            return ToolResult.failure(f"custom tool {tool.name} 缺少 command")
         payload = json.dumps(tool_input, ensure_ascii=False).encode("utf-8")
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -228,21 +231,56 @@ class ExternalInterfaces:
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self.cwd,
                 env=_safe_command_env(),
+                **({"start_new_session": True} if os.name != "nt" else {}),
             )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(payload),
-                timeout=tool.timeout_seconds,
-            )
+            stdout, stderr = await self._communicate_owned(proc, payload, tool.timeout_seconds)
         except asyncio.TimeoutError:
-            return f"{tool.name} 超时"
+            return ToolResult.failure(f"{tool.name} 超时")
         except Exception as exc:
-            return f"{tool.name} 启动失败: {exc}"
+            return ToolResult.failure(f"{tool.name} 启动失败: {exc}")
 
         out = stdout.decode("utf-8", errors="replace").strip()
         err = stderr.decode("utf-8", errors="replace").strip()
         if proc.returncode != 0:
-            return f"{tool.name} failed(exit_code={proc.returncode})\n{err or out}"
+            return ToolResult.failure(f"{tool.name} failed(exit_code={proc.returncode})\n{err or out}")
         return out or f"{tool.name} ok"
+
+    @staticmethod
+    async def _communicate_owned(proc, payload: bytes, timeout: float):
+        async def drain(pipe):
+            retained = bytearray()
+            truncated = False
+            while chunk := await pipe.read(65536):
+                remaining = max(0, 80000 - len(retained))
+                retained.extend(chunk[:remaining])
+                truncated = truncated or len(chunk) > remaining
+            if truncated:
+                retained.extend(b"\n[THINKFLOW TRUNCATED] output exceeded 80000 bytes; remaining output was drained.")
+            return bytes(retained)
+
+        async def send_input():
+            try:
+                proc.stdin.write(payload)
+                await proc.stdin.drain()
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+            finally:
+                proc.stdin.close()
+
+        async def exchange():
+            stdout, stderr, _, _ = await asyncio.gather(
+                drain(proc.stdout), drain(proc.stderr), send_input(), proc.wait())
+            return stdout, stderr
+
+        transfer = asyncio.create_task(exchange())
+        try:
+            # Keep draining while terminating the process tree so full pipes cannot
+            # deadlock cancellation. Only retained output, not total output, grows.
+            return await asyncio.wait_for(asyncio.shield(transfer), timeout=timeout)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            await Executor._stop_process_tree(proc)
+            await transfer
+            raise
 
     async def _get_text(self, url: str, *, max_chars: int, web: WebInterfaceConfig) -> str:
         from . import __version__
@@ -268,7 +306,7 @@ class ExternalInterfaces:
 
     async def _run_image_command(self, image: ImageGenerationConfig, payload: dict[str, Any]) -> str:
         if not image.command:
-            return "image_generation.command 未配置"
+            return ToolResult.failure("image_generation.command 未配置")
         try:
             proc = await asyncio.create_subprocess_exec(
                 *image.command,
@@ -277,27 +315,27 @@ class ExternalInterfaces:
                 stderr=asyncio.subprocess.PIPE,
                 cwd=self.cwd,
                 env=_safe_command_env(),
+                **({"start_new_session": True} if os.name != "nt" else {}),
             )
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(json.dumps(payload, ensure_ascii=False).encode("utf-8")),
-                timeout=image.timeout_seconds,
+            stdout, stderr = await self._communicate_owned(
+                proc, json.dumps(payload, ensure_ascii=False).encode("utf-8"), image.timeout_seconds,
             )
         except asyncio.TimeoutError:
-            return "image_generate 命令超时"
+            return ToolResult.failure("image_generate 命令超时")
         except Exception as exc:
-            return f"image_generate 命令启动失败: {exc}"
+            return ToolResult.failure(f"image_generate 命令启动失败: {exc}")
 
         out = stdout.decode("utf-8", errors="replace").strip()
         err = stderr.decode("utf-8", errors="replace").strip()
         if proc.returncode != 0:
-            return f"image_generate 失败(exit_code={proc.returncode})\n{err or out}"
+            return ToolResult.failure(f"image_generate 失败(exit_code={proc.returncode})\n{err or out}")
         exists = os.path.exists(payload["output_path"])
         suffix = f"\noutput_path: {payload['output_path']}" if exists else ""
         return (out or "image_generate ok") + suffix
 
     async def _call_image_webhook(self, image: ImageGenerationConfig, payload: dict[str, Any]) -> str:
         if not image.webhook_url:
-            return "image_generation.webhook_url 未配置"
+            return ToolResult.failure("image_generation.webhook_url 未配置")
         headers = {"content-type": "application/json"}
         if image.bearer_token_env:
             token = os.environ.get(image.bearer_token_env, "")
@@ -307,10 +345,10 @@ class ExternalInterfaces:
             async with httpx.AsyncClient(timeout=image.timeout_seconds) as client:
                 response = await client.post(image.webhook_url, json=payload, headers=headers)
             if response.status_code >= 400:
-                return f"image_generate webhook HTTP {response.status_code}: {response.text[:500]}"
+                return ToolResult.failure(f"image_generate webhook HTTP {response.status_code}: {response.text[:500]}")
             return response.text[:4000] or "image_generate webhook ok"
         except Exception as exc:
-            return f"image_generate webhook 失败: {exc}"
+            return ToolResult.failure(f"image_generate webhook 失败: {exc}")
 
 
 def _bounded_int(value: Any, minimum: int, maximum: int, default: int) -> int:

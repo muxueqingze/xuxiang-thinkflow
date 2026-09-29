@@ -1,5 +1,7 @@
 # Xuxiang ThinkFlow v0.5 Open Source Release Checklist
 
+Historical release checklist. The current source line is 0.6.0, which has not yet been published to npm. Current desktop delivery and validation boundaries are documented in [the desktop guide](docs/desktop.md) and [review records](docs/reviews/fixes.md).
+
 This file records the intended release shape for the `0.5.0-beta.2` open-source release.
 
 ## Names

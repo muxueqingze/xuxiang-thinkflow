@@ -101,6 +101,14 @@ class CommandRecord:
                 lines.append(f'  stderr: {self._clip_text(self.stderr, max_content_chars)}')
         elif self.tool in ("mkdir", "touch", "copy"):
             lines.append(f'<{self.tool} {attr_str} />')
+        else:
+            # Native tools can be checkpointed before their provider result message
+            # is appended. Preserve the observation when resuming that checkpoint.
+            lines.append(f'<tool name="{self.tool}" {attr_str} />')
+            if self.stdout:
+                lines.append(self._clip_text(self.stdout, max_content_chars))
+            if self.stderr:
+                lines.append(self._clip_text(self.stderr, max_content_chars))
 
         if self.output_summary:
             lines.append(f'  summary: {self.output_summary}')
@@ -121,6 +129,7 @@ class ContextManager:
     def __init__(self, start_stamp: int = 1):
         self.records: list[CommandRecord] = []
         self.next_stamp: int = start_stamp
+        self.archived_records = 0
         self._last_failure: Optional[CommandRecord] = None
         self._last_need_result: Optional[CommandRecord] = None
         self._pending_auto_result: Optional[CommandRecord] = None
@@ -138,9 +147,9 @@ class ContextManager:
             path=command.path,
             dest=command.dest,
             cmd=command.cmd,
-            content=command.content,
-            old_text=command.old_text,
-            new_text=command.new_text,
+            content=CommandRecord._clip_text(command.content, 8000) if command.content else command.content,
+            old_text=CommandRecord._clip_text(command.old_text, 8000) if command.old_text else command.old_text,
+            new_text=CommandRecord._clip_text(command.new_text, 8000) if command.new_text else command.new_text,
             need_result=command.need_result,
             flow=flow,
             risk=risk,
@@ -276,15 +285,41 @@ class ContextManager:
         """重置（新会话）。"""
         self.records.clear()
         self.next_stamp = 1
+        self.archived_records = 0
         self._last_failure = None
         self._last_need_result = None
         self._pending_auto_result = None
+
+    def compact_history(self, *, keep_records: int = 4096, payload_budget: int = 2_000_000):
+        """Bound retained receipts after feedback; never discard pending results.
+
+        Hashes and summaries survive payload clipping. Desktop also keeps its
+        separate intent journal; this is not a full file-version archive.
+        """
+        cutoff = max(0, len(self.records) - keep_records)
+        retained = [record for i, record in enumerate(self.records) if i >= cutoff or not record.injected]
+        self.archived_records += len(self.records) - len(retained)
+        self.records = retained
+        for record in reversed(self.records):
+            for name in ("stdout", "stderr", "content", "old_text", "new_text"):
+                value = getattr(record, name) or ""
+                if not value:
+                    continue
+                if not record.injected:
+                    payload_budget = max(0, payload_budget - len(value))
+                    continue
+                limit = min(8000, payload_budget)
+                if len(value) > limit:
+                    setattr(record, name, (CommandRecord._clip_text(value, limit) if limit > 120
+                                          else "[THINKFLOW ARCHIVED PAYLOAD — inspect the current file or original output]"))
+                payload_budget = max(0, payload_budget - min(len(value), limit))
 
     def to_dict(self) -> dict:
         """序列化为会话快照。"""
         return {
             "records": [asdict(r) for r in self.records],
             "next_stamp": self.next_stamp,
+            "archived_records": self.archived_records,
             "last_failure_id": self._last_failure.id if self._last_failure else None,
             "last_need_result_id": self._last_need_result.id if self._last_need_result else None,
             "pending_auto_result_id": self._pending_auto_result.id if self._pending_auto_result else None,
@@ -294,6 +329,7 @@ class ContextManager:
     def from_dict(cls, data: dict) -> "ContextManager":
         """从会话快照恢复。"""
         ctx = cls(start_stamp=data.get("next_stamp", 1))
+        ctx.archived_records = int(data.get("archived_records", 0))
         ctx.records = [
             CommandRecord.from_dict(item)
             for item in data.get("records", [])

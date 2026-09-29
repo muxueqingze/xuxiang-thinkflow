@@ -1349,7 +1349,7 @@ def test_agent_executes_text_commands_fifo_even_when_stream_is_fast():
                 return result
 
             responses = [
-                FakeResponse('<tf-bash id="1" cmd="slow-first" /><tf-bash id="2" cmd="needs-first" />'),
+                FakeResponse('<tf-write id="1" path="first">one</tf-write><tf-write id="2" path="second">two</tf-write>'),
                 FakeResponse('done'),
             ]
 
@@ -1395,9 +1395,9 @@ def test_agent_records_skipped_commands_after_queue_failure():
             executed: list[str] = []
             seen_bodies: list[dict] = []
             command_text = (
-                '<tf-bash id="1" cmd="ok" />'
-                '<tf-bash id="2" cmd="fail" />'
-                '<tf-bash id="3" cmd="must-not-run" />'
+                '<tf-write id="1" path="first">ok</tf-write>'
+                '<tf-write id="2" path="second">fail</tf-write>'
+                '<tf-write id="3" path="third">must-not-run</tf-write>'
             )
             responses = [FakeResponse(command_text), FakeResponse('done')]
 
@@ -1587,11 +1587,11 @@ def test_agent_auto_continues_after_blocking_text_command_result():
                 await agent.run("read then continue")
                 assert len(seen_bodies) == 2
                 assert len(agent.usage.turns) == 2
-                assert agent.usage.turns[0].abort_reason == "end_turn"
+                assert agent.usage.turns[0].abort_reason == "need_result"
                 second_messages = seen_bodies[1]["messages"]
                 assert any(
                     "PROMPT_TEXT" in message.get("content", "")
-                    and "blocking tool output returned automatically" in message.get("content", "")
+                    and "THINKFLOW RESULT" in message.get("content", "")
                     for message in second_messages
                     if message.get("role") == "user"
                 )
@@ -1917,7 +1917,7 @@ def test_agent_auto_continues_incomplete_text_command_block():
                     'data: {"choices":[{"delta":{"content":"<tf-write id=\\"1\\" path=\\"out.txt\\">hello"},"finish_reason":"length"}]}',
                 ]),
                 FakeResponse([
-                    'data: {"choices":[{"delta":{"content":" world</tf-write>"},"finish_reason":"stop"}]}',
+                    'data: {"choices":[{"delta":{"content":"<tf-write id=\\"2\\" path=\\"out.txt\\">hello world</tf-write>"},"finish_reason":"stop"}]}',
                 ]),
             ]
             config = AgentConfig(

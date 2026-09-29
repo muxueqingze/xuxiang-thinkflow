@@ -80,7 +80,7 @@ BUILTIN_SYSTEM_PROMPT = """续想 agent 运行约定。
 规则：
 - 只有带 tf- 前缀的标签会被执行；普通 XML/Markdown 示例不会执行
 - id 从起始戳记递增，不重复
-- 不需要结果的 write/append/mkdir/touch/copy/edit/bash 会流式执行，推理不中断
+- 不需要结果的 write/append/mkdir/touch/copy/edit 会流式执行；read/bash 等信息型工具始终等待结果
 - read 是阻塞式输入命令，执行后结果会自动注入下一轮；在禁用原生工具或需要用文本协议读取本地文件时使用 tf-read
 - need_result="true" 只在确实需要 stdout、错误详情或读回结果时使用
 - 搜索/skill/生图等需要外部接口的动作使用原生工具调用，不要写成标签
@@ -1144,7 +1144,7 @@ def _config_list(value) -> list[str]:
     return [str(value)]
 
 
-def create_agent(config: dict, system_prompt: str, cwd: str = None) -> AgentLoop:
+def create_agent(config: dict, system_prompt: str, cwd: str = None, *, event_sink=None, approval_handler=None) -> AgentLoop:
     effective_cwd = cwd or config.get("cwd", ".")
     provider_config = ProviderConfig(
         profile_name=str(config.get("active_provider", "") or ""),
@@ -1183,9 +1183,11 @@ def create_agent(config: dict, system_prompt: str, cwd: str = None) -> AgentLoop
         delivery_verify=bool(config.get("delivery_verify", False)),
         auto_verify_runnable_artifacts=bool(config.get("auto_verify_runnable_artifacts", False)),
         max_delivery_fix_attempts=int(config.get("max_delivery_fix_attempts", 3)),
+        max_run_turns=int(config.get("max_run_turns", 40)),
+        max_run_seconds=float(config.get("max_run_seconds", 1800)),
     )
 
-    return AgentLoop(agent_config)
+    return AgentLoop(agent_config, event_sink=event_sink, approval_handler=approval_handler)
 
 
 async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosave: bool = True):
