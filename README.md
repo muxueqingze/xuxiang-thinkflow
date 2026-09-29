@@ -217,6 +217,8 @@ thinkflow --config config.json --sandbox balanced
 
 最新结果见[修复后的完整三方复测](bench/harness_benchmark_20260929/reports-rerun/README.md)：ThinkFlow 0.8.0（34119c6）、Pi 0.87.1、OpenCode 1.18.33，官方DeepSeek Flash，原六道题各两次、共36次；未使用Claude Code。产物全过且正常结束分别12/12、10/12、12/12，总token分别212.35万、126.46万、189.87万。
 
+这组是8K受限预算下的新工程套题，不是原GitHub版本在旧前端/小说题上的回归测试。模型入口、对手、预算与验收反馈均有变化，不能据它否定旧案例优势或宣称新版优于旧版。[历史与源码核对](docs/benchmark-history-diagnosis.md)列出已证实变化及尚未完成的同条件对照。
+
 ThinkFlow相较[原轮](bench/harness_benchmark_20260929/reports/summary.md)从7/12正常结束提高到12/12，总token观察值减少16.4%；但本轮仍比OpenCode多11.8%总token、慢27.4%。仅6/12有最终代码上可靠的测试成功证据，另有漏测、退出码不明和修改后未复验，因此该分数不能当作完整工作流程验收；新旧共同成功七对的用时基本持平。
 
 [恢复诊断](docs/benchmark-debug-20260929.md)修复了误通道、截断/停止和计划回执引用，原生文件工具从首轮可用。本轮保留30次与输出重叠的文件操作，整体效率仍未领先。原36次及16次诊断全部保留，不择优替换；原0.8便携包尚不含这些源码补丁。
