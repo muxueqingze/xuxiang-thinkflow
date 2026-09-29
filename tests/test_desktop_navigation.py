@@ -18,7 +18,9 @@ from test_desktop_service import FakeAgent
 class DesktopNavigationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="thinkflow-navigation-")
-        self.root = Path(self.temp.name)
+        # Windows CI can expose TEMP through an 8.3 alias (RUNNER~1). Match the
+        # service's canonical paths so fault injection targets the intended save.
+        self.root = Path(self.temp.name).resolve()
         self.workspace = self.root / "workspace"
         self.other = self.root / "other"
         self.workspace.mkdir()
