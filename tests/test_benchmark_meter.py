@@ -49,7 +49,7 @@ class MemoryMeter(meter_module.Meter):
 
 
 @contextlib.contextmanager
-def upstream_fixture(*, hold_headers=False):
+def upstream_fixture(*, hold_headers=False, mode='bounded'):
     ready = threading.Event()
     release = threading.Event()
     if not hold_headers:
@@ -86,7 +86,7 @@ def upstream_fixture(*, hold_headers=False):
     server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    meter = MemoryMeter('fixture-not-a-credential', Path('unused'), max_seconds=5,
+    meter = MemoryMeter('fixture-not-a-credential', Path('unused'), max_seconds=5, mode=mode,
                         upstream=f'http://127.0.0.1:{server.server_port}/v1')
     endpoint = meter.start()
     try:
@@ -99,6 +99,47 @@ def upstream_fixture(*, hold_headers=False):
 
 
 class BenchmarkMeterTests(unittest.TestCase):
+    def test_production_forwards_full_large_history_and_no_generation_cap(self):
+        messages = [{'role':'user', 'content':'x' * 8_000_001}]
+        with contextlib.redirect_stdout(io.StringIO()), upstream_fixture(mode='production') as fixture:
+            meter, endpoint, _, _, received = fixture
+            meter.started -= 1000
+            with httpx.Client(trust_env=False, timeout=10) as client:
+                response = client.post(endpoint + '/chat/completions',
+                    headers={'Authorization':'Bearer ' + meter.token},
+                    json={'messages':messages, 'stream':True})
+            self.assertEqual(response.status_code, 200)
+            meter.finish()
+            self.assertEqual(received[0]['messages'], messages)
+            record = meter.requests[0]
+            self.assertEqual(record['incoming_output_limits'], {})
+            self.assertEqual(record['forwarded_output_limits'], {})
+            self.assertEqual(record['messages_sha256'], record['forwarded_messages_sha256'])
+
+    def test_production_exceeds_legacy_request_count(self):
+        with contextlib.redirect_stdout(io.StringIO()), upstream_fixture(mode='production') as fixture:
+            meter, endpoint, _, _, received = fixture
+            with httpx.Client(trust_env=False, timeout=5) as client:
+                for _ in range(25):
+                    response = client.post(endpoint + '/chat/completions',
+                        headers={'Authorization':'Bearer ' + meter.token},
+                        json={'messages':[], 'stream':True})
+                    self.assertEqual(response.status_code, 200)
+            self.assertEqual(meter.finish()['api_requests'], 25)
+            self.assertEqual(len(received), 25)
+
+    def test_production_rejects_client_caps_instead_of_hiding_them(self):
+        with contextlib.redirect_stdout(io.StringIO()), upstream_fixture(mode='production') as fixture:
+            meter, endpoint, _, _, received = fixture
+            with httpx.Client(trust_env=False, timeout=5) as client:
+                for name in ('max_tokens','max_completion_tokens','max_output_tokens'):
+                    response = client.post(endpoint + '/chat/completions',
+                        headers={'Authorization':'Bearer ' + meter.token},
+                        json={'messages':[], 'stream':True, name:None})
+                    self.assertEqual(response.status_code, 400)
+            self.assertEqual(received, [])
+            self.assertTrue(all(r['transport_error']=='ClientOutputLimitPresent' for r in meter.requests))
+
     def test_every_request_counts_final_usage_once(self):
         with contextlib.redirect_stdout(io.StringIO()), upstream_fixture() as fixture:
             meter, endpoint, _, _, received = fixture

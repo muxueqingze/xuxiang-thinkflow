@@ -78,6 +78,7 @@ class NativeWriteFallbackTests(unittest.IsolatedAsyncioTestCase):
         agent.config.provider.enable_native_tools = False
         self.assertEqual(self.names(agent.build_request_body("fixture")), set())
         anthropic = await self.make(format="anthropic")
+        anthropic.config.provider.max_tokens = 8192
         names = {tool["name"] for tool in anthropic.build_request_body("fixture")["tools"]}
         self.assertTrue(WRITES <= names)
         anthropic.native_write_fallback = True

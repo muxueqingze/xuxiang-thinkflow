@@ -15,9 +15,16 @@ test('only ciphertext persists; blank preserves and explicit clear removes a key
   assert.equal(store.prepare({ ...DEFAULTS, api_key: '' }).backend.api_key, secret);
   const loaded = new SettingsStore(directory, encrypted); loaded.load();
   assert.equal(loaded.backendConfig().api_key, secret);
+  assert.equal(loaded.backendConfig().max_tokens, null);
   const cleared = loaded.prepare({ ...DEFAULTS, clear_api_key: true }); loaded.save(cleared);
   assert.equal(loaded.backendConfig().api_key, '');
   assert.equal(JSON.parse(fs.readFileSync(loaded.file, 'utf8')).encrypted_key, '');
+});
+test('optional output budget follows provider protocol without injecting a default', () => {
+  for (const max_tokens of [null, undefined, '', 0]) assert.equal(normalizeConfig({ ...DEFAULTS, max_tokens }).max_tokens, null);
+  assert.equal(normalizeConfig({ ...DEFAULTS, max_tokens: 8192 }).max_tokens, 8192);
+  assert.throws(() => normalizeConfig({ ...DEFAULTS, provider: 'anthropic' }), /Anthropic/);
+  assert.equal(normalizeConfig({ ...DEFAULTS, provider: 'anthropic', max_tokens: 8192 }).max_tokens, 8192);
 });
 test('encryption failure refuses to persist plaintext', () => {
   const store = new SettingsStore(path.join(os.tmpdir(), 'thinkflow-unused'), { isEncryptionAvailable: () => false });

@@ -60,6 +60,12 @@ async def main():
               'disabled_native_tools':['web_search','fetch_url','generate_image','list_skills'],
               'security':{'profile':'balanced','bash_policy':'unrestricted','approval_mode':'approve_all',
                           'bash_timeout_seconds':40, 'allowed_roots':[str(Path.cwd())]}}
+    if os.environ.get('BENCH_MODE') == 'production':
+        config.update(max_tokens=None, max_run_turns=None, max_run_seconds=None,
+                      max_auto_continues=None, compaction={'enabled':False})
+        config.pop('max_retries')
+        config['security'].pop('bash_timeout_seconds')
+        config['disabled_native_tools'] = ['web_search','fetch_url','image_generate','list_skills']
     agent = create_agent(config, resolve_system_prompt(config, cwd=str(Path.cwd())), str(Path.cwd()), event_sink=observe)
     try:
         monitor = Monitor(destination.parent, snapshot)
@@ -94,10 +100,12 @@ async def main():
                     monitor_failed(exc)
         writes = [e for e in events if e['type']=='tool_completed' and e.get('success') and e.get('flow')=='delayed']
         result = {'events':events, 'usage':agent.usage.to_dict(),
+                  'execution_config':{k:config.get(k) for k in ('max_tokens','max_run_turns','max_run_seconds','max_auto_continues','compaction')},
                   'monitor_errors':monitor_errors,
                   'last_error':agent.last_error, 'stopped_reason':agent.stopped_reason,
                   'tool_records':[{'id':r.id, 'tool':r.tool, 'status':r.status,
-                                   'error':r.error[:1000], 'exit_code':r.exit_code} for r in agent.context.records],
+                                   'error':r.error[:1000], 'exit_code':r.exit_code,
+                                   'stdout':r.stdout, 'stderr':r.stderr} for r in agent.context.records],
                   'writes_before_stream_finished':sum(any(end['type']=='stream_finished' and end['turn']==e['turn'] and end['seconds']>e['seconds'] for end in events) for e in writes)}
         destination.write_text(json.dumps(result, ensure_ascii=False, indent=2),encoding='utf-8')
     print(json.dumps({'finished':True, 'error':bool(agent.last_error), 'tools':len(agent.context.records)}))

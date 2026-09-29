@@ -20,12 +20,13 @@ from urllib.parse import urlsplit
 import uuid
 
 from .cli import create_agent, resolve_system_prompt
+from .provider import normalize_max_tokens
 from .session import SessionStore
 
 
 DEFAULT_CONFIG = {
     "provider": "openai", "base_url": "", "api_path": "", "model": "", "api_key": "",
-    "max_tokens": 16384, "max_run_turns": 40, "max_run_seconds": 1800,
+    "max_tokens": None, "max_run_turns": 40, "max_run_seconds": 1800,
     "security_profile": "balanced",
     "thinking_mode": "disabled", "reasoning_effort": "high", "stream_options_include_usage": True,
 }
@@ -310,7 +311,11 @@ class DesktopService:
                 raise ValueError("端点不可包含查询参数或片段。")
         if config["api_path"] and (not config["api_path"].startswith("/") or config["api_path"].startswith("//")):
             raise ValueError("API 路径须以单个 / 开头。")
-        for name, maximum in (("max_tokens", 1000000), ("max_run_turns", 1000), ("max_run_seconds", 86400)):
+        budget = normalize_max_tokens(config["max_tokens"])
+        if config["provider"] == "anthropic" and budget is None:
+            raise ValueError("Anthropic 必须设置正整数 max_tokens，不支持省略输出预算。")
+        config["max_tokens"] = budget
+        for name, maximum in (("max_run_turns", 1000), ("max_run_seconds", 86400)):
             value = config[name]
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not 1 <= value <= maximum:
                 raise ValueError(f"{name} 须在 1–{maximum} 之间。")

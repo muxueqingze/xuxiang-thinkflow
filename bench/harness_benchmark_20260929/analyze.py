@@ -67,7 +67,13 @@ def analyze(directory):
         results.append(result)
         meters[job['id']]=meter
         for request in meter['requests']:
-            if request['usage']['completion_tokens']>manifest['generation']['max_tokens']:
+            if manifest.get('mode') == 'production':
+                if (request.get('incoming_output_limits') != {} or request.get('forwarded_output_limits') != {}
+                        or not request.get('messages_sha256')
+                        or request['messages_sha256'] != request.get('forwarded_messages_sha256')):
+                    raise ValueError('Production request budget/history invariant failed: '+job['id'])
+            if (manifest['generation']['max_tokens'] is not None
+                    and request['usage']['completion_tokens']>manifest['generation']['max_tokens']):
                 limit_observations.append({'run_id':job['id'],'harness':job['harness'],'request':request['index'],
                                           'requested_max_tokens':manifest['generation']['max_tokens'],
                                           'reported_completion_tokens':request['usage']['completion_tokens'],
@@ -113,6 +119,7 @@ def analyze(directory):
 
 
 def render(data):
+    production = data['manifest'].get('mode') == 'production'
     lines=['# ThinkFlow / Pi / OpenCode 同模型基准 · 2026-09-29','',
            f"同一官方 DeepSeek Flash，高思考；本次{len({r['task'] for r in data['results']})}题、{len(data['aggregates'])}个harness，共{len(data['results'])}次独立运行。没有使用 Claude Code。",
            '正式套题完整：六题各两次、三个harness。' if data['complete_suite'] else '**仅部分数据，未覆盖完整正式套题，不可作为完整比较结论。**',
@@ -133,7 +140,7 @@ def render(data):
         reasoning=f"{t['reasoning_tokens']:,}" if a['reasoning_complete'] else f"未知（已报告部分 {t['reasoning_tokens']:,}）"
         lines.append(f"| {name} | {t['prompt_tokens']:,} | {cache} | {uncached} | {t['completion_tokens']:,} | {reasoning} | {t['abandoned_requests']} |")
     lines += ['', '总token = 输入 + 输出；推理已经包含在输出中。非缓存输入不是账单价格，缓存也不假定免费。',
-              '全部实际请求均有完整输入/输出usage，包括重试和附加模型请求；细分字段缺失时标为未知。用量代理在下游断流后有限drain上游以收取末尾usage；这里是该观测模式的实际消耗，并非直接取消连接的生产成本。','',
+              '全部实际请求均有完整输入/输出usage，包括重试和附加模型请求；细分字段缺失时标为未知。用量代理在下游断流后继续读取上游以收取末尾usage；若发生断流，消耗包含这一观测行为，不能等同于立即取消连接的成本。','',
               '断流请求涉及的完整输出token：'+ '、'.join(f"{name} {a['output_tokens_on_abandoned_requests']:,}" for name,a in data['aggregates'].items())+'。这些包含断流前已生成的部分，不能全部当作观测额外开销；当前无法精确切分。','',
               '## 每次运行','', '| 题目 | Harness | 重复 | 检查 | 正常交付 | 执行状态 | 秒 | API | token |',
               '|---|---|---:|---:|---|---|---:|---:|---:|']
@@ -157,14 +164,19 @@ def render(data):
         if not r['terminal']['normal']:reasons.append('观察到的终态 '+str(r['terminal']['reason']))
         lines.append(f"- `{r['id']}`："+'；'.join(reasons or ['未满足交付条件，见逐次记录']))
     if not failures:lines.append('本组完整通过；题目仍可能存在难度上限，不能据此宣称真实大仓库任务全部可靠。')
-    lines+=['','## 提供商输出上限观测','',
+    if production:
+        lines+=['','## 无额外预算的生产配置','',
+                '逐请求校验：客户端与转发体均未携带 max_tokens、max_completion_tokens、max_output_tokens；消息哈希一致。没有额外上下文压缩/清理，没有总时限、请求数或续写次数预算。',
+                '模型能力信息来自官方 /v1/models：DeepSeek-V4.1-Flash，1,048,576 上下文、393,216 最大输出。这是能力元数据；请求未将它们设置成预算。省略输出字段仍由服务端决定默认输出长度，不代表服务端物理容量无限。']
+    else:
+        lines+=['','## 提供商输出上限观测','',
             f"统一请求max_tokens={data['manifest']['generation']['max_tokens']}，实际有{len(data['limit_observations'])}个请求的提供商completion_tokens报告超过该值。"]
-    for name in data['aggregates']:
-        found=[r for r in data['limit_observations'] if r['harness']==name]
-        lines.append(f"- {name}：{len(found)}个请求，涉及{len({r['run_id'] for r in found})}次运行。")
-    lines+=['','原始usage完整保留，未截断或剔除。原因未确认，不归咎于特定harness；实验统一的是请求参数和本地时间/请求次数预算，不能声称提供商实际输出预算被严格强制相同。']
+        for name in data['aggregates']:
+            found=[r for r in data['limit_observations'] if r['harness']==name]
+            lines.append(f"- {name}：{len(found)}个请求，涉及{len({r['run_id'] for r in found})}次运行。")
+        lines+=['','原始usage完整保留，未截断或剔除。原因未确认，不归咎于特定harness；实验统一的是请求参数和本地时间/请求次数预算，不能声称提供商实际输出预算被严格强制相同。']
     lines+=['','## 范围与复现','',
-            '- 保留各自原生系统提示、工具协议与压缩策略。ThinkFlow使用cmd.exe；Pi/OpenCode使用Git Bash。比较的是这些固定配置的整体harness，不单独归因于流式执行。',
+            '- 保留各自原生系统提示与工具协议。'+('自动压缩和历史清理关闭。' if production else '保留各自压缩策略。')+'ThinkFlow使用cmd.exe；Pi/OpenCode使用Git Bash。比较的是这些固定配置的整体harness，不单独归因于流式执行。',
             '- 每次新会话、固定种子交错顺序，题目、代码、版本与参数均在正式执行前冻结；没有按成绩重试或人工修改产物。提供商缓存不能强制清空，缓存量单列。',
             '- 各次运行使用独立工作目录，但位于同一父Git仓库的artifacts下，未做独立Git根或操作系统隔离。已关闭个人配置/自动上下文入口并要求限当前目录；原生项目元信息可能受父Git项目识别影响，不声称完全无父项目上下文。',
             '- 六题、两次重复样本有限；只覆盖标准库软件工程功能与边界，不覆盖前端审美、超大仓库、长期协作、MCP或安全隔离。',

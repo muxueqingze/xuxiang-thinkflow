@@ -1,6 +1,8 @@
 # 2026-09-29 同模型 harness 实测
 
-**最新：** [34119c6修复后完整复测](reports-rerun/README.md)重新跑了36次，ThinkFlow/Pi/OpenCode产物全过且正常结束为12/12、10/12、12/12；全部请求与失败单独保存。下文是e49b717原轮记录，未被新结果覆盖。
+新实验入口默认 `--mode production`：不额外设置输出/上下文及运行预算。旧实验复现必须显式 `--mode bounded`；生产重跑进度见[接力](../../docs/benchmark-production-handoff.md)。
+
+**此前最新：** [34119c6修复后完整复测](reports-rerun/README.md)重新跑了36次，ThinkFlow/Pi/OpenCode产物全过且正常结束为12/12、10/12、12/12；全部请求与失败单独保存。下文是e49b717原轮记录，未被新结果覆盖。
 
 状态：36次正式运行完成。源码基线 `e49b717`，未运行 Claude Code。
 
@@ -44,8 +46,8 @@
 ```powershell
 npm --prefix bench/harness_benchmark_20260929 ci
 npm install --global opencode-ai@1.18.33
-python -B bench/harness_benchmark_20260929/run.py --run --pilot --name connectivity
-python -B bench/harness_benchmark_20260929/run.py --run --name formal
+python -B bench/harness_benchmark_20260929/run.py --run --mode bounded --pilot --name connectivity
+python -B bench/harness_benchmark_20260929/run.py --run --mode bounded --name formal
 python -B bench/harness_benchmark_20260929/analyze.py artifacts/benchmark-20260929/formal
 python -B bench/harness_benchmark_20260929/regrade.py repair_routes-thinkflow-r1
 ```

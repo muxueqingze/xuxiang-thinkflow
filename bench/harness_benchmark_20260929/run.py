@@ -1,4 +1,4 @@
-"""Finite opt-in same-model benchmark. Outputs stay under ignored artifacts/."""
+"""Opt-in same-model benchmark. Production mode adds no generation/run budgets."""
 from __future__ import annotations
 
 import argparse
@@ -17,7 +17,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT))
 from adapters import configuration
-from adapters import PI_ROOT
+from adapters import PI_ROOT, PRODUCTION_CAPABILITIES
 from meter import Meter
 from monitor import print_progress
 from scripts.live_deepseek import load_key
@@ -26,10 +26,12 @@ HARNESSES = ('thinkflow','pi','opencode')
 PILOT = "This is an isolated connectivity check. Create hello.py containing a function add(a, b) returning a+b. Run python to verify add(2,3)==5. Work only in the current directory, do not access the network or inspect parent directories. Finish with a brief summary."
 
 
-def freeze_manifest(directory, pilot):
+def freeze_manifest(directory, pilot, *, mode='bounded'):
     files=[HERE/name for name in ('meter.py','run.py','adapters.py','thinkflow_worker.py','monitor.py','package-lock.json')]
     if not pilot:
         files.append(HERE/'tasks.py')
+    if mode == 'production':
+        files.extend(HERE/name for name in ('production-pi-extension.mjs','production-opencode-plugin.mjs'))
     files.extend(p for p in (ROOT/'src').rglob('*') if p.is_file() and p.suffix in ('.py','.md'))
     opencode_package=Path(os.environ.get('APPDATA',''))/'npm/node_modules/opencode-ai/package.json'
     manifest={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
@@ -41,6 +43,12 @@ def freeze_manifest(directory, pilot):
                             'temperature':0,'max_tokens':8192,'max_requests':24,'max_seconds':300},
               'measurement':'loopback-streaming-bounded-usage-drain', 'order_seed':20260929,'pilot':pilot,
               'files':{str(p.relative_to(ROOT)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(files)}}
+    manifest['mode'] = mode
+    if mode == 'production':
+        manifest['generation'].update(max_tokens=None, max_requests=None, max_seconds=None,
+                                      max_auto_continues=None, automatic_compaction=False)
+        manifest['provider_capabilities'] = PRODUCTION_CAPABILITIES
+        manifest['measurement'] = 'loopback-streaming-no-client-output-context-or-run-budget'
     path=directory/'manifest.json'
     if path.exists() and json.loads(path.read_text(encoding='utf-8'))!=manifest:
         raise RuntimeError('Frozen code/configuration changed. Preserve existing results and use a new experiment name.')
@@ -67,7 +75,7 @@ def kill_tree(process):
         process.kill()
 
 
-def run_one(job, directory, key, pilot=False):
+def run_one(job, directory, key, pilot=False, *, mode='bounded'):
     destination = directory/job['id']
     if (destination/'result.json').exists():
         print(json.dumps({'skip_saved':job['id']}),flush=True)
@@ -91,7 +99,7 @@ def run_one(job, directory, key, pilot=False):
     (destination/'prompt.txt').write_text(prompt,encoding='utf-8')
     public_tests = {str(p.relative_to(workspace)):hashlib.sha256(p.read_bytes()).hexdigest()
                     for p in workspace.rglob('*.py') if p.name.startswith('test') or p.name=='public_tests.py'}
-    meter = Meter(key,destination/'meter.json',max_seconds=300,max_requests=24,max_tokens=8192)
+    meter = Meter(key,destination/'meter.json',mode=mode)
     endpoint = meter.start()
     started = time.monotonic()
     timed_out = False
@@ -99,16 +107,17 @@ def run_one(job, directory, key, pilot=False):
     infrastructure_error = None
     print(json.dumps({'start':job['id'],'harness':job['harness'],'task':job['task']}),flush=True)
     try:
-        command,env = configuration(job['harness'],destination,endpoint,meter.token)
+        options = {'mode':mode} if mode == 'production' else {}
+        command,env = configuration(job['harness'],destination,endpoint,meter.token,**options)
         with (destination/'stdout.jsonl').open('wb') as out, (destination/'stderr.txt').open('wb') as err:
             process = subprocess.Popen(command,cwd=workspace,env=env,stdin=subprocess.PIPE,
                                        stdout=out,stderr=err,start_new_session=os.name!='nt',
                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
-            deadline = time.monotonic() + 300
+            deadline = None if mode == 'production' else time.monotonic() + 300
             first_wait = True
             while True:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
+                remaining = 8 if deadline is None else deadline - time.monotonic()
+                if deadline is not None and remaining <= 0:
                     timed_out = True
                     kill_tree(process)
                     break
@@ -119,6 +128,10 @@ def run_one(job, directory, key, pilot=False):
                 except subprocess.TimeoutExpired:
                     first_wait = False
                     print_progress(job['id'], destination, meter)
+    except KeyboardInterrupt:
+        if process is not None:
+            kill_tree(process)
+        raise
     except Exception as exc:
         infrastructure_error = type(exc).__name__ + ': ' + str(exc)[:500].replace(key,'[REDACTED]')
         if process is not None:
@@ -168,7 +181,8 @@ def run_one(job, directory, key, pilot=False):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--run',action='store_true',help='Authorize this finite real-provider experiment')
+    parser.add_argument('--run',action='store_true',help='Run the real-provider experiment')
+    parser.add_argument('--mode',choices=('production','bounded'),default='production')
     parser.add_argument('--pilot',action='store_true')
     parser.add_argument('--harness',choices=HARNESSES)
     parser.add_argument('--task')
@@ -182,7 +196,7 @@ def main():
         parser.error('name must be a simple experiment label')
     directory=ROOT/'artifacts/benchmark-20260929'/args.name
     directory.mkdir(parents=True,exist_ok=True)
-    freeze_manifest(directory,args.pilot)
+    freeze_manifest(directory,args.pilot,mode=args.mode)
     harnesses=[args.harness] if args.harness else list(HARNESSES)
     if args.pilot:
         task_ids=['connectivity']
@@ -203,7 +217,7 @@ def main():
     key=load_key()
     results=[]
     for job in jobs:
-        results.append(run_one(job,directory,key,pilot=args.pilot))
+        results.append(run_one(job,directory,key,pilot=args.pilot,mode=args.mode))
         save(directory/'results.json',results)
     print(json.dumps({'complete':str(directory),'runs':len(results),
                       'passes':sum(r['grade']['passed'] for r in results),

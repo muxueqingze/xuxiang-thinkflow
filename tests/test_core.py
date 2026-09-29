@@ -983,7 +983,7 @@ def test_write_config_template_creates_starter_config_without_key():
         assert '"use_builtin_system_prompt": true' in data
         assert '"native_tools": []' in data
         assert '"disabled_native_tools": []' in data
-        assert parsed["max_tokens"] == 100000
+        assert parsed["max_tokens"] is None
         assert parsed["max_auto_continues"] == 8
         assert parsed["delivery_verify"] is False
         assert parsed["auto_verify_runnable_artifacts"] is False
@@ -1119,6 +1119,7 @@ def test_provider_request_defaults_are_protocol_neutral():
                 base_url="https://api.anthropic.com",
                 model="model",
                 format="anthropic",
+                max_tokens=8192,
             ),
             cwd=".",
         ))
@@ -1147,7 +1148,7 @@ def test_create_agent_accepts_native_tool_string_or_list_config():
     try:
         assert agent.config.provider.native_tools == ["write"]
         assert agent.config.provider.disabled_native_tools == ["bash"]
-        assert agent.config.provider.max_tokens == 100000
+        assert agent.config.provider.max_tokens is None
         assert agent.config.max_auto_continues == 8
         assert agent.config.delivery_verify is False
         assert agent.config.auto_verify_runnable_artifacts is False

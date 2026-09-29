@@ -53,7 +53,12 @@ def summarize(requests):
 
 class Meter:
     def __init__(self, key, destination: Path, *, model='deepseek-flash', thinking='enabled',
-                 max_requests=24, max_seconds=300, max_tokens=8192, upstream='https://api.deepseek.com/v1'):
+                 max_requests=24, max_seconds=300, max_tokens=8192, upstream='https://api.deepseek.com/v1', mode='bounded'):
+        if mode not in ('bounded', 'production'):
+            raise ValueError('Unknown meter mode')
+        self.mode = mode
+        if mode == 'production':
+            max_requests = max_seconds = max_tokens = None
         self._key, self.destination = key, destination
         self.token = secrets.token_urlsafe(24)
         self.model, self.thinking = model, thinking
@@ -69,7 +74,9 @@ class Meter:
     def save(self):
         with self.lock:
             self.destination.parent.mkdir(parents=True, exist_ok=True)
-            data = {'mode': 'streaming-with-bounded-usage-drain', 'model': self.model,
+            data = {'mode': self.mode, 'model': self.model,
+                    'limits': {'max_tokens':self.max_tokens, 'max_requests':self.max_requests,
+                               'max_seconds':self.max_seconds},
                     'thinking': self.thinking, 'reasoning_effort': 'high',
                     'requests': self.requests, 'totals': summarize(self.requests)}
             temporary = self.destination.with_suffix('.tmp')
@@ -107,7 +114,7 @@ class Meter:
                     self.json_reply(404, {'error': {'message': 'Only chat completions are accepted'}})
                     return
                 size = int(self.headers.get('Content-Length', '0'))
-                if size < 1 or size > 8_000_000:
+                if size < 1 or (meter.mode == 'bounded' and size > 8_000_000):
                     self.json_reply(413, {'error': {'message': 'Request exceeds benchmark limit'}})
                     return
                 try:
@@ -118,7 +125,8 @@ class Meter:
                     self.json_reply(400, {'error': {'message': 'Invalid benchmark request'}})
                     return
                 with meter.lock:
-                    if meter.closed or len(meter.requests) >= meter.max_requests or time.monotonic() - meter.started >= meter.max_seconds:
+                    if (meter.closed or (meter.max_requests is not None and len(meter.requests) >= meter.max_requests)
+                            or (meter.max_seconds is not None and time.monotonic() - meter.started >= meter.max_seconds)):
                         self.json_reply(429, {'error': {'message': 'Benchmark request/time budget reached'}})
                         return
                     index = len(meter.requests) + 1
@@ -126,22 +134,34 @@ class Meter:
                                'requested_model': str(body.get('model', '')), 'model': meter.model,
                                'message_count': len(body['messages']), 'tool_count': len(body.get('tools', [])),
                                'request_bytes': size, 'stream': bool(body.get('stream')), 'finished': False,
+                               'incoming_output_limits': {k:body[k] for k in ('max_tokens','max_completion_tokens','max_output_tokens') if k in body},
+                               'messages_sha256': hashlib.sha256(json.dumps(body['messages'], sort_keys=True).encode()).hexdigest(),
                                'system_sha256': hashlib.sha256(json.dumps([m for m in body['messages'] if m.get('role') in ('system','developer')], sort_keys=True).encode()).hexdigest()}
                     meter.requests.append(request)
+                    if meter.mode == 'production' and request['incoming_output_limits']:
+                        request.update(finished=True, http_status=400, transport_error='ClientOutputLimitPresent')
+                        meter.save()
+                        self.json_reply(400, {'error': {'message': 'Production preflight failed: client sent an output limit'}})
+                        return
                     meter.active += 1
                     meter.save()
                 # Explicit, shared generation conditions. Never alter task or tool messages.
-                body.update(model=meter.model, max_tokens=meter.max_tokens,
+                body.update(model=meter.model,
                             thinking={'type': meter.thinking}, reasoning_effort='high', temperature=0)
-                body.pop('max_completion_tokens', None)
+                if meter.mode == 'bounded':
+                    body['max_tokens'] = meter.max_tokens
+                    body.pop('max_completion_tokens', None)
                 if body.get('stream'):
                     body['stream_options'] = {'include_usage': True}
+                request['forwarded_output_limits'] = {k:body[k] for k in ('max_tokens','max_completion_tokens','max_output_tokens') if k in body}
+                request['forwarded_messages_sha256'] = hashlib.sha256(json.dumps(body['messages'], sort_keys=True).encode()).hexdigest()
+                meter.save()
                 started = time.monotonic()
                 output = bytearray()
                 connected = True
                 headers_sent = False
                 try:
-                    with httpx.Client(timeout=httpx.Timeout(75, connect=20), trust_env=False, follow_redirects=False) as client:
+                    with httpx.Client(timeout=httpx.Timeout(None if meter.mode == 'production' else 75, connect=20), trust_env=False, follow_redirects=False) as client:
                         with client.stream('POST', meter.upstream + '/chat/completions',
                                            headers={'Authorization': 'Bearer ' + meter._key, 'Content-Type': 'application/json'}, json=body) as response:
                             request['http_status'] = response.status_code
@@ -156,7 +176,7 @@ class Meter:
                                 request['client_disconnected'] = True
                                 request['disconnect_seconds'] = round(time.monotonic() - started, 4)
                             for chunk in response.iter_bytes():
-                                if time.monotonic() - started > meter.max_seconds:
+                                if meter.max_seconds is not None and time.monotonic() - started > meter.max_seconds:
                                     raise TimeoutError('upstream total deadline')
                                 if connected:
                                     try:
@@ -172,9 +192,9 @@ class Meter:
                                         line, _, remainder = output.partition(b'\n')
                                         output[:] = remainder
                                         self.observe_line(line, request)
-                                    if len(output) > 2_000_000:
+                                    if meter.mode == 'bounded' and len(output) > 2_000_000:
                                         raise ValueError('oversized SSE event')
-                                elif len(output) > 8_000_000:
+                                elif meter.mode == 'bounded' and len(output) > 8_000_000:
                                     raise ValueError('oversized response')
                             if not body.get('stream') and response.status_code == 200:
                                 data = json.loads(output)
@@ -228,8 +248,8 @@ class Meter:
         # A cancelled downstream may still have a provider response to account for.
         # A last byte just before the per-request deadline can leave one read
         # outstanding for the 75-second read timeout. Do not publish early totals.
-        deadline = time.monotonic() + self.max_seconds + 80
-        while self.active and time.monotonic() < deadline:
+        deadline = None if self.max_seconds is None else time.monotonic() + self.max_seconds + 80
+        while self.active and (deadline is None or time.monotonic() < deadline):
             time.sleep(.1)
         self.server.shutdown()
         self.server.server_close()

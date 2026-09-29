@@ -11,6 +11,7 @@ ThinkFlow Agent Loop — 主循环
 import asyncio
 import os
 import json
+import math
 import hashlib
 import re
 import sys
@@ -24,7 +25,7 @@ from .parser import StreamingParser, Command, TOOLS
 from .executor import Executor, ExecutionResult
 from .context import ContextManager, _command_hash
 from .streaming import EventType, StreamEvent
-from .provider import ProviderConfig, is_deepseek, openai_thinking_options
+from .provider import ProviderConfig, is_deepseek, openai_thinking_options, output_budget_options
 from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
 from .compaction import CompactionConfig, CompactionStats, compact_messages, estimate_message_chars
@@ -82,13 +83,22 @@ class AgentConfig:
     allow_legacy_tool_tags: bool = False
     max_retries: int = 2
     retry_backoff_seconds: float = 1.0
-    max_auto_continues: int = 8
+    max_auto_continues: Optional[int] = 8  # None disables the continuation budget; 0 disables continuation.
     delivery_verify: bool = False
     auto_verify_runnable_artifacts: bool = False
     max_delivery_fix_attempts: int = 3
-    max_run_turns: int = 40
-    max_run_seconds: float = 1800.0
+    max_run_turns: Optional[int] = 40  # None disables the turn budget.
+    max_run_seconds: Optional[float] = 1800.0  # None disables the wall-clock budget.
     max_consecutive_failures: int = 3
+
+    def __post_init__(self):
+        for name in ("max_run_turns", "max_auto_continues", "max_run_seconds"):
+            value = getattr(self, name)
+            if value is None:
+                continue
+            valid_type = (type(value) in (int, float) if name == "max_run_seconds" else type(value) is int)
+            if not valid_type or not math.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be non-negative or null")
 
 
 class AbortReason:
@@ -622,7 +632,7 @@ class AgentLoop:
         if p.format == "anthropic":
             body = {
                 "model": p.model,
-                "max_tokens": p.max_tokens,
+                **output_budget_options(p),
                 "messages": request_messages,
                 "stream": True,
             }
@@ -646,7 +656,7 @@ class AgentLoop:
 
             body = {
                 "model": p.model,
-                "max_tokens": p.max_tokens,
+                **output_budget_options(p),
                 "messages": full_messages,
                 "stream": True,
             }
@@ -732,13 +742,14 @@ class AgentLoop:
         cancelled = False
         failures = 0
         turns = 0
-        deadline = time.monotonic() + max(0.01, self.config.max_run_seconds)
+        deadline = (None if self.config.max_run_seconds is None
+                    else time.monotonic() + max(0.01, self.config.max_run_seconds))
         try:
             self._append_pending_injection()
             self.messages.append({"role": "user", "content": user_input})
-            while turns < max(1, self.config.max_run_turns):
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
+            while self.config.max_run_turns is None or turns < max(1, self.config.max_run_turns):
+                remaining = None if deadline is None else deadline - time.monotonic()
+                if remaining is not None and remaining <= 0:
                     self.stopped_reason = "max_run_seconds"
                     break
                 try:
@@ -1120,7 +1131,7 @@ class AgentLoop:
         elif abort_reason == AbortReason.LENGTH:
             self.view.render_stream_stop(finish_reason or "length")
             self.context.clear_flags()
-            if self._auto_continue_count < self.config.max_auto_continues:
+            if self.config.max_auto_continues is None or self._auto_continue_count < self.config.max_auto_continues:
                 self._auto_continue_count += 1
                 if finish_reason == "transport_error":
                     continue_message = (
@@ -1191,7 +1202,7 @@ class AgentLoop:
                 if self.config.auto_verify_runnable_artifacts
                 else ""
             )
-            if runnable_feedback and self._auto_continue_count < self.config.max_auto_continues:
+            if runnable_feedback and (self.config.max_auto_continues is None or self._auto_continue_count < self.config.max_auto_continues):
                 self._auto_continue_count += 1
                 self.messages.append({"role": "user", "content": runnable_feedback})
                 self.view.render_info("检测到脚本写入后尚未运行，已要求模型继续验证")

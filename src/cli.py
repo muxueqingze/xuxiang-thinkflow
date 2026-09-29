@@ -263,7 +263,7 @@ def build_provider_profiles(config: dict) -> list[ProviderProfileConfig]:
                     "model_discovery",
                 ):
                     value = config.get(key)
-                    if value not in ("", None, [], {}):
+                    if (key == "max_tokens" and key in config) or value not in ("", None, [], {}):
                         effective[key] = value
                 models = _config_list(config.get("_resolved_models") or config.get("models") or profile.get("models"))
                 source = str(config.get("_resolved_model_source", "") or "configured")
@@ -288,7 +288,7 @@ def build_provider_profiles(config: dict) -> list[ProviderProfileConfig]:
                     thinking_budget=int(effective.get("thinking_budget", 0) or 0),
                     thinking_mode=effective.get('thinking_mode', 'disabled'),
                     reasoning_effort=effective.get('reasoning_effort', 'high'),
-                    max_tokens=int(effective.get("max_tokens", 100000) or 100000),
+                    max_tokens=effective.get("max_tokens"),
                     stream_options_include_usage=_config_bool(effective.get("stream_options_include_usage"), False),
                     enable_native_tools=_config_bool(effective.get("enable_native_tools"), True),
                     native_tools=_config_list(effective.get("native_tools")),
@@ -312,7 +312,7 @@ def build_provider_profiles(config: dict) -> list[ProviderProfileConfig]:
                 thinking_budget=int(config.get("thinking_budget", 0) or 0),
                 thinking_mode=config.get('thinking_mode', 'disabled'),
                 reasoning_effort=config.get('reasoning_effort', 'high'),
-                max_tokens=int(config.get("max_tokens", 100000) or 100000),
+                max_tokens=config.get("max_tokens"),
                 stream_options_include_usage=bool(config.get("stream_options_include_usage", False)),
                 enable_native_tools=bool(config.get("enable_native_tools", True)),
                 native_tools=_config_list(config.get("native_tools")),
@@ -982,7 +982,7 @@ def write_config_template(path: str):
         "thinking_budget": 0,
         "thinking_mode": "disabled",
         "reasoning_effort": "high",
-        "max_tokens": 100000,
+        "max_tokens": None,
         "stream_options_include_usage": False,
         "enable_native_tools": True,
         "native_tools": [],
@@ -1171,7 +1171,7 @@ def create_agent(config: dict, system_prompt: str, cwd: str = None, *, event_sin
         thinking_budget=config.get("thinking_budget", 0),
         thinking_mode=config.get("thinking_mode", "disabled"),
         reasoning_effort=config.get("reasoning_effort", "high"),
-        max_tokens=config.get("max_tokens", 100000),
+        max_tokens=config.get("max_tokens"),
         stream_options_include_usage=bool(config.get("stream_options_include_usage", False)),
         enable_native_tools=bool(config.get("enable_native_tools", True)),
         native_tools=_config_list(config.get("native_tools")),
@@ -1196,12 +1196,12 @@ def create_agent(config: dict, system_prompt: str, cwd: str = None, *, event_sin
         allow_legacy_tool_tags=bool((config.get("tool_protocol", {}) or {}).get("allow_legacy_tags", False)),
         max_retries=int(config.get("max_retries", 2)),
         retry_backoff_seconds=float(config.get("retry_backoff_seconds", 1.0)),
-        max_auto_continues=int(config.get("max_auto_continues", 8)),
+        max_auto_continues=(None if config.get("max_auto_continues", 8) is None else int(config.get("max_auto_continues", 8))),
         delivery_verify=bool(config.get("delivery_verify", False)),
         auto_verify_runnable_artifacts=bool(config.get("auto_verify_runnable_artifacts", False)),
         max_delivery_fix_attempts=int(config.get("max_delivery_fix_attempts", 3)),
-        max_run_turns=int(config.get("max_run_turns", 40)),
-        max_run_seconds=float(config.get("max_run_seconds", 1800)),
+        max_run_turns=(None if config.get("max_run_turns", 40) is None else int(config.get("max_run_turns", 40))),
+        max_run_seconds=(None if config.get("max_run_seconds", 1800) is None else float(config.get("max_run_seconds", 1800))),
     )
 
     return AgentLoop(agent_config, event_sink=event_sink, approval_handler=approval_handler)
@@ -1700,7 +1700,8 @@ def main():
                         help="List configured/discovered provider models and exit")
     parser.add_argument("--thinking-budget", type=int, default=None,
                         help="provider-specific thinking budget；默认 0，不发送特殊 thinking 字段")
-    parser.add_argument("--max-tokens", type=int, default=None)
+    parser.add_argument("--max-tokens", type=int, default=None,
+                        help="输出 token 上限；OpenAI 默认不设置，0 表示不设置；Anthropic 必须指定正整数")
     parser.add_argument("--stream-usage", action="store_true",
                         help="OpenAI-compatible 请求中发送 stream_options.include_usage")
     parser.add_argument("--no-native-tools", action="store_true",

@@ -141,7 +141,7 @@ def merge_active_provider(config: dict, active_provider: str | None = None) -> d
     ):
         if key in profile:
             value = profile[key]
-            if value not in ("", None, [], {}) or not merged.get(key):
+            if key == "max_tokens" or value not in ("", None, [], {}) or not merged.get(key):
                 merged[key] = value
     merged["active_provider"] = str(selected)
     return merged

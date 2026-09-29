@@ -323,7 +323,8 @@ $('settings-form').elements.namedItem('clear_api_key').addEventListener('change'
 $('settings-form').addEventListener('submit', async event => {
   event.preventDefault(); $('settings-error').hidden = true;
   const values = Object.fromEntries(new FormData(event.currentTarget));
-  for (const field of ['max_tokens', 'max_run_turns', 'max_run_seconds']) values[field] = Number(values[field]);
+  for (const field of ['max_run_turns', 'max_run_seconds']) values[field] = Number(values[field]);
+  values.max_tokens = values.max_tokens.trim() === '' ? null : Number(values.max_tokens);
   values.clear_api_key = event.currentTarget.elements.namedItem('clear_api_key').checked;
   values.thinking_mode = event.currentTarget.elements.namedItem('thinking_mode').value;
   values.reasoning_effort = event.currentTarget.elements.namedItem('reasoning_effort').value;

@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: 16384, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true });
+const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: null, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true });
 function normalizeConfig(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('设置格式不正确');
   const config = {};
@@ -22,6 +22,11 @@ function normalizeConfig(input) {
   }
   if (config.api_path && (!config.api_path.startsWith('/') || config.api_path.startsWith('//') || /[?#]/.test(config.api_path))) throw new Error('接口路径须以单个 / 开头且不包含查询参数');
   for (const [key, max] of [['max_tokens', 1000000], ['max_run_turns', 1000], ['max_run_seconds', 86400]]) {
+    if (key === 'max_tokens' && (input[key] == null || input[key] === '' || input[key] === 0)) {
+      if (config.provider === 'anthropic') throw new Error('Anthropic 接口要求显式填写输出 token 上限');
+      config[key] = null;
+      continue;
+    }
     const value = Number(input[key]);
     if (!Number.isInteger(value) || value < 1 || value > max) throw new Error('运行限制必须为有效正整数');
     config[key] = value;
