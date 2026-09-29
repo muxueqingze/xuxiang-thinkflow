@@ -1,6 +1,6 @@
 # durable_inbox 首样本定向诊断
 
-2026-09-29。范围仅 ThinkFlow `formal/durable_inbox-thinkflow-r1` 的 `harness.json`、`meter.json`、公开生成代码，以及当前 harness 实现。未读取 stdout 中的内部思考正文，未调用模型，未修改生产代码、任务或运行参数。正式 benchmark 仍在运行；以下不是总榜结论，后续正式总表为准。
+2026-09-29。范围仅 ThinkFlow `formal/durable_inbox-thinkflow-r1` 的 `harness.json`、`meter.json`、公开生成代码，以及当前 harness 实现。未读取 stdout 中的内部思考正文，未调用模型，未修改生产代码、任务或运行参数。诊断写于正式运行期间；整体结论现见[完整报告](reports/summary.md)。下列本地harness证据已提取到公开的[事件与工具回执元数据](reports/thinkflow-events.json)，用量见[逐请求记录](reports/requests.json)，没有模型思考正文。
 
 ## 已核实事实
 
