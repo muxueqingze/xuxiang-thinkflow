@@ -31,5 +31,12 @@
     "exitCode": 0,
     "report": "packaged-ux.json"
   },
-  "limits": "localhost fixture only; no commercial provider, OS power-loss, long-duration or cross-platform validation"
+  "limits": "localhost fixture only; no commercial provider, OS power-loss, long-duration or cross-platform validation",
+  "startSaveRollback": {
+    "command": "python -B -m unittest discover -s tests -p test_desktop_service.py -v",
+    "tests": 18,
+    "exitCode": 0,
+    "packagedCommand": "node desktop/tests/electron-start-failure.cjs",
+    "report": "start-failure.json"
+  }
 }

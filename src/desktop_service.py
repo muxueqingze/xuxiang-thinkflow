@@ -540,13 +540,19 @@ class DesktopService:
             prompt = params.get("prompt", "")
             if not isinstance(prompt, str) or not prompt.strip() or len(prompt) > 200000:
                 raise ValueError("输入须为 1–200000 字符的文本。")
-            self.transcript.append({"role": "user", "content": prompt})
+            previous = (self.transcript, self.title, self.status, self.last_error, self._reply_index)
+            self.transcript = [*self.transcript, {"role": "user", "content": prompt}]
             if self.title == "新会话" and not self.title_custom:
                 self.title = prompt.strip().replace("\n", " ")[:48]
             self.status = "running"
             self.last_error = ""
             self._reply_index = None
-            self._save()
+            try:
+                self._save()
+            except Exception:
+                # 启动保存失败时尚未接收任务，恢复原状态，避免界面被无任务的 running 锁住。
+                self.transcript, self.title, self.status, self.last_error, self._reply_index = previous
+                raise
             self.task = asyncio.create_task(self._run(prompt))
             self._emit({"type": "state", "state": self.state()})
             return {"started": True}

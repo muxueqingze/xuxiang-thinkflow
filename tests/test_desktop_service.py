@@ -154,6 +154,24 @@ class DesktopServiceTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.wait_for(self.service.task, timeout=5)
         return await self.service.dispatch("get_state")
 
+    async def test_start_save_failure_leaves_no_ghost_run_or_duplicate_input(self):
+        await self.ready()
+        before = copy.deepcopy(self.service.state())
+        saved = self.service.store.path.read_bytes()
+        self.events.clear()
+        with patch.object(self.service, "_save", side_effect=OSError("simulated disk full")):
+            with self.assertRaisesRegex(OSError, "disk full"):
+                await self.service.dispatch("run", {"prompt": "Must not be admitted"})
+        self.assertIsNone(self.service.task)
+        self.assertEqual(self.service.state(), before)
+        self.assertEqual(self.service.store.path.read_bytes(), saved)
+        self.assertEqual(self.events, [])
+        self.assertEqual((await self.service.dispatch("cancel"))["status"], "idle")
+        await self.service.dispatch("run", {"prompt": "Retry after storage recovers"})
+        await self.finish()
+        self.assertEqual([m["content"] for m in self.service.transcript if m["role"] == "user"],
+                         ["Retry after storage recovers"])
+
     async def wait_for(self, condition):
         async def poll():
             while not condition():
