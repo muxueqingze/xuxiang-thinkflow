@@ -508,7 +508,8 @@ def test_traditional_read_tool_uses_executor_cwd():
                 }])
                 assert agent.messages[-2]["tool_calls"][0]["id"] == "call_1"
                 assert agent.messages[-1]["role"] == "tool"
-                assert agent.messages[-1]["content"] == "read me"
+                assert agent.messages[-1]["content"].endswith("\nread me")
+                assert '[THINKFLOW RECEIPT id=' in agent.messages[-1]["content"]
             finally:
                 renderer.console = old_console
                 await agent.close()
@@ -982,7 +983,7 @@ def test_write_config_template_creates_starter_config_without_key():
         assert '"use_builtin_system_prompt": true' in data
         assert '"native_tools": []' in data
         assert '"disabled_native_tools": []' in data
-        assert parsed["max_tokens"] == 100000
+        assert parsed["max_tokens"] is None
         assert parsed["max_auto_continues"] == 8
         assert parsed["delivery_verify"] is False
         assert parsed["auto_verify_runnable_artifacts"] is False
@@ -1118,6 +1119,7 @@ def test_provider_request_defaults_are_protocol_neutral():
                 base_url="https://api.anthropic.com",
                 model="model",
                 format="anthropic",
+                max_tokens=8192,
             ),
             cwd=".",
         ))
@@ -1146,7 +1148,7 @@ def test_create_agent_accepts_native_tool_string_or_list_config():
     try:
         assert agent.config.provider.native_tools == ["write"]
         assert agent.config.provider.disabled_native_tools == ["bash"]
-        assert agent.config.provider.max_tokens == 100000
+        assert agent.config.provider.max_tokens is None
         assert agent.config.max_auto_continues == 8
         assert agent.config.delivery_verify is False
         assert agent.config.auto_verify_runnable_artifacts is False
@@ -1349,7 +1351,7 @@ def test_agent_executes_text_commands_fifo_even_when_stream_is_fast():
                 return result
 
             responses = [
-                FakeResponse('<tf-bash id="1" cmd="slow-first" /><tf-bash id="2" cmd="needs-first" />'),
+                FakeResponse('<tf-write id="1" path="first">one</tf-write><tf-write id="2" path="second">two</tf-write>'),
                 FakeResponse('done'),
             ]
 
@@ -1395,9 +1397,9 @@ def test_agent_records_skipped_commands_after_queue_failure():
             executed: list[str] = []
             seen_bodies: list[dict] = []
             command_text = (
-                '<tf-bash id="1" cmd="ok" />'
-                '<tf-bash id="2" cmd="fail" />'
-                '<tf-bash id="3" cmd="must-not-run" />'
+                '<tf-write id="1" path="first">ok</tf-write>'
+                '<tf-write id="2" path="second">fail</tf-write>'
+                '<tf-write id="3" path="third">must-not-run</tf-write>'
             )
             responses = [FakeResponse(command_text), FakeResponse('done')]
 
@@ -1587,11 +1589,11 @@ def test_agent_auto_continues_after_blocking_text_command_result():
                 await agent.run("read then continue")
                 assert len(seen_bodies) == 2
                 assert len(agent.usage.turns) == 2
-                assert agent.usage.turns[0].abort_reason == "end_turn"
+                assert agent.usage.turns[0].abort_reason == "need_result"
                 second_messages = seen_bodies[1]["messages"]
                 assert any(
                     "PROMPT_TEXT" in message.get("content", "")
-                    and "blocking tool output returned automatically" in message.get("content", "")
+                    and "THINKFLOW RESULT" in message.get("content", "")
                     for message in second_messages
                     if message.get("role") == "user"
                 )
@@ -1917,7 +1919,7 @@ def test_agent_auto_continues_incomplete_text_command_block():
                     'data: {"choices":[{"delta":{"content":"<tf-write id=\\"1\\" path=\\"out.txt\\">hello"},"finish_reason":"length"}]}',
                 ]),
                 FakeResponse([
-                    'data: {"choices":[{"delta":{"content":" world</tf-write>"},"finish_reason":"stop"}]}',
+                    'data: {"choices":[{"delta":{"content":"<tf-write id=\\"2\\" path=\\"out.txt\\">hello world</tf-write>"},"finish_reason":"stop"}]}',
                 ]),
             ]
             config = AgentConfig(
@@ -2432,6 +2434,7 @@ def test_edit_is_atomic_and_leaves_no_temp_files():
             with open(target, "w", encoding="utf-8") as f:
                 f.write("alpha\nbeta\n")
             executor = Executor(cwd=tmp)
+            assert (await executor.read('file.txt')).success
             result = await executor.execute(Command(
                 id="1", tool="edit", path="file.txt",
                 old_text="beta", new_text="gamma",

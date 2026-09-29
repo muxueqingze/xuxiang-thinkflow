@@ -1,0 +1,51 @@
+{
+  "viewport": [
+    1380,
+    900
+  ],
+  "scrollWidth": 1380,
+  "scrollHeight": 900,
+  "nodes": {
+    "prompt": {
+      "x": 56.66666793823242,
+      "y": 754,
+      "w": 906.6666870117188,
+      "h": 48,
+      "bottom": 802,
+      "visible": true
+    },
+    "send": {
+      "x": 898.375,
+      "y": 810,
+      "w": 64.95833587646484,
+      "h": 32,
+      "bottom": 842,
+      "visible": true
+    },
+    "input-receipt-panel": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "bottom": 0,
+      "visible": false
+    },
+    "restore-unreceived-input": {
+      "x": 0,
+      "y": 0,
+      "w": 0,
+      "h": 0,
+      "bottom": 0,
+      "visible": false
+    },
+    "inspector": {
+      "x": 1020,
+      "y": 0,
+      "w": 360,
+      "h": 900,
+      "bottom": 900,
+      "visible": true
+    },
+    "composer-region": null
+  }
+}

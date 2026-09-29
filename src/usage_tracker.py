@@ -26,6 +26,8 @@ class TurnUsage:
     commands_executed: int = 0         # 本轮执行的 ThinkFlow 命令数
     tool_calls_traditional: int = 0    # 本轮传统 tool_call 数
     abort_reason: str = ""
+    delayed_successes: int | None = None  # Observed successful, non-blocking text commands.
+    usage_reported: bool = False
 
     @property
     def total_tokens(self) -> int:
@@ -49,6 +51,8 @@ class TurnUsage:
             "commands_executed": self.commands_executed,
             "tool_calls_traditional": self.tool_calls_traditional,
             "abort_reason": self.abort_reason,
+            "delayed_successes": self.delayed_successes,
+            "usage_reported": self.usage_reported,
         }
 
 
@@ -98,13 +102,12 @@ class SessionUsage:
 
     @property
     def estimated_saved_api_calls(self) -> int:
-        """Conservative estimate: deterministic commands that did not need a follow-up turn."""
-        interrupted = sum(
-            1
-            for t in self.turns
-            if t.abort_reason in ("need_result", "tool_failed")
-        )
-        return max(0, self.total_commands - interrupted)
+        """Counterfactual against serial one-call-per-tool; not measured cost savings.
+
+        Old snapshots lack this observation and contribute zero. Failure, skipped,
+        blocking and cancelled commands do not count as successful bypasses.
+        """
+        return sum(max(0, t.delayed_successes or 0) for t in self.turns)
 
     @property
     def estimated_avoided_prompt_tokens(self) -> int:
@@ -237,6 +240,8 @@ class SessionUsage:
                 commands_executed=int(item.get("commands_executed", 0) or 0),
                 tool_calls_traditional=int(item.get("tool_calls_traditional", 0) or 0),
                 abort_reason=str(item.get("abort_reason", "") or ""),
+                delayed_successes=(int(item["delayed_successes"]) if item.get("delayed_successes") is not None else None),
+                usage_reported=bool(item.get("usage_reported", False)),
             ))
         return usage
 

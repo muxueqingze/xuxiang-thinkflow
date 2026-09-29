@@ -7,6 +7,7 @@ ThinkFlow Session Store — 会话快照持久化
 import json
 import os
 import time
+import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -111,10 +112,11 @@ class SessionStore:
         with self.path.open("r", encoding="utf-8-sig") as f:
             return json.load(f)
 
-    def save(self, snapshot: dict):
+    def save(self, snapshot: dict, *, history: bool = True):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._write_json_atomic(self.path, snapshot)
-        self._save_history_snapshot(snapshot)
+        if history:
+            self._save_history_snapshot(snapshot)
 
     @staticmethod
     def _snapshot_digest(snapshot: dict) -> str:
@@ -138,10 +140,18 @@ class SessionStore:
     @staticmethod
     def _write_json_atomic(path: Path, snapshot: dict):
         path.parent.mkdir(parents=True, exist_ok=True)
-        temp_path = path.with_suffix(path.suffix + ".tmp")
-        with temp_path.open("w", encoding="utf-8") as f:
-            json.dump(snapshot, f, ensure_ascii=False, indent=2)
-        os.replace(temp_path, path)
+        temp_name = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                             prefix=path.name + ".", suffix=".tmp", delete=False) as f:
+                temp_name = f.name
+                json.dump(snapshot, f, ensure_ascii=False, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temp_name, path)
+        finally:
+            if temp_name and os.path.exists(temp_name):
+                os.unlink(temp_name)
 
     def _save_history_snapshot(self, snapshot: dict, keep: int = 60):
         if not snapshot.get("messages") and not ((snapshot.get("context", {}) or {}).get("records")):

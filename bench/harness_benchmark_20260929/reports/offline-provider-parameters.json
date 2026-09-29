@@ -1,0 +1,29 @@
+[
+  {
+    "model": "deepseek-flash",
+    "stream": true,
+    "stream_options": {
+      "include_usage": true
+    },
+    "max_tokens": 8192,
+    "thinking": {
+      "type": "enabled"
+    },
+    "reasoning_effort": "high",
+    "temperature": 0
+  },
+  {
+    "model": "deepseek-flash",
+    "max_tokens": 8192,
+    "tool_choice": "auto",
+    "stream": true,
+    "stream_options": {
+      "include_usage": true
+    },
+    "thinking": {
+      "type": "enabled"
+    },
+    "reasoning_effort": "high",
+    "temperature": 0
+  }
+]

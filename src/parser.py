@@ -298,9 +298,9 @@ class StreamingParser:
                 raw=raw[:100],
             ))
             return None
-        if not cmd_id.isdigit():
+        if not cmd_id.isascii() or not cmd_id.isdecimal() or len(cmd_id) > 32:
             self.errors.append(ParseError(
-                message=f"<{tool}> id 必须是数字: {cmd_id}",
+                message=f"<{tool}> id 必须是最多32位的十进制数字: {cmd_id}",
                 raw=raw[:100],
             ))
             return None
@@ -323,7 +323,11 @@ class StreamingParser:
         dest = attrs.get("dest")
         cmd_str = attrs.get("cmd")
         need_result = attrs.get("need_result") == "true"
-        injected = int(attrs.get("injected", "0") or "0")
+        injected_value = attrs.get("injected", "0") or "0"
+        if injected_value not in ("0", "1"):
+            self.errors.append(ParseError(message=f"<{tool}> injected 必须是 0 或 1", raw=raw[:100]))
+            return None
+        injected = int(injected_value)
 
         # 按工具类型校验必需属性
         if tool in ("read", "write", "append", "mkdir", "touch", "copy", "edit") and not path:
@@ -436,6 +440,10 @@ def _parse_attrs(attrs: str) -> dict[str, str]:
             ch = attrs[i]
             i += 1
             if escaped:
+                if ch == quote:
+                    # The scanner treats this as an escaped delimiter. Deliver
+                    # its literal quote, retaining ordinary Windows backslashes.
+                    value_chars.pop()
                 value_chars.append(ch)
                 escaped = False
                 continue
@@ -446,5 +454,7 @@ def _parse_attrs(attrs: str) -> dict[str, str]:
             if ch == quote:
                 break
             value_chars.append(ch)
-        result[name] = "".join(value_chars)
+        entities = {'quot': '"', 'apos': "'", 'lt': '<', 'gt': '>', 'amp': '&'}
+        result[name] = re.sub(r'&(quot|apos|lt|gt|amp);',
+                              lambda match: entities[match.group(1)], ''.join(value_chars))
     return result

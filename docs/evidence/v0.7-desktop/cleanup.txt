@@ -1,0 +1,12 @@
+2026-09-29 v0.7 cleanup — sent to Windows Recycle Bin after evidence archival; v0.6/v0.7 delivery directories and ZIPs retained.
+temp
+desktop/temp
+src/__pycache__
+tests/__pycache__
+artifacts/desktop-2026-09-29T08-53-44-076Z/runtime
+Follow-up: ZCode reference cache, fault fixtures and rebuilt runtime recycled after report/evidence archival.
+temp
+desktop/temp
+src/__pycache__
+tests/__pycache__
+artifacts/desktop-2026-09-29T09-10-38-170Z/runtime

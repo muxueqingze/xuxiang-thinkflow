@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "version": "0.8.0",
+  "packaged": true,
+  "userData": "D:\\the things of mine\\项目库\\agent\\thinkflow\\desktop\\temp\\zip-start-1790677545180\\profile",
+  "source": "D:\\the things of mine\\项目库\\agent\\thinkflow\\temp\\zip-v08-release\\ThinkFlow-win32-x64",
+  "checks": [
+    "extracted package starts",
+    "bundled Python backend connects",
+    "isolated clean user data",
+    "no task or model request on startup"
+  ],
+  "errors": []
+}

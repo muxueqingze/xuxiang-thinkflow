@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from .runtime_context import default_skill_roots
+from .tool_registry import ToolResult
 
 
 @dataclass
@@ -59,7 +60,7 @@ class SkillManager:
 
     def render_list(self, query: str = "", max_results: int = 80) -> str:
         if not self.config.enabled:
-            return "skills 未启用。请在 config.interfaces.skills.enabled 打开。"
+            return ToolResult.failure("skills 未启用。请在 config.interfaces.skills.enabled 打开。")
         skills = self.list_skills(query=query, max_results=max_results)
         if not skills:
             return "没有找到匹配 skill。"
@@ -75,14 +76,14 @@ class SkillManager:
     def read_skill(self, name: str) -> str:
         needle = name.strip().lower()
         if not needle:
-            return "缺少 name"
+            return ToolResult.failure("缺少 name")
         if not self.config.enabled:
             # enabled 只关用户目录发现；内置 harness 指南始终可读，
             # 系统提示词里的 read_skill("thinkflow") 指引不会因此落空。
             bundled = self._read_bundled(needle)
             if bundled is not None:
                 return bundled
-            return "skills 未启用。请在 config.interfaces.skills.enabled 打开。"
+            return ToolResult.failure("skills 未启用。请在 config.interfaces.skills.enabled 打开。")
         matches = [
             skill for skill in self._discover()
             if skill.name.lower() == needle or os.path.abspath(skill.path).lower() == needle
@@ -91,8 +92,8 @@ class SkillManager:
             partial = [skill for skill in self._discover() if needle in skill.name.lower()]
             if partial:
                 names = ", ".join(skill.name for skill in partial[:10])
-                return f"未找到精确匹配。相近 skill: {names}"
-            return f"未找到 skill: {name}"
+                return ToolResult.failure(f"未找到精确匹配。相近 skill: {names}")
+            return ToolResult.failure(f"未找到 skill: {name}")
 
         skill = matches[0]
         return self._render_skill_body(skill)
@@ -109,7 +110,7 @@ class SkillManager:
             with open(skill.path, "r", encoding="utf-8", errors="replace") as f:
                 body = f.read()
         except OSError as exc:
-            return f"读取 skill 失败: {exc}"
+            return ToolResult.failure(f"读取 skill 失败: {exc}")
 
         truncated = False
         if len(body) > self.config.max_body_chars:

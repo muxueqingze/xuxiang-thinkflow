@@ -1,10 +1,12 @@
+> Source version 0.8.0 adds durable backend input admission and queues, exact receipt lookup, file browsing and revision-bound attachments, recorded diffs and guarded restoration, task plans with execution evidence, and verified DeepSeek Flash thinking/tool compatibility. Predictable writes continue during the model stream; unknown side effects stop automatic continuation. This source version has not been published to npm; the existing registry release is 0.5.1. See [desktop guide](docs/desktop.md), [handoff and evidence](docs/v0.8-handoff.md), [architecture](DESIGN.md) and [roadmap](docs/harness-roadmap.md).
+
 # Xuxiang ThinkFlow
 
 Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.5.0)
+[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
@@ -40,7 +42,7 @@ This does not remove feedback. It distinguishes feedback types: information tool
 
 ## Installation
 
-The current version is 0.5.0 and is published on the npm registry:
+The public npm version is 0.5.1; source version 0.8.0 has not been published yet:
 
 ```bash
 npm install -g xuxiang-agent
@@ -177,19 +179,25 @@ Interactive slash commands include:
 
 ## Benchmark
 
-The repository includes two benchmark areas:
+The latest [production configuration benchmark](bench/harness_benchmark_20260929/reports-production/README.md) omits client output budgets and disables automatic history compaction and experiment run/request/continuation limits. ThinkFlow (91e4911), Pi 0.87.1 and OpenCode 1.18.33 used official DeepSeek Flash high on the same six tasks twice. Each completed 12/12 valid samples. Total tokens were 3,845,627, 1,397,532 and 1,732,556; mean times were 105.38, 54.62 and 59.90 seconds. **ThinkFlow still has no overall efficiency advantage.** Claude Code was not used.
+
+One of the original 36 attempts was interrupted by a Windows observer logging error. Its record and 47,031 tokens remain preserved; one separate recovery used identical frozen conditions. All 37 actual attempts consumed 397 requests and 7,022,746 tokens. This is not a claim that all first attempts completed normally. Every request omitted output budget fields, 17 responses exceeded the previous 8K setting, and no length stops occurred. Saved test execution evidence was reviewed for all valid samples; it does not prove sufficient coverage.
+
+ThinkFlow retained 25 file operations overlapping their streams. Protocol recovery, repeated test revisions and low-value probes still added substantial input retransmission costs; see the [case audit](docs/reviews/production-cost-cases.md). The [previous restricted rerun](bench/harness_benchmark_20260929/reports-rerun/README.md), [original round](bench/harness_benchmark_20260929/reports/summary.md) and [historical audit](docs/benchmark-history-diagnosis.md) remain unchanged. This suite is not a regression test of the old frontend/novel workloads. The existing 0.8 portable binary has not been rebuilt with these later source patches.
+
+Historical benchmark materials remain available; their results must not be mixed with the new suite:
 
 - `bench/reproducible_agent_efficiency/`: early reproducible efficiency experiment.
 - `bench/agent_comparison_20260704/`: same-prompt comparison between Claude Code and ThinkFlow, with `glm-5.2` and `deepseek-v4-flash` runs.
 
-Core reports:
+Historical reports:
 
 - `bench/agent_comparison_20260704/reports_normal_app/summary.md`
 - `bench/agent_comparison_20260704/reports_normal_app/technical_report.md`
 - `bench/agent_comparison_20260704/reports_deepseek_v4_flash/summary.md`
 - `bench/agent_comparison_20260704/reports_deepseek_v4_flash/technical_report.md`
 
-Raw runs, logs, `node_modules`, local sessions, and build artifacts are intentionally excluded from the repository and npm package.
+Full model transcripts, `node_modules`, local sessions and build artifacts remain excluded. The new suite publishes sanitized scores, provider usage and generated code as inert data for offline regrading.
 
 ## Current Capabilities
 

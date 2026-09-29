@@ -1,459 +1,91 @@
-# ThinkFlow — 设计文档
+# 续想 ThinkFlow · v0.8 架构
 
-> **暂定名。** 主人定名后替换。
-> 立项日期：2026-06-29
-> 作者：ThinkFlow Contributors
+2026-09-29。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.4 与源码为准。
 
----
+## 核心判断
 
-## 一、项目概述
+工具是否需要形成模型回合边界，取决于它的结果是否为后续推理提供新信息。可预测的文件写入可以在输出流中排队执行；读取、搜索、测试、shell、失败与显式结果依赖需要反馈边界。
 
-ThinkFlow 是一个 agent 框架，核心特性是：**让大模型在 thinking（推理过程）中输出工具命令，由旁路解析器实时检测并执行，不中断模型的推理流。**
+这是一种有边界的乐观执行，不是事务，也不是「正在生成就代表已成功」。最终成功以执行回执为准。模型必须支持可读取的输出流以及遵循协议；无法获取 thinking 的端点可以使用 text 通道。不会假定所有供应商都暴露原始推理内容。
 
-传统 agent 框架（Pi / Claude Code / Cursor 等）的 tool calling 流程是：
+## 运行结构
 
-```
-模型推理 → 输出 tool_call → API 停止 → 客户端执行 → tool_result 注入 → 重新调 API（重发全部上下文）
-```
-
-每次 tool 调用都触发一次完整的 API 往返。在 50 万 token 上下文的场景下，跑 10 轮 write 就要重发 500 万 token——绝大部分是重复开销。
-
-ThinkFlow 的做法：
-
-```
-模型推理（thinking 中持续输出命令块）→ 解析器实时旁路执行 → 推理不中断
-→ 本轮结束时，执行结果摘要注入下次 API 调用的上下文；长程会话自动把旧历史压缩成可检查摘要
-```
-
-**一次推理可以输出并执行 N 个 write 命令，只消耗 1 次 API 调用。**
-
----
-
-## 二、问题分析
-
-### 2.1 传统 tool calling 的 token 浪费
-
-以泠写《拼图》后 12 章为例（真实场景）：
-
-| 项目 | 传统 tool calling | ThinkFlow |
-|------|------------------|-----------|
-| 每章 write 调用 | ~5 次（分 part） | 1 次（thinking 中连续输出） |
-| 每章 read 验证 | ~2 次 | 走正常 tool_call（不改动） |
-| 每章 API 调用 | ~7 次 | ~1 次 |
-| 12 章总 API 调用 | ~84 次 | ~12 次 |
-| 每次重发上下文 | ~50 万 token | ~50 万 token（但次数少） |
-| **总 input token** | **~4200 万** | **~600 万** |
-| **节省** | — | **~85%** |
-
-### 2.2 浪费的根源
-
-不是模型问题，是架构问题。tool_call 的设计要求"每个工具调用后必须等待结果才能继续"——但很多工具（特别是 write 类）的结果模型根本不需要等。
-
-write 一个文件，99% 会成功。模型不需要知道"写入成功了"就能继续写下一个文件。但传统架构强制它在每次 write 后停下来，等 API 往返。
-
-### 2.3 为什么不直接用 parallel function calling
-
-OpenAI 和 Anthropic 都支持 parallel function calling——一次响应可以输出多个 tool_call。但：
-
-1. 还是**一次 API 往返**——所有 tool_call 执行完后，结果注入，重新调 API
-2. 受**单次输出长度限制**——一次响应最多输出 N 个 tool_call（受 max_output_tokens 限制）
-3. 每次还是**重发完整上下文**
-
-ThinkFlow 更进一步：命令在 thinking 中输出，**推理物理上不可能被中断**（因为 API 根本不知道有工具在被调用）。对 API 来说就是一次普通的 streaming completion。
-
----
-
-## 三、技术调研
-
-### 3.1 业界现有方案
-
-| 方案 | 代表项目 | 做法 | 局限 |
-|------|---------|------|------|
-| Parallel function calling | OpenAI / Anthropic 原生 | 一次响应多个 tool_call | 还是一次 API 往返 |
-| Eager dispatch | cloudthinker-ai/eager-tools | tool JSON 块流完即执行，不等响应结束 | 还是在 API tool_use 框架内 |
-| Programmatic tool calling | Anthropic 官方（2025.11） | 代码块连续调 N 个工具 | 还是 API 往返注入结果 |
-| Code agent | HuggingFace smolagents | 模型输出可执行 Python 代码 | 安全风险 + API 往返 |
-| Stateful KV cache | Stateful Inference 论文 | KV cache 跨轮保持 | 需自部署推理引擎 |
-| CacheTTL | arxiv 2511.02230 | tool call 期间 TTL 钉住 KV cache | 需自部署 |
-
-**关键发现：ThinkFlow 的思路——在 thinking 中输出命令，旁路解析执行——业界没有人在做。** 所有现有方案都还是在 API 的 tool_use 框架内优化。
-
-### 3.2 相关技术基础
-
-- **Extended Thinking**：Claude / GPT o 系列 / DeepSeek R1 都支持。thinking block 和 text block 分开输出。thinking 不注入下一轮全局上下文（API 默认行为）。
-- **Interleaved Thinking**：理论上支持 thinking → text → thinking → text 交替。但实测在当前环境中，thinking 只在正文前用一次，正文一旦开始不再回到 thinking。
-- **Thinking 流可获取**：Anthropic API 通过 `thinking_delta` 事件暴露 thinking 内容的流。OpenAI 通过 `reasoning_content`。智谱 GLM-5.2 需实测确认。
-- **thinking 中指令遵循**：实测验证——模型在 thinking 中能稳定遵循固定格式输出命令块。可行性确认。
-
-### 3.3 Copilot @workspace 的启发
-
-GitHub Copilot 的 @workspace 命令（2023.11 推出）确实是标准的 tool_call 循环。它用 embedding 索引 + 多工具搜索（grep / file search / semantic search / usages）来收集工作区上下文。
-
-这解决的是**输入侧**的效率问题（怎么高效收集代码上下文）。ThinkFlow 解决的是**输出侧**的效率问题（怎么让 write 类操作不中断推理）。两者正交。
-
-### 3.4 agent 为什么 2025 才爆发
-
-2023 年 AutoGPT / BabyAGI 就尝试过"控制整个电脑的 agent"，但失败了：8K 上下文、4K 输出、没有推理能力、死循环、成本爆炸。
-
-2025 年爆发不是因为架构变了（还是 ReAct 循环 + tool_call），是因为模型能力强了：128K-384K 输出、1M-10M 上下文、test-time compute 推理能力。
-
-**架构是水管，2023 年就铺好了。但水压不够。现在水压上来了。ThinkFlow 做的是优化水管——减少不必要的 API 往返。**
-
----
-
-## 四、核心设计
-
-### 4.1 双通道架构
-
-```
-┌──────────────────────────────────────────────┐
-│              模型推理（一次 API 调用）           │
-│                                              │
-│  thinking block:                             │
-│    推理分析 + 命令块输出（tf-write/tf-append/tf-bash）│
-│                                              │
-│  text block:                                 │
-│    给用户的回复                                │
-│                                              │
-│  tool_use block（API 原生）:                   │
-│    read / search / 需要即时结果的命令           │
-│                                              │
-└───────┬──────────────────┬───────────────────┘
-        │                  │
-   thinking 流          tool_use 事件
-        │                  │
-        ▼                  ▼
-┌───────────────┐   ┌───────────────┐
-│  ThinkFlow    │   │  传统通道      │
-│  旁路解析器    │   │  (不改动)      │
-│               │   │               │
-│  实时扫描      │   │  API 自然停止  │
-│  thinking 流   │   │  执行 tool     │
-│  提取命令块    │   │  注入 result   │
-│  旁路执行      │   │  重新调 API    │
-│               │   │               │
-│  成功 → 静默   │   │               │
-│  失败 → 打断   │   │               │
-│  need_result   │   │               │
-│   → 打断       │   │               │
-└───────────────┘   └───────────────┘
+```text
+CLI / Electron desktop
+       ↓ 用户输入、配置、取消、单次批准
+    AgentLoop（同一实现）
+       ├─ provider SSE → thinking/text parser → 工具分流
+       │                                  ├─ delayed → FIFO 单 worker
+       │                                  └─ blocking/confirm → barrier + 返回结果
+       ├─ native tool fragments → 按 index 聚合 → 工具执行
+       ├─ Executor / ToolRegistry / SecurityPolicy
+       ├─ ContextManager 命令账本 → 下一轮反馈
+       └─ RuntimeEvents → CLI renderer 或 DesktopService
+                                   ↓
+                          原子快照 + 意图/回执日志
 ```
 
-**两个通道互不干扰：**
+### 必须成立的约束
 
-- **ThinkFlow 通道**（thinking 中的 canonical 命令块）：tf-write/tf-append/tf-mkdir/tf-touch/tf-copy/tf-bash/tf-edit 等确定性输出式工具。旁路执行，推理不中断。
-- **传统通道**（API 原生 tool_use）：read/list_files/glob/grep/bash/write/append/edit/mkdir/touch/copy/web_search/fetch_url/list_skills/read_skill 等需要结果或兼容 provider 的工具。正常 tool calling，该中断中断。
+- 解析器只提交完整 canonical tf-* 标签；普通 XML 和正文代码围栏示例不执行。
+- 可预测操作严格 FIFO；信息型工具先等待之前的写入，再执行并反馈。
+- 后台失败与 SSE 读取竞速；发现失败后停止队列中尚未执行的操作。
+- 同一块中落在反馈边界之后的命令记 skipped，由模型根据结果重新决策。
+- 截断或断连不把不同请求的残缺命令拼在一起；未完整的命令丢弃，下一请求使用新 id。
+- 取消会等待已开始的文件操作收尾，并清理本次 shell 进程；不回滚已完成副作用。
+- 重复 id 不能伪造成功；相同命令返回原回执，内容冲突报错。去重窗口仍有限，不提供分布式 exactly-once 保证。
+- 模型的自然结束只是本轮结束；不等同于所有需求均被验收。达到40轮、1800秒或连续3次失败会停止。
 
-### 4.2 三个核心机制
+## 模块职责
 
-#### 机制一：乐观执行
+| 模块 | 职责 |
+|---|---|
+| `agent_loop.py` | provider 调用、反馈边界、FIFO 生命周期、运行限额 |
+| `parser.py / text_filter.py` | 完整命令解析、显示过滤、围栏保护 |
+| `executor.py / security.py` | 文件与shell动作、路径规则、敏感文件与命令策略 |
+| `tool_registry.py / interfaces.py` | 工具schema、分流/风险、自定义接口 |
+| `context.py / compaction.py` | 可审计回执、结果注入、确定性摘录 |
+| `events.py` | 实例级事件与可选终端视图，不修改全局renderer来服务桌面 |
+| `session.py` | 原子快照、fsync、历史保留 |
+| `desktop_service.py` | 私有NDJSON RPC、工作区会话、分支、授权、恢复、导出 |
+| `desktop/` | 本地界面、窗口、目录对话框、系统加密凭据 |
 
-模型在 thinking 中输出命令块。解析器实时扫描，检测到完整命令块立即旁路执行。
+## 桌面进程边界
 
-- **成功**：不通知模型。模型在当前轮 thinking 中知道自己输出了什么（thinking 参与本轮上下文），不需要额外确认。
-- **失败**：强制打断（abort SSE 流）。注入失败信息，重新调 API。模型从失败点恢复。
-- **约定**：系统提示告知模型——"如果思考没有被失败打断，说明所有命令都执行成功了。"
-- **协议边界**：默认只执行 `<tf-write>` 等 `tf-` 标签；普通 `<write>` 不执行，避免文档示例或 Markdown 片段误触发工具。
-- **截断边界**：provider 返回 `finish_reason=length` 时自动续写，避免正文或 Markdown 半截停住。
+Electron main 通过子进程 stdin/stdout 与 Python 服务通信，没有本地 HTTP 监听器。renderer 不解析 tf-*、不执行文件操作、不持有回读凭据的接口。preload 仅暴露允许的方法。页面使用本地资源、CSP、contextIsolation 和 sandbox；这保护 UI 边界，不代表模型的 shell 被操作系统隔离。
 
-#### 机制二：need_result 标记
+独立 Windows 包包含 Electron 与 PyInstaller Python 运行时，用户无需安装 Python/Node。开发依赖仍分别由 pip 与 desktop/package-lock.json 管理。
 
-模型可以主动要求某个命令的结果。在命令块中标记 `need_result="true"`。
+## 持久化与恢复
 
-- 解析器检测到 `need_result="true"` → 强制打断 SSE 流
-- 执行该命令 → 把结果注入上下文
-- 重新调 API，模型拿到结果继续推理
+每个工作区用规范化绝对路径的摘要隔离会话。会话包含模型上下文、账本、用量、展示用对话与事件序号。已反馈账本保留最近4096条、正文约200万字符预算，hash与摘要保留；未反馈观察不会删除。桌面state仅发送最近120条消息和500条账本，长消息明确标记显示截断，完整展示对话保留在本机。API key 由桌面 main 使用 safeStorage 加密保存，不写入会话；系统加密不可用时不得降为明文持久化。
 
-这给了模型自主决策权——它自己判断什么时候需要确认命令结果。
+工具启动前 fsync 写 intent；完成后先原子保存包含回执的 snapshot，再写 completed 标记。崩溃窗口宁可留下待核对意图，也不自动重复副作用。恢复存在未完成或取消中的意图时，必须人工核对后继续。确认只解除恢复锁，不重放工具，不声称自动回滚。
 
-#### 机制三：上下文注入
+CLI 继续沿用原有会话路径和策略；桌面使用独立数据目录，尚未提供 CLI 历史导入。跨进程共同写同一工作区不是本版支持的调度能力。
 
-thinking 内容不进全局上下文（API 默认行为）。所以模型在下一轮 API 调用时，不知道自己在上一轮 thinking 中输出了什么。
+### 桌面交互状态
 
-解决方案：**状态机追踪每条命令的注入状态（01 标记）。每次重新调 API 时，把所有 `injected=0`（未注入）的命令正文摘要 + 执行结果注入上下文，然后标记为 `injected=1`。**
+v0.7 在桌面层增加最近工作区、会话标题/置顶/归档与本机草稿。主进程 `navigation.json` 只保存通过目录选择器登记的工作区和上次会话；renderer 的最近目录入口必须匹配该列表。启动恢复上下文，不启动模型请求。归档只是元数据，不删除快照或意图日志。
 
-```
-注入的内容格式：
-[TOOL LOG #本轮会话]
-<write id="001" path="D:/novel/ch01.md" status="OK" bytes="17831">
-正文内容（短文件保留；长文件会标记截断）...
-</write>
-<write id="002" path="D:/novel/ch02.md" status="OK" bytes="11490">
-正文内容（短文件保留；长文件会标记截断）...
-</write>
-```
+用户任务队列与工具FIFO是两条不同队列。v0.8任务队列由Python服务持有，提交以session/command_id和原始输入指纹标识，持久接收后才ACK，查询回执解决丢ACK。运行中的任务不重放，恢复的待发任务暂停；失败/取消暂停后续。renderer只保存草稿与待确认候选，旧版队列人工迁移。
 
-- `injected=0` 的命令 → 注入正文摘要 + 执行结果，然后标记为 `injected=1`
-- `injected=1` 的命令 → 不再注入（防重复）
-- 失败的命令 → 始终优先注入，标记错误信息
+服务投影带进程stream_id、递增seq和稳定消息id；UI拒绝旧投影、遇事件断档取快照。依然单运行实例，切换会话/工作区受运行状态约束。
 
-### 4.3 戳记机制
+文件工具有SHA256读版本前置条件；完整未脱敏读取或冻结附件才能授予基线，自身写入后更新。ChangeStore将意图及文本快照存于会话专属用户数据目录，diff/回退主动读取；UI回退也进入执行意图日志。工具结果unknown立即停止当前模型循环，不能走普通失败自动修复。最终版本检查与文件替换之间仍有外部进程竞争窗口，这不是操作系统事务或绝对CAS。
 
-- **全局递增序号**，由解析器维护
-- 系统提示中告知模型当前起始戳记
-- 模型从起始戳记开始递增
-- 解析器校验：跳号或重复 → 报错打断
-- 戳记用于：防重复注入、注入后定位、日志追踪
+update_plan将步骤、验收条件和工具回执引用存入agent快照。完成标记需要真实成功回执，但不会把回执等同语义验收。DeepSeek请求保留必要reasoning_content，界面只发活动信号，不广播内部推理正文。
 
-### 4.4 长程上下文压缩
+草稿及待发文本存在当前用户的本机应用数据中，不是加密保险箱；API 密钥仍只能通过原有系统加密设置保存。界面复用已完成消息节点；查看旧消息时保持阅读位置，回到底部由用户控制。
 
-ThinkFlow 不把长程任务建立在无限增长的 `messages` 上。超过配置阈值后，`compaction.py` 会确定性压缩旧消息：
+## 可观测性与评估
 
-- 不调用模型，不产生不可审计的语义改写
-- 最近消息原文保留
-- 旧消息压成 `[THINKFLOW COMPACTED CONTEXT]`，记录角色、tool_call id 和内容片段
-- 不把 OpenAI-compatible 的 `tool` result 从对应 assistant tool_call 前面切开
+工具事件区分开始、完成、成功、失败、跳过与取消。账本展示 path/hash/bytes/flow/risk。用量来自供应商返回；缺少usage时不应据此推断免费调用。节省API调用是「成功的delayed操作若逐条同步调用」的反事实估算，不是对原生批量调用的实测胜率，也不是实际省下的钱。
 
-### 4.5 同一路径多次写入
+默认native schema只公开信息/执行/扩展工具，六种可预测文件工具优先通过tf-*输出。一次run内出现解析错误后才开放原生文件工具保底，下一次run重置；用户显式native_tools配置保持优先。native实际回执流标记blocking，即使对应文件工具可支持流式，也不把已经走原生回合的调用误记为delayed。故意在反馈边界提前关闭供应商流时，可能收不到最终usage，界面应标明用量不完整。
 
-一次 thinking 中 write 同一文件多次 → 串行执行，后覆盖前。注入上下文时只注入最终结果。
+验证分三层：解析/调度隔离测试，真实本地HTTP SSE与文件系统集成，实际桌面及独立包流程。真实商业端点、长时负载与多操作系统是单独的验证边界。
 
-### 4.6 格式残缺处理
+## 后续扩展
 
-thinking 流被 abort 打断，正在输出的命令块只写了一半 → 解析器检测到不完整命令块 → 丢弃，不执行，不注入。记入错误日志。
-
----
-
-## 五、系统架构
-
-### 5.1 模块划分
-
-```
-thinkflow/
-├── src/
-│   ├── parser.py          # 命令块解析器（状态机 + 正则）
-│   ├── executor.py        # 命令执行器（write/append/mkdir/touch/copy/bash/edit）
-│   ├── context.py         # 上下文管理（戳记、注入状态、注入器）
-│   ├── streaming.py       # SSE 流监控（thinking_delta 实时接收）
-│   ├── tool_registry.py   # 原生工具注册表（OpenAI/Anthropic schema）
-│   ├── interfaces.py      # web_search/fetch_url/image_generate adapter
-│   ├── skills.py          # Codex/Claude skill 扫描与按需读取
-│   ├── agent_loop.py      # 主循环（整合双通道 + registry tools）
-│   ├── provider.py        # API provider 适配（Anthropic/OpenAI/智谱）
-│   ├── compaction.py      # 确定性上下文压缩
-│   ├── text_filter.py     # 正文流式安全过滤
-│   └── cli.py             # CLI 入口
-├── tests/
-│   ├── test_parser.py     # 解析器测试
-│   └── test_core.py       # executor/context/security/compaction/interfaces 回归
-```
-
-### 5.2 数据流
-
-```
-用户输入 prompt
-        │
-        ▼
-┌─────────────────────────────────────────────────┐
-│  agent_loop.py                                   │
-│                                                  │
-│  1. 构建 messages（system + history + user）      │
-│  2. auto-compact 超限历史                         │
-│  3. 调用 API（streaming）                         │
-│  4. 启动 thinking 监控                            │
-│                                                  │
-│  ┌──────────────────────────────────────────┐   │
-│  │  streaming.py                              │   │
-│  │                                            │   │
-│  │  接收 SSE 事件流：                           │   │
-│  │    thinking_delta → 喂给 parser            │   │
-│  │    text_delta → 过滤工具块后流式输出给用户    │   │
-│  │    tool_use → 停止流，走传统通道             │   │
-│  └──────────────┬───────────────────────────┘   │
-│                 │                                │
-│  ┌──────────────▼───────────────────────────┐   │
-│  │  parser.py                                 │   │
-│  │                                            │   │
-│  │  逐字符状态机扫描 thinking 文本              │   │
-│  │  检测到完整命令块 → 提取 → 送 executor      │   │
-│  │  检测到 need_result → 通知 agent_loop 打断  │   │
-│  └──────────────┬───────────────────────────┘   │
-│                 │                                │
-│  ┌──────────────▼───────────────────────────┐   │
-│  │  executor.py                               │   │
-│  │                                            │   │
-│  │  执行命令：                                  │   │
-│  │    write → 写文件                            │   │
-│  │    mkdir → 建目录                            │   │
-│  │    bash → 执行命令                            │   │
-│  │    edit → 编辑文件                            │   │
-│  │                                            │   │
-│  │  返回结果：                                  │   │
-│  │    成功 → 记录到 context.py                  │   │
-│  │    失败 → 通知 agent_loop 打断               │   │
-│  └──────────────┬───────────────────────────┘   │
-│                 │                                │
-│  ┌──────────────▼───────────────────────────┐   │
-│  │  context.py                                │   │
-│  │                                            │   │
-│  │  维护命令列表：                               │   │
-│  │    [{id, tool, params, content,            │   │
-│  │      status, injected, result}]            │   │
-│  │                                            │   │
-│  │  build_injection():                        │   │
-│  │    过滤 injected=0 的命令                    │   │
-│  │    构建注入文本                              │   │
-│  │    标记为 injected=1                         │   │
-│  └───────────────────────────────────────────┘   │
-│                                                  │
-│  4. API 调用结束（自然结束 / abort / tool_use）    │
-│  5. context.build_injection() → 注入 messages     │
-│  6. 如有 tool_use → ToolRegistry 分发执行          │
-│  7. 回到步骤 2                                    │
-└─────────────────────────────────────────────────┘
-```
-
-### 5.3 开放接口层
-
-ThinkFlow 不把联网、skill、生图硬塞进主循环，而是通过 `ToolRegistry` 暴露同一套 provider-neutral schema：
-
-- `read/list_files/glob/grep/bash/write/append/edit/mkdir/touch/copy`：本地确定性工具，继续复用 `Executor` 和安全策略。
-- `web_search/fetch_url`：GET-only 公网资料工具，默认阻断 localhost/内网地址，网页内容只作为资料，不作为指令。
-- `image_generate`：可配置生图 adapter，默认 disabled；启用后可走本地 command 或 webhook。
-- `list_skills/read_skill`：兼容 Codex `.agents/skills`、Claude `.claude/skills` 与 `.claude/commands`，先列摘要再读全文，控制 token 占用。
-- `interfaces.custom_tools`：配置式 command adapter，JSON stdin 传参、stdout 返回结果，用最小协议接入更多本地能力。
-
-### 5.4 agent_loop 伪代码
-
-```python
-async def agent_loop(messages, config):
-    stamp = get_next_stamp()  # 从持久化状态读取
-    
-    while True:
-        # 0. 注入上一轮未注入的命令
-        injection = context.build_injection()
-        if injection:
-            messages.append({"role": "user", "content": injection})
-        
-        # 1. 启动流式 API 调用
-        stream = provider.stream_create(
-            model=config.model,
-            messages=messages,
-            thinking={"type": "enabled", "budget_tokens": config.thinking_budget}
-        )
-        
-        # 2. 处理流
-        abort_reason = None
-        async for event in stream:
-            if event.type == "thinking_delta":
-                # 喂给解析器
-                cmd = parser.feed(event.text)
-                if cmd:
-                    # 完整命令块提取到了
-                    result = executor.execute(cmd)
-                    context.record(cmd, result)
-                    if not result.success:
-                        abort_reason = "tool_failed"
-                        stream.abort()
-                        break
-                    if cmd.need_result:
-                        abort_reason = "need_result"
-                        stream.abort()
-                        break
-            
-            elif event.type == "text_delta":
-                text_parser.feed(event.text)      # 正文兜底执行命令
-                visible = text_filter.feed(event.text)
-                renderer.render_text_chunk(visible) # Live Markdown 预览
-            
-            elif event.type == "tool_use":
-                # API 原生 tool_use，走传统通道
-                abort_reason = "tool_use"
-                break
-
-            elif event.type == "message_stop" and event.finish_reason == "length":
-                abort_reason = "length"
-                break
-        
-        # 3. 处理中断原因
-        if abort_reason == "tool_failed":
-            messages.append(build_failure_message(context.last_failure))
-        elif abort_reason == "need_result":
-            messages.append(build_result_message(context.last_need_result))
-        elif abort_reason == "tool_use":
-            tool_result = tool_registry.execute(event.tool_use)
-            messages.append(tool_result)
-        elif abort_reason == "length":
-            messages.append(build_continue_message())
-        
-        # 4. 判断是否继续
-        if stream.stop_reason == "end_turn":
-            break  # 模型说完了，等用户输入
-```
-
----
-
-## 六、开发计划
-
-### P0：核心原型（今天）
-
-目标：跑通 thinking 命令块 → 解析 → write 执行 → 下一轮注入 的完整链路。
-
-| 模块 | 内容 | 预估行数 |
-|------|------|---------|
-| parser.py | 状态机解析器，提取 XML 命令块 | ~200 行 |
-| executor.py | write/append/mkdir/touch/copy/bash/edit 执行器 | ~230 行 |
-| context.py | 戳记管理、命令列表、注入构建 | ~150 行 |
-| streaming.py | SSE 流接收 + thinking_delta 分发 | ~150 行 |
-| provider.py | Anthropic API 适配（P0 先只支持一个） | ~100 行 |
-| tool_registry.py | 原生工具注册表 | ~180 行 |
-| interfaces.py | web/search/image adapter | ~320 行 |
-| skills.py | skill 扫描与 progressive disclosure | ~260 行 |
-| agent_loop.py | 主循环 | ~150 行 |
-| cli.py | 命令行入口 | ~80 行 |
-| **合计** | | **~1000 行** |
-
-### P1：完善版
-
-- 多 provider 支持（OpenAI / 智谱）
-- need_result 打断机制完善
-- 失败打断 + 恢复
-- 执行日志 + 可观测性
-- 测试覆盖
-
-### P2：高级特性
-
-- 工作区索引（借鉴 Copilot @workspace）
-- 模型路由（搜索用廉价模型，生成用强模型）
-- MCP stdio/http 客户端
-- 子 agent / worker 调度
-- benchmark 对比
-
----
-
-## 七、技术栈
-
-- **语言**：Python 3.11+
-- **异步**：asyncio（SSE 流处理）
-- **HTTP**：httpx（异步 HTTP 客户端）
-- **依赖**：最小化，不引入 agent 框架依赖
-
----
-
-## 八、风险与不确定性
-
-| 风险 | 影响 | 应对 |
-|------|------|------|
-| thinking 模式下输出质量下降 | 小说/代码质量不如正文模式 | P0 实测对比 |
-| 智谱 GLM-5.2 不暴露 thinking 流 | 泠的模型用不了 | 先支持 Anthropic，实测智谱 |
-| 格式遵循不稳定 | 解析器漏掉或误解析 | 转换器 + 多格式容错 |
-| thinking budget 不够 | 一次推理写不了多少 | 拉满 budget，实测上限 |
-| abort 后 API 行为未知 | 已执行命令是否有效 | 客户端 abort，已执行的不受影响 |
-
----
-
-## 九、命名
-
-暂定 **ThinkFlow**。待主人定名。
-
-核心词：thinking + flow（在思考中流动执行）。
-
-备选：
-- ThinkExec
-- BypassTool
-- StreamTool
-- 主人自定
-
----
-
-*冷脸的人也会把架构想清楚。*
+见 [harness 能力地图](docs/harness-roadmap.md)。优先扩大可验证的能力，避免在可靠性地基尚未验证时叠加自治调度。

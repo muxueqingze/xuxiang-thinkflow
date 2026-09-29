@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "packaged": false,
+  "checks": [
+    "Saved endpoint connection probe and model catalog",
+    "File preview, revision-bound attachment, streaming write and evidence-backed plan",
+    "Diff, conflict refusal and explicit version-checked restore",
+    "Lost ACK queried without replay; backend queue edit; stop pauses continuation",
+    "Restart keeps durable queue paused; explicit resume executes edited task once",
+    "1000×700 file workspace fits viewport"
+  ],
+  "errors": [],
+  "geometry": {
+    "width": 986,
+    "height": 664,
+    "scroll": 986,
+    "composer": {
+      "x": 24,
+      "y": 488,
+      "width": 578,
+      "height": 135.33334350585938,
+      "top": 488,
+      "right": 602,
+      "bottom": 623.3333435058594,
+      "left": 24
+    },
+    "inspector": {
+      "x": 626,
+      "y": 0,
+      "width": 360,
+      "height": 664,
+      "top": 0,
+      "right": 986,
+      "bottom": 664,
+      "left": 626
+    }
+  },
+  "modelRequests": 4
+}

@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "packaged": true,
+  "failedStatus": "idle",
+  "acceptedRequestsAfterRetry": 1,
+  "checks": "real snapshot replace failure; no ghost run; controls available; uncertain input retained; explicit retry accepted once"
+}

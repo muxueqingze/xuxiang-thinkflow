@@ -1,0 +1,26 @@
+{
+  "version": "0.8.0",
+  "app": "artifacts/desktop-2026-09-29T10-23-32-390Z/ThinkFlow-win32-x64",
+  "zip": "artifacts/ThinkFlow-0.8.0-Windows-x64.zip",
+  "zip_bytes": 174830350,
+  "zip_entries": 192,
+  "python_suite_before_attribute_patch": 141,
+  "attribute_regressions": 3,
+  "node_contracts": 12,
+  "renderer_ux_groups": 11,
+  "workbench_groups": 6,
+  "live_model": "deepseek-flash",
+  "live_packaged_seconds": 4.528,
+  "live_packaged_calls": 2,
+  "live_packaged_writes_before_stream_close": 2,
+  "live_packaged_reported_tokens": 6447,
+  "pro_review": "not scheduled per user request",
+  "remaining": [
+    "Unsigned Windows portable distribution",
+    "No OS sandbox or cross-process atomic CAS",
+    "Single active session; MCP and isolated multi-agent scheduling remain roadmap work"
+  ],
+  "final_app": "artifacts/desktop-2026-09-29T10-23-32-390Z/ThinkFlow-win32-x64",
+  "zip_startup": true,
+  "ci_suite_test_count": 144
+}

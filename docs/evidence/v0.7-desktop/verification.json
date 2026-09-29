@@ -1,0 +1,42 @@
+{
+  "python": {
+    "command": "python -B tests/run_all.py",
+    "exitCode": 0,
+    "unitTests": 62,
+    "parserAndCore": "passed"
+  },
+  "desktop": {
+    "command": "node --test desktop/tests/*.test.cjs",
+    "exitCode": 0,
+    "tests": 12
+  },
+  "smoke": {
+    "command": "node desktop/tests/electron-smoke.cjs --packaged",
+    "exitCode": 0,
+    "checks": [
+      "IPC isolation",
+      "encrypted settings",
+      "streaming file write",
+      "copy",
+      "fork",
+      "approval denial",
+      "cancel",
+      "export",
+      "recovery",
+      "clear key"
+    ]
+  },
+  "ux": {
+    "command": "node desktop/tests/electron-ux.cjs --packaged",
+    "exitCode": 0,
+    "report": "packaged-ux.json"
+  },
+  "limits": "localhost fixture only; no commercial provider, OS power-loss, long-duration or cross-platform validation",
+  "startSaveRollback": {
+    "command": "python -B -m unittest discover -s tests -p test_desktop_service.py -v",
+    "tests": 18,
+    "exitCode": 0,
+    "packagedCommand": "node desktop/tests/electron-start-failure.cjs",
+    "report": "start-failure.json"
+  }
+}

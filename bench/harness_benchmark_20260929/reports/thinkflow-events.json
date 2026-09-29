@@ -1,0 +1,6650 @@
+{
+  "durable_inbox-thinkflow-r1": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 1.047
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.391
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_rruQGxYwQYvoaYg0g1SH2845",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.391
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_rruQGxYwQYvoaYg0g1SH2845",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.391
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_IpO9FudTg7UaNb7QBxqR9095",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.391
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_IpO9FudTg7UaNb7QBxqR9095",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.407
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.735
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.438
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_ET_vf3qN0hSqKHCdeMroCpI9393",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.438
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_ET_vf3qN0hSqKHCdeMroCpI9393",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.454
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_ET_5HvFpxoYrVhpqzqC6EqJ7838",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.454
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_ET_5HvFpxoYrVhpqzqC6EqJ7838",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.454
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_02_ET_Ockhmffc3jx8FQ0SaZR89468",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.454
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_02_ET_Ockhmffc3jx8FQ0SaZR89468",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.454
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 2.797
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 38.547
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 38.922
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 62.579
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_00_HdfeDiPVp4VXe92hjjMC5592",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 62.579
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_00_HdfeDiPVp4VXe92hjjMC5592",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 62.766
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 63.157
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 64.36
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_HzLqAs3XD0e82ctGvU0A2873",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 64.36
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_HzLqAs3XD0e82ctGvU0A2873",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 64.36
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 64.719
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 65.219
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_ET_vty1i1iykwurNLl5GKfv7714",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 65.219
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_ET_vty1i1iykwurNLl5GKfv7714",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 65.235
+      },
+      {
+        "type": "stream_started",
+        "turn": 7,
+        "seconds": 65.625
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 74.047
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 74.063
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 86.141
+      },
+      {
+        "type": "stream_finished",
+        "turn": 7,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 86.141
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 86.141
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "call_00_hy2VuVeO7Elj8pWYa6Sg0254",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 86.141
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "call_00_hy2VuVeO7Elj8pWYa6Sg0254",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 86.485
+      },
+      {
+        "type": "stream_started",
+        "turn": 8,
+        "seconds": 86.891
+      },
+      {
+        "type": "stream_finished",
+        "turn": 8,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 90.25
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_00_bR6sVSzF1Nlru1kpYCQ69011",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 90.25
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_00_bR6sVSzF1Nlru1kpYCQ69011",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 90.25
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_01_uHCBPTowHuYMD94RaJxX4748",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 90.25
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_01_uHCBPTowHuYMD94RaJxX4748",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 90.25
+      },
+      {
+        "type": "stream_started",
+        "turn": 9,
+        "seconds": 90.672
+      },
+      {
+        "type": "stream_finished",
+        "turn": 9,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 99.829
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "call_00_kw2ZRrlce0sryJ0f6yzf6986",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 99.829
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "call_00_kw2ZRrlce0sryJ0f6yzf6986",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 99.875
+      },
+      {
+        "type": "stream_started",
+        "turn": 10,
+        "seconds": 100.297
+      },
+      {
+        "type": "stream_finished",
+        "turn": 10,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 101.516
+      },
+      {
+        "type": "tool_started",
+        "turn": 10,
+        "id": "call_00_IAOlUonWfPdYUXT4G8aY1799",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 101.516
+      },
+      {
+        "type": "tool_completed",
+        "turn": 10,
+        "id": "call_00_IAOlUonWfPdYUXT4G8aY1799",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 101.532
+      },
+      {
+        "type": "stream_started",
+        "turn": 11,
+        "seconds": 101.969
+      },
+      {
+        "type": "tool_started",
+        "turn": 11,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 102.875
+      },
+      {
+        "type": "tool_completed",
+        "turn": 11,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 102.891
+      },
+      {
+        "type": "tool_started",
+        "turn": 11,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 103.313
+      },
+      {
+        "type": "stream_finished",
+        "turn": 11,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 103.313
+      },
+      {
+        "type": "tool_completed",
+        "turn": 11,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 103.329
+      },
+      {
+        "type": "tool_started",
+        "turn": 11,
+        "id": "call_00_HqE9jflHXK4l5ejfatb88202",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 103.329
+      },
+      {
+        "type": "tool_completed",
+        "turn": 11,
+        "id": "call_00_HqE9jflHXK4l5ejfatb88202",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 103.657
+      },
+      {
+        "type": "stream_started",
+        "turn": 12,
+        "seconds": 104.079
+      },
+      {
+        "type": "stream_finished",
+        "turn": 12,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 106.485
+      },
+      {
+        "type": "tool_started",
+        "turn": 12,
+        "id": "call_00_F1tn4ufEYuxOcNrsr9g76661",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 106.485
+      },
+      {
+        "type": "tool_completed",
+        "turn": 12,
+        "id": "call_00_F1tn4ufEYuxOcNrsr9g76661",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 106.829
+      },
+      {
+        "type": "stream_started",
+        "turn": 13,
+        "seconds": 107.329
+      },
+      {
+        "type": "stream_finished",
+        "turn": 13,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 108.172
+      },
+      {
+        "type": "tool_started",
+        "turn": 13,
+        "id": "call_00_6PEkAS3IWYMBK0lLsihg2906",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 108.172
+      },
+      {
+        "type": "tool_completed",
+        "turn": 13,
+        "id": "call_00_6PEkAS3IWYMBK0lLsihg2906",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 108.172
+      },
+      {
+        "type": "stream_started",
+        "turn": 14,
+        "seconds": 108.61
+      },
+      {
+        "type": "stream_finished",
+        "turn": 14,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 111.125
+      },
+      {
+        "type": "tool_started",
+        "turn": 14,
+        "id": "call_00_L6MB2jiDuzT3Sy7OJURa7220",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 111.125
+      },
+      {
+        "type": "tool_completed",
+        "turn": 14,
+        "id": "call_00_L6MB2jiDuzT3Sy7OJURa7220",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 111.125
+      },
+      {
+        "type": "stream_started",
+        "turn": 15,
+        "seconds": 111.5
+      },
+      {
+        "type": "stream_finished",
+        "turn": 15,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 116.407
+      },
+      {
+        "type": "tool_started",
+        "turn": 15,
+        "id": "call_00_UObfz7VuXjKYlkmqmc0d4854",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 116.407
+      },
+      {
+        "type": "tool_completed",
+        "turn": 15,
+        "id": "call_00_UObfz7VuXjKYlkmqmc0d4854",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 116.407
+      },
+      {
+        "type": "stream_started",
+        "turn": 16,
+        "seconds": 116.829
+      },
+      {
+        "type": "stream_finished",
+        "turn": 16,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 120.922
+      },
+      {
+        "type": "tool_started",
+        "turn": 16,
+        "id": "call_00_86y3kBGieqhdjAeKmSSz6484",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 120.922
+      },
+      {
+        "type": "tool_completed",
+        "turn": 16,
+        "id": "call_00_86y3kBGieqhdjAeKmSSz6484",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 120.922
+      },
+      {
+        "type": "stream_started",
+        "turn": 17,
+        "seconds": 121.344
+      },
+      {
+        "type": "stream_finished",
+        "turn": 17,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 124.969
+      },
+      {
+        "type": "run_finished",
+        "turn": 17,
+        "seconds": 124.969
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_rruQGxYwQYvoaYg0g1SH2845",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_IpO9FudTg7UaNb7QBxqR9095",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_ET_vf3qN0hSqKHCdeMroCpI9393",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_5HvFpxoYrVhpqzqC6EqJ7838",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_02_ET_Ockhmffc3jx8FQ0SaZR89468",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_HdfeDiPVp4VXe92hjjMC5592",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_HzLqAs3XD0e82ctGvU0A2873",
+        "tool": "update_plan",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_ET_vty1i1iykwurNLl5GKfv7714",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_hy2VuVeO7Elj8pWYa6Sg0254",
+        "tool": "bash",
+        "status": "failed",
+        "error": ".\r\n----------------------------------------------------------------------\r\nRan 1 test in 0.004s\r\n\r\nOK\r\ntest_caller_payload_cannot_alias_stored_state (__main__.InboxTests.test_caller_payload_cannot_alias_stored_state) ... ok\r\ntest_canonical_identity_survives_reload (__main__.InboxTests.test_canonical_identity_survives_reload) ... ok\r\ntest_conflicting_duplicate_raises_and_changes_nothing (__main__.InboxTests.test_conflicting_duplicate_raises_and_changes_nothing) ... ok\r\ntest_duplicate_returns_current_record_without_resetting_state (__main__.InboxTests.test_duplicate_returns_current_record_without_resetting_state) ... ok\r\ntest_duplicate_stored_ids_are_rejected (__main__.InboxTests.test_duplicate_stored_ids_are_rejected) ... ok\r\ntest_failed_fsync_leaves_state_untouched (__main__.InboxTests.test_failed_fsync_leaves_state_untouched) ... ok\r\ntest_failed_save_during_start_and_finish_keeps_state (__main__.InboxTests.test_failed_save_during_start_and_finish_keeps_state) ... ok\r\ntest_failed_save_",
+        "exit_code": 1
+      },
+      {
+        "id": "call_00_bR6sVSzF1Nlru1kpYCQ69011",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_uHCBPTowHuYMD94RaJxX4748",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_kw2ZRrlce0sryJ0f6yzf6986",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_IAOlUonWfPdYUXT4G8aY1799",
+        "tool": "bash",
+        "status": "failed",
+        "error": "��ʱ��Ӧ�� <<��\r\n",
+        "exit_code": 1
+      },
+      {
+        "id": "3",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "4",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_HqE9jflHXK4l5ejfatb88202",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_F1tn4ufEYuxOcNrsr9g76661",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_6PEkAS3IWYMBK0lLsihg2906",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_L6MB2jiDuzT3Sy7OJURa7220",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。最近成功回执：call_00_ET_rruQGxYwQYvoaYg0g1SH2845:read_skill, call_01_ET_IpO9FudTg7UaNb7QBxqR9095:bash, call_00_ET_vf3qN0hSqKHCdeMroCpI9393:read, call_01_ET_5HvFpxoYrVhpqzqC6EqJ7838:read, call_02_ET_Ockhmffc3jx8FQ0SaZR89468:read, call_00_HdfeDiPVp4VXe92hjjMC5592:bash, call_00_HzLqAs3XD0e82ctGvU0A2873:update_plan, call_00_ET_vty1i1iykwurNLl5GKfv7714:bash, 1:write, 2:write, call_00_bR6sVSzF1Nlru1kpYCQ69011:read, call_01_uHCBPTowHuYMD94RaJxX4748:read, call_00_kw2ZRrlce0sryJ0f6yzf6986:bash, 3:edit, 4:edit, call_00_HqE9jflHXK4l5ejfatb88202:bash, call_00_F1tn4ufEYuxOcNrsr9g76661:bash, call_00_6PEkAS3IWYMBK0lLsihg2906:list_files",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_UObfz7VuXjKYlkmqmc0d4854",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。最近成功回执：call_01_ET_IpO9FudTg7UaNb7QBxqR9095:bash, call_00_ET_vf3qN0hSqKHCdeMroCpI9393:read, call_01_ET_5HvFpxoYrVhpqzqC6EqJ7838:read, call_02_ET_Ockhmffc3jx8FQ0SaZR89468:read, call_00_HdfeDiPVp4VXe92hjjMC5592:bash, call_00_HzLqAs3XD0e82ctGvU0A2873:update_plan, call_00_ET_vty1i1iykwurNLl5GKfv7714:bash, 1:write, 2:write, call_00_bR6sVSzF1Nlru1kpYCQ69011:read, call_01_uHCBPTowHuYMD94RaJxX4748:read, call_00_kw2ZRrlce0sryJ0f6yzf6986:bash, 3:edit, 4:edit, call_00_HqE9jflHXK4l5ejfatb88202:bash, call_00_F1tn4ufEYuxOcNrsr9g76661:bash, call_00_6PEkAS3IWYMBK0lLsihg2906:list_files",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_86y3kBGieqhdjAeKmSSz6484",
+        "tool": "update_plan",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 2
+  },
+  "durable_inbox-thinkflow-r2": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 2.281
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.984
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_lehDbC5WfT9l1u67h1nF6128",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.984
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_lehDbC5WfT9l1u67h1nF6128",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.984
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_tZSdMONLEiLnxLv1CV223873",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.984
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_tZSdMONLEiLnxLv1CV223873",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 3.0
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 3.625
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 4.391
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_ET_bxCWcESHUY3AkPCjXH4W5379",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 4.391
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_ET_bxCWcESHUY3AkPCjXH4W5379",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 4.406
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_ET_WEmkwVAKVCya0GOcSLDi2258",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 4.406
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_ET_WEmkwVAKVCya0GOcSLDi2258",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 4.406
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_02_ET_OaYDNVaS0s0qEkRZKIG24502",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 4.406
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_02_ET_OaYDNVaS0s0qEkRZKIG24502",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 4.406
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 4.75
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 38.766
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 39.156
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 52.703
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_00_eiOopkB7kRk0WXHrOK7Q6875",
+        "tool": "tf-write",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 52.703
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_00_eiOopkB7kRk0WXHrOK7Q6875",
+        "tool": "tf-write",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 52.703
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_01_TzDbZ654ZPCreYvNUDsr7253",
+        "tool": "tf-write",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "skipped",
+        "success": false,
+        "seconds": 52.703
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 53.141
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 54.047
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_C86hvRJwUQp0acNRV3XL4121",
+        "tool": "tf-write",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 54.047
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_C86hvRJwUQp0acNRV3XL4121",
+        "tool": "tf-write",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 54.047
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 54.406
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 55.0
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_UTLIZdplriv7F30Ojpps4299",
+        "tool": "tf-bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 55.0
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_UTLIZdplriv7F30Ojpps4299",
+        "tool": "tf-bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 55.0
+      },
+      {
+        "type": "error",
+        "turn": 6,
+        "seconds": 55.0
+      },
+      {
+        "type": "run_finished",
+        "turn": 6,
+        "seconds": 55.0
+      }
+    ],
+    "last_error": "Run stopped at configured limit: max_consecutive_failures",
+    "stopped_reason": "max_consecutive_failures",
+    "tool_records": [
+      {
+        "id": "call_00_ET_lehDbC5WfT9l1u67h1nF6128",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_tZSdMONLEiLnxLv1CV223873",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_ET_bxCWcESHUY3AkPCjXH4W5379",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_WEmkwVAKVCya0GOcSLDi2258",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_02_ET_OaYDNVaS0s0qEkRZKIG24502",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_eiOopkB7kRk0WXHrOK7Q6875",
+        "tool": "tf-write",
+        "status": "failed",
+        "error": "未知工具: tf-write",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_TzDbZ654ZPCreYvNUDsr7253",
+        "tool": "tf-write",
+        "status": "skipped",
+        "error": "Skipped because an earlier native command failed; no side effect was executed.",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_C86hvRJwUQp0acNRV3XL4121",
+        "tool": "tf-write",
+        "status": "failed",
+        "error": "未知工具: tf-write",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_UTLIZdplriv7F30Ojpps4299",
+        "tool": "tf-bash",
+        "status": "failed",
+        "error": "未知工具: tf-bash",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 0
+  },
+  "frame_decoder-thinkflow-r1": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.781
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.484
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_MsR7JpdB0DLSSVY94ft07248",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.484
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_MsR7JpdB0DLSSVY94ft07248",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.484
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_vFd60PRhAh7JbNKUHPBD6200",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.484
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_vFd60PRhAh7JbNKUHPBD6200",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.625
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 2.031
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.906
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_ET_DneIHfv9TFfalZqQTyaj0349",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.906
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_ET_DneIHfv9TFfalZqQTyaj0349",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.906
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_ET_3EA73AaH3ffP6KXfX7Me7500",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.906
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_ET_3EA73AaH3ffP6KXfX7Me7500",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.906
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_02_ET_7fRiFfpB8vTvulzH3aOW6724",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.906
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_02_ET_7fRiFfpB8vTvulzH3aOW6724",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.906
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 3.234
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 38.734
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 39.203
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 44.265
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 44.265
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 50.703
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 50.703
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 50.875
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_00_734oDpfDJ0oGygyVPsKu6700",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 50.875
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_00_734oDpfDJ0oGygyVPsKu6700",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 50.984
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 51.343
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 53.234
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_f9WCsMy46BBaSxy4W1W42177",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 53.234
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_f9WCsMy46BBaSxy4W1W42177",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 53.343
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_01_kjvPXPwNSjpIuJx9HDj32773",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "skipped",
+        "success": false,
+        "seconds": 53.343
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 53.765
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 58.328
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_ZFIDFrXAFNJTK5DNN8S18839",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 58.328
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_ZFIDFrXAFNJTK5DNN8S18839",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 58.328
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_01_J9EfxsFaVThe8w5zRNLx0566",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 58.328
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_01_J9EfxsFaVThe8w5zRNLx0566",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 58.328
+      },
+      {
+        "type": "stream_started",
+        "turn": 7,
+        "seconds": 58.75
+      },
+      {
+        "type": "stream_finished",
+        "turn": 7,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 90.562
+      },
+      {
+        "type": "stream_started",
+        "turn": 8,
+        "seconds": 91.0
+      },
+      {
+        "type": "stream_finished",
+        "turn": 8,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 102.406
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_00_Q5u76Nb1ZQkjgzNSlt4v3619",
+        "tool": "tf-edit",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 102.406
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_00_Q5u76Nb1ZQkjgzNSlt4v3619",
+        "tool": "tf-edit",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 102.406
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_01_pQqI9UU7TL4qWypDoFQt6076",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "skipped",
+        "success": false,
+        "seconds": 102.406
+      },
+      {
+        "type": "stream_started",
+        "turn": 9,
+        "seconds": 102.953
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 105.031
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 105.046
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 105.312
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 105.328
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "5",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 105.75
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "5",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 105.75
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "6",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 106.046
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "6",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 106.062
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "7",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 106.234
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "7",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 106.234
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "8",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 106.468
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "8",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 106.484
+      },
+      {
+        "type": "stream_finished",
+        "turn": 9,
+        "reason": "tool_failed",
+        "finish_reason": "",
+        "seconds": 107.156
+      },
+      {
+        "type": "error",
+        "turn": 9,
+        "seconds": 107.156
+      },
+      {
+        "type": "stream_started",
+        "turn": 10,
+        "seconds": 107.562
+      },
+      {
+        "type": "stream_finished",
+        "turn": 10,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 111.203
+      },
+      {
+        "type": "tool_started",
+        "turn": 10,
+        "id": "call_00_G4MyhAVMNWubmH4j265R2029",
+        "tool": "tf-edit",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 111.203
+      },
+      {
+        "type": "tool_completed",
+        "turn": 10,
+        "id": "call_00_G4MyhAVMNWubmH4j265R2029",
+        "tool": "tf-edit",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 111.203
+      },
+      {
+        "type": "error",
+        "turn": 10,
+        "seconds": 111.203
+      },
+      {
+        "type": "run_finished",
+        "turn": 10,
+        "seconds": 111.203
+      }
+    ],
+    "last_error": "Run stopped at configured limit: max_consecutive_failures",
+    "stopped_reason": "max_consecutive_failures",
+    "tool_records": [
+      {
+        "id": "call_00_ET_MsR7JpdB0DLSSVY94ft07248",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_vFd60PRhAh7JbNKUHPBD6200",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_ET_DneIHfv9TFfalZqQTyaj0349",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_3EA73AaH3ffP6KXfX7Me7500",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_02_ET_7fRiFfpB8vTvulzH3aOW6724",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_734oDpfDJ0oGygyVPsKu6700",
+        "tool": "bash",
+        "status": "failed",
+        "error": ".\r\n----------------------------------------------------------------------\r\nRan 1 test in 0.000s\r\n\r\nOK\r\n'tail' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���\r\n���������ļ���\r\n",
+        "exit_code": 255
+      },
+      {
+        "id": "call_00_f9WCsMy46BBaSxy4W1W42177",
+        "tool": "bash",
+        "status": "failed",
+        "error": "test_header_buffer_bounded (test_decoder_extra.BoundedTest.test_header_buffer_bounded) ... ok\r\ntest_no_allocation_from_claimed_length (test_decoder_extra.BoundedTest.test_no_allocation_from_claimed_length) ... ok\r\ntest_feed_type_errors_leave_state (test_decoder_extra.ConstructorTest.test_feed_type_errors_leave_state) ... ok\r\ntest_invalid (test_decoder_extra.ConstructorTest.test_invalid) ... ok\r\ntest_valid (test_decoder_extra.ConstructorTest.test_valid) ... ok\r\ntest_finish_after_complete_frame (test_decoder_extra.FinishTest.test_finish_after_complete_frame) ... ok\r\ntest_finish_clean (test_decoder_extra.FinishTest.test_finish_clean) ... ok\r\ntest_finish_with_partial (test_decoder_extra.FinishTest.test_finish_with_partial) ... ERROR\r\ntest_bad_headers (test_decoder_extra.MalformedTest.test_bad_headers) ... FAIL\r\ntest_bad_terminator (test_decoder_extra.MalformedTest.test_bad_terminator) ... ok\r\ntest_failure_is_permanent_and_not_resyncing (test_decoder_extra.MalformedTest.test_failure_is_perm",
+        "exit_code": 1
+      },
+      {
+        "id": "call_01_kjvPXPwNSjpIuJx9HDj32773",
+        "tool": "bash",
+        "status": "skipped",
+        "error": "Skipped because an earlier native command failed; no side effect was executed.",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_ZFIDFrXAFNJTK5DNN8S18839",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_J9EfxsFaVThe8w5zRNLx0566",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_Q5u76Nb1ZQkjgzNSlt4v3619",
+        "tool": "tf-edit",
+        "status": "failed",
+        "error": "未知工具: tf-edit",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_pQqI9UU7TL4qWypDoFQt6076",
+        "tool": "bash",
+        "status": "skipped",
+        "error": "Skipped because an earlier native command failed; no side effect was executed.",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "4",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "5",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "6",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "7",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "8",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_G4MyhAVMNWubmH4j265R2029",
+        "tool": "tf-edit",
+        "status": "failed",
+        "error": "未知工具: tf-edit",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 8
+  },
+  "frame_decoder-thinkflow-r2": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.797
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.344
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_09cjWdWmqAyLnyG2tUuZ2225",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.344
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_09cjWdWmqAyLnyG2tUuZ2225",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.344
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_Mehgmlaw5CjyepWXYhQF2295",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.344
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_Mehgmlaw5CjyepWXYhQF2295",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.344
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.672
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.579
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_omwKjDL8tu7byzM7IoxF9937",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.579
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_omwKjDL8tu7byzM7IoxF9937",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.579
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_7KfxbrHIXifN5IMHchm53108",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.579
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_7KfxbrHIXifN5IMHchm53108",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.579
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 2.891
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 37.922
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 38.266
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 39.422
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_00_qssaY0WHQqdqRQztwqOy3405",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 39.422
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_00_qssaY0WHQqdqRQztwqOy3405",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 39.422
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 40.344
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 46.297
+      },
+      {
+        "type": "error",
+        "turn": 5,
+        "seconds": 46.297
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 46.797
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 58.344
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 58.36
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 58.579
+      },
+      {
+        "type": "run_finished",
+        "turn": 6,
+        "seconds": 58.579
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_09cjWdWmqAyLnyG2tUuZ2225",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_Mehgmlaw5CjyepWXYhQF2295",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_omwKjDL8tu7byzM7IoxF9937",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_7KfxbrHIXifN5IMHchm53108",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_qssaY0WHQqdqRQztwqOy3405",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 1
+  },
+  "interval_coverage-thinkflow-r1": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.906
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.531
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_rDhfIRW4xttuFbHc0Pae8712",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.531
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_rDhfIRW4xttuFbHc0Pae8712",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.547
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_wxMIexIsFOK6lBbANxT42268",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.547
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_wxMIexIsFOK6lBbANxT42268",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.547
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.89
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.39
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_hRYP3acobsbqhSQZw7DV8033",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.39
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_hRYP3acobsbqhSQZw7DV8033",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.39
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_FLsj4Rf7hyUvxRyzkLga4607",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.39
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_FLsj4Rf7hyUvxRyzkLga4607",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.39
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 2.75
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 16.687
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 16.703
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 21.734
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 21.734
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 21.734
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "call_00_IFuGVJoPRL5CFaqOKgS99741",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 21.734
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "call_00_IFuGVJoPRL5CFaqOKgS99741",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 21.906
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 22.265
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 28.312
+      },
+      {
+        "type": "run_finished",
+        "turn": 4,
+        "seconds": 28.312
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_rDhfIRW4xttuFbHc0Pae8712",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_wxMIexIsFOK6lBbANxT42268",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_hRYP3acobsbqhSQZw7DV8033",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_FLsj4Rf7hyUvxRyzkLga4607",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_IFuGVJoPRL5CFaqOKgS99741",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      }
+    ],
+    "writes_before_stream_finished": 1
+  },
+  "interval_coverage-thinkflow-r2": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 1.016
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.672
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_uTRuYv82ciu68PfcodAb9891",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.672
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_uTRuYv82ciu68PfcodAb9891",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.672
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_zVoTZ0pz6z5Wse403iuX9341",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.672
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_zVoTZ0pz6z5Wse403iuX9341",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.688
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 2.0
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.954
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_wSKnnvRHSTGPBGE3bZLD1442",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.954
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_wSKnnvRHSTGPBGE3bZLD1442",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.954
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_Bc5U7V5ddlh2peFTGBLa5141",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.954
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_Bc5U7V5ddlh2peFTGBLa5141",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.954
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_02_uDneyh1ZJlYKI8tATt5b1243",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.954
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_02_uDneyh1ZJlYKI8tATt5b1243",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.954
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 3.282
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 27.469
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 27.485
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 27.594
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 27.61
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 33.235
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 33.657
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 42.688
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 42.688
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 44.266
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 44.282
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "5",
+        "tool": "bash",
+        "channel": "text",
+        "flow": "blocking",
+        "seconds": 44.344
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "5",
+        "tool": "bash",
+        "channel": "text",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 44.454
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "need_result",
+        "finish_reason": "",
+        "seconds": 44.454
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 44.813
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 46.141
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_FrL3eJ09SpiXht8yrIPj9110",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 46.141
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_FrL3eJ09SpiXht8yrIPj9110",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 46.25
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_01_lg675VE3G5HllpqlvGyF3235",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "skipped",
+        "success": false,
+        "seconds": 46.25
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 47.125
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 48.282
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_wApv5PXEPcwSsb5Xwzfo4851",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 48.282
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_wApv5PXEPcwSsb5Xwzfo4851",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 48.282
+      },
+      {
+        "type": "stream_started",
+        "turn": 7,
+        "seconds": 48.672
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "6",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 52.844
+      },
+      {
+        "type": "stream_finished",
+        "turn": 7,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 52.844
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "6",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 52.844
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "call_00_1qR4uP41sjS8xI1e54UA8245",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 52.844
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "call_00_1qR4uP41sjS8xI1e54UA8245",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 53.032
+      },
+      {
+        "type": "stream_started",
+        "turn": 8,
+        "seconds": 53.407
+      },
+      {
+        "type": "stream_finished",
+        "turn": 8,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 57.219
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_00_LXKL7SJJoz0BCwcY3S0S6803",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 57.219
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_00_LXKL7SJJoz0BCwcY3S0S6803",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 57.266
+      },
+      {
+        "type": "stream_started",
+        "turn": 9,
+        "seconds": 57.672
+      },
+      {
+        "type": "stream_finished",
+        "turn": 9,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 60.782
+      },
+      {
+        "type": "run_finished",
+        "turn": 9,
+        "seconds": 60.782
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_uTRuYv82ciu68PfcodAb9891",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_zVoTZ0pz6z5Wse403iuX9341",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_wSKnnvRHSTGPBGE3bZLD1442",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_Bc5U7V5ddlh2peFTGBLa5141",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_02_uDneyh1ZJlYKI8tATt5b1243",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "4",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "5",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_FrL3eJ09SpiXht8yrIPj9110",
+        "tool": "bash",
+        "status": "failed",
+        "error": "",
+        "exit_code": 1
+      },
+      {
+        "id": "call_01_lg675VE3G5HllpqlvGyF3235",
+        "tool": "read",
+        "status": "skipped",
+        "error": "Skipped because an earlier native command failed; no side effect was executed.",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_wApv5PXEPcwSsb5Xwzfo4851",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "6",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_1qR4uP41sjS8xI1e54UA8245",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_LXKL7SJJoz0BCwcY3S0S6803",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      }
+    ],
+    "writes_before_stream_finished": 4
+  },
+  "pricing_refactor-thinkflow-r1": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.968
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.625
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_tSCoN5ntL3ZOLUUIm61K8677",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.625
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_tSCoN5ntL3ZOLUUIm61K8677",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.625
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_on9Xsiop5BSJqEvE0hZK6392",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.625
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_on9Xsiop5BSJqEvE0hZK6392",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.625
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.937
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.515
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_BQmV2epiKMVvTErQD20v5740",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.515
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_BQmV2epiKMVvTErQD20v5740",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.515
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_Zi1J3J2vP4OOijtSqWFF7533",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.515
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_Zi1J3J2vP4OOijtSqWFF7533",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.515
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_02_iksJhZUcLPbTH5fZp74G4393",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.515
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_02_iksJhZUcLPbTH5fZp74G4393",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.515
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 2.953
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 40.062
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 40.406
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 74.593
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 74.953
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 88.968
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_9z8yONf3HoJl5Pr5oe7N2547",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 88.968
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_9z8yONf3HoJl5Pr5oe7N2547",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 88.968
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 89.453
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 89.953
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_fMAyTQa9PrzpIenpsLbx3912",
+        "tool": "pwd",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 89.953
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_fMAyTQa9PrzpIenpsLbx3912",
+        "tool": "pwd",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 89.953
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_01_QYIANIPNX8Qd8hxCmbtb4416",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 89.953
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_01_QYIANIPNX8Qd8hxCmbtb4416",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 89.953
+      },
+      {
+        "type": "stream_started",
+        "turn": 7,
+        "seconds": 90.39
+      },
+      {
+        "type": "stream_finished",
+        "turn": 7,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 106.312
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "call_00_DVWE88aqfi3bQL1cL2b59735",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 106.312
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "call_00_DVWE88aqfi3bQL1cL2b59735",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 106.468
+      },
+      {
+        "type": "stream_started",
+        "turn": 8,
+        "seconds": 106.89
+      },
+      {
+        "type": "stream_finished",
+        "turn": 8,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 113.328
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_00_oMREsv4hUPvvZj6cGGUT2350",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 113.328
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_00_oMREsv4hUPvvZj6cGGUT2350",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 113.343
+      },
+      {
+        "type": "stream_started",
+        "turn": 9,
+        "seconds": 113.781
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 117.468
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 117.468
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 118.906
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 118.921
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 120.437
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 120.437
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "4",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 131.171
+      },
+      {
+        "type": "stream_finished",
+        "turn": 9,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 131.171
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "4",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 131.187
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "call_00_PBaV8IosBULvs5v16UMD1192",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 131.187
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "call_00_PBaV8IosBULvs5v16UMD1192",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 131.468
+      },
+      {
+        "type": "stream_started",
+        "turn": 10,
+        "seconds": 131.921
+      },
+      {
+        "type": "stream_finished",
+        "turn": 10,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 139.328
+      },
+      {
+        "type": "tool_started",
+        "turn": 10,
+        "id": "call_00_JgdyWeE0xsumIYJDsNuE0117",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 139.328
+      },
+      {
+        "type": "tool_completed",
+        "turn": 10,
+        "id": "call_00_JgdyWeE0xsumIYJDsNuE0117",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 139.328
+      },
+      {
+        "type": "stream_started",
+        "turn": 11,
+        "seconds": 139.796
+      },
+      {
+        "type": "stream_finished",
+        "turn": 11,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 141.75
+      },
+      {
+        "type": "tool_started",
+        "turn": 11,
+        "id": "call_00_rIZfne8G806rsuS7z47c1454",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 141.75
+      },
+      {
+        "type": "tool_completed",
+        "turn": 11,
+        "id": "call_00_rIZfne8G806rsuS7z47c1454",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 141.75
+      },
+      {
+        "type": "stream_started",
+        "turn": 12,
+        "seconds": 142.187
+      },
+      {
+        "type": "stream_finished",
+        "turn": 12,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 146.468
+      },
+      {
+        "type": "tool_started",
+        "turn": 12,
+        "id": "call_00_vA42069qft0wukCPzTrL6181",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 146.468
+      },
+      {
+        "type": "tool_completed",
+        "turn": 12,
+        "id": "call_00_vA42069qft0wukCPzTrL6181",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 146.468
+      },
+      {
+        "type": "stream_started",
+        "turn": 13,
+        "seconds": 146.89
+      },
+      {
+        "type": "stream_finished",
+        "turn": 13,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 152.546
+      },
+      {
+        "type": "tool_started",
+        "turn": 13,
+        "id": "call_00_UftxZzNpBTkWo78JFOzV6020",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 152.546
+      },
+      {
+        "type": "tool_completed",
+        "turn": 13,
+        "id": "call_00_UftxZzNpBTkWo78JFOzV6020",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 152.546
+      },
+      {
+        "type": "stream_started",
+        "turn": 14,
+        "seconds": 153.046
+      },
+      {
+        "type": "stream_finished",
+        "turn": 14,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 157.703
+      },
+      {
+        "type": "tool_started",
+        "turn": 14,
+        "id": "call_00_KoHERQyqY4m8PzNCCZju3110",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 157.703
+      },
+      {
+        "type": "tool_completed",
+        "turn": 14,
+        "id": "call_00_KoHERQyqY4m8PzNCCZju3110",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 157.968
+      },
+      {
+        "type": "stream_started",
+        "turn": 15,
+        "seconds": 158.39
+      },
+      {
+        "type": "stream_finished",
+        "turn": 15,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 160.359
+      },
+      {
+        "type": "tool_started",
+        "turn": 15,
+        "id": "call_00_hDewoID684dIClzuFx1x3248",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 160.359
+      },
+      {
+        "type": "tool_completed",
+        "turn": 15,
+        "id": "call_00_hDewoID684dIClzuFx1x3248",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 160.359
+      },
+      {
+        "type": "stream_started",
+        "turn": 16,
+        "seconds": 160.812
+      },
+      {
+        "type": "stream_finished",
+        "turn": 16,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 163.703
+      },
+      {
+        "type": "tool_started",
+        "turn": 16,
+        "id": "call_00_4MXvLfWkAjFoEvayV2Gn6178",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 163.703
+      },
+      {
+        "type": "tool_completed",
+        "turn": 16,
+        "id": "call_00_4MXvLfWkAjFoEvayV2Gn6178",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 163.703
+      },
+      {
+        "type": "stream_started",
+        "turn": 17,
+        "seconds": 164.187
+      },
+      {
+        "type": "stream_finished",
+        "turn": 17,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 166.046
+      },
+      {
+        "type": "tool_started",
+        "turn": 17,
+        "id": "call_00_SsUtncc5TzAcv0QiGvfQ7714",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 166.046
+      },
+      {
+        "type": "tool_completed",
+        "turn": 17,
+        "id": "call_00_SsUtncc5TzAcv0QiGvfQ7714",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 166.046
+      },
+      {
+        "type": "stream_started",
+        "turn": 18,
+        "seconds": 166.5
+      },
+      {
+        "type": "stream_finished",
+        "turn": 18,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 169.25
+      },
+      {
+        "type": "tool_started",
+        "turn": 18,
+        "id": "call_00_u15cl9mXVdAhYM1bYsiS4506",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 169.25
+      },
+      {
+        "type": "tool_completed",
+        "turn": 18,
+        "id": "call_00_u15cl9mXVdAhYM1bYsiS4506",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 169.25
+      },
+      {
+        "type": "stream_started",
+        "turn": 19,
+        "seconds": 169.718
+      },
+      {
+        "type": "stream_finished",
+        "turn": 19,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 173.89
+      },
+      {
+        "type": "run_finished",
+        "turn": 19,
+        "seconds": 173.89
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_tSCoN5ntL3ZOLUUIm61K8677",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_on9Xsiop5BSJqEvE0hZK6392",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_BQmV2epiKMVvTErQD20v5740",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_Zi1J3J2vP4OOijtSqWFF7533",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_02_iksJhZUcLPbTH5fZp74G4393",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_9z8yONf3HoJl5Pr5oe7N2547",
+        "tool": "update_plan",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_fMAyTQa9PrzpIenpsLbx3912",
+        "tool": "pwd",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_QYIANIPNX8Qd8hxCmbtb4416",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_DVWE88aqfi3bQL1cL2b59735",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_oMREsv4hUPvvZj6cGGUT2350",
+        "tool": "bash",
+        "status": "failed",
+        "error": "��ʱ��Ӧ�� <<��\r\n",
+        "exit_code": 1
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "4",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_PBaV8IosBULvs5v16UMD1192",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_JgdyWeE0xsumIYJDsNuE0117",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。最近成功回执：call_00_ET_tSCoN5ntL3ZOLUUIm61K8677:read, call_01_ET_on9Xsiop5BSJqEvE0hZK6392:list_files, call_00_BQmV2epiKMVvTErQD20v5740:read, call_01_Zi1J3J2vP4OOijtSqWFF7533:read, call_02_iksJhZUcLPbTH5fZp74G4393:read, call_00_9z8yONf3HoJl5Pr5oe7N2547:update_plan, call_00_fMAyTQa9PrzpIenpsLbx3912:pwd, call_01_QYIANIPNX8Qd8hxCmbtb4416:list_files, call_00_DVWE88aqfi3bQL1cL2b59735:bash, 1:write, 2:write, 3:write, 4:write, call_00_PBaV8IosBULvs5v16UMD1192:bash",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_rIZfne8G806rsuS7z47c1454",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。最近成功回执：call_00_ET_tSCoN5ntL3ZOLUUIm61K8677:read, call_01_ET_on9Xsiop5BSJqEvE0hZK6392:list_files, call_00_BQmV2epiKMVvTErQD20v5740:read, call_01_Zi1J3J2vP4OOijtSqWFF7533:read, call_02_iksJhZUcLPbTH5fZp74G4393:read, call_00_9z8yONf3HoJl5Pr5oe7N2547:update_plan, call_00_fMAyTQa9PrzpIenpsLbx3912:pwd, call_01_QYIANIPNX8Qd8hxCmbtb4416:list_files, call_00_DVWE88aqfi3bQL1cL2b59735:bash, 1:write, 2:write, 3:write, 4:write, call_00_PBaV8IosBULvs5v16UMD1192:bash",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_vA42069qft0wukCPzTrL6181",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_UftxZzNpBTkWo78JFOzV6020",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。最近成功回执：call_00_ET_tSCoN5ntL3ZOLUUIm61K8677:read, call_01_ET_on9Xsiop5BSJqEvE0hZK6392:list_files, call_00_BQmV2epiKMVvTErQD20v5740:read, call_01_Zi1J3J2vP4OOijtSqWFF7533:read, call_02_iksJhZUcLPbTH5fZp74G4393:read, call_00_9z8yONf3HoJl5Pr5oe7N2547:update_plan, call_00_fMAyTQa9PrzpIenpsLbx3912:pwd, call_01_QYIANIPNX8Qd8hxCmbtb4416:list_files, call_00_DVWE88aqfi3bQL1cL2b59735:bash, 1:write, 2:write, 3:write, 4:write, call_00_PBaV8IosBULvs5v16UMD1192:bash, call_00_vA42069qft0wukCPzTrL6181:list_files",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_KoHERQyqY4m8PzNCCZju3110",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_hDewoID684dIClzuFx1x3248",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。最近成功回执：call_00_ET_tSCoN5ntL3ZOLUUIm61K8677:read, call_01_ET_on9Xsiop5BSJqEvE0hZK6392:list_files, call_00_BQmV2epiKMVvTErQD20v5740:read, call_01_Zi1J3J2vP4OOijtSqWFF7533:read, call_02_iksJhZUcLPbTH5fZp74G4393:read, call_00_9z8yONf3HoJl5Pr5oe7N2547:update_plan, call_00_fMAyTQa9PrzpIenpsLbx3912:pwd, call_01_QYIANIPNX8Qd8hxCmbtb4416:list_files, call_00_DVWE88aqfi3bQL1cL2b59735:bash, 1:write, 2:write, 3:write, 4:write, call_00_PBaV8IosBULvs5v16UMD1192:bash, call_00_vA42069qft0wukCPzTrL6181:list_files, call_00_KoHERQyqY4m8PzNCCZju3110:bash",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_4MXvLfWkAjFoEvayV2Gn6178",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。最近成功回执：call_01_ET_on9Xsiop5BSJqEvE0hZK6392:list_files, call_00_BQmV2epiKMVvTErQD20v5740:read, call_01_Zi1J3J2vP4OOijtSqWFF7533:read, call_02_iksJhZUcLPbTH5fZp74G4393:read, call_00_9z8yONf3HoJl5Pr5oe7N2547:update_plan, call_00_fMAyTQa9PrzpIenpsLbx3912:pwd, call_01_QYIANIPNX8Qd8hxCmbtb4416:list_files, call_00_DVWE88aqfi3bQL1cL2b59735:bash, 1:write, 2:write, 3:write, 4:write, call_00_PBaV8IosBULvs5v16UMD1192:bash, call_00_vA42069qft0wukCPzTrL6181:list_files, call_00_KoHERQyqY4m8PzNCCZju3110:bash",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_SsUtncc5TzAcv0QiGvfQ7714",
+        "tool": "update_plan",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_u15cl9mXVdAhYM1bYsiS4506",
+        "tool": "update_plan",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 3
+  },
+  "pricing_refactor-thinkflow-r2": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.89
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.562
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_jGZLi6wboSbu2yXSQSMx3101",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.562
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_jGZLi6wboSbu2yXSQSMx3101",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.578
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_mvL18XFJAEEPFNH2kYP34185",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.578
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_mvL18XFJAEEPFNH2kYP34185",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.578
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.89
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.484
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_liVQpsyYrLw3T66SYjZr9866",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.484
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_liVQpsyYrLw3T66SYjZr9866",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.484
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_WUjfmY63ZAoGo6CprmCl0707",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.484
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_WUjfmY63ZAoGo6CprmCl0707",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.484
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 3.0
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 3.64
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "call_00_ET_mKowHSvmBodBKW61gyUE1312",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 3.64
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "call_00_ET_mKowHSvmBodBKW61gyUE1312",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 3.64
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "call_01_ET_vZZ92jd4oZEZfRmyfedS9589",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 3.64
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "call_01_ET_vZZ92jd4oZEZfRmyfedS9589",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 3.64
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 3.968
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 38.14
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 38.593
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 64.265
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_0v81PdfyF2IFCDoKIkrq3555",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 64.265
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_0v81PdfyF2IFCDoKIkrq3555",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 64.265
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 64.656
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 65.156
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_S7RXkn3mUlHMZPbjCUE61579",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 65.156
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_S7RXkn3mUlHMZPbjCUE61579",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 65.297
+      },
+      {
+        "type": "stream_started",
+        "turn": 7,
+        "seconds": 65.703
+      },
+      {
+        "type": "stream_finished",
+        "turn": 7,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 66.515
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "call_00_M4sruIoiVYCqg4qf6XvQ1889",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 66.515
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "call_00_M4sruIoiVYCqg4qf6XvQ1889",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 66.531
+      },
+      {
+        "type": "stream_started",
+        "turn": 8,
+        "seconds": 66.937
+      },
+      {
+        "type": "stream_finished",
+        "turn": 8,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 67.359
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_00_ET_uzSCbi0wuqfVXLwUOP439968",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 67.359
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_00_ET_uzSCbi0wuqfVXLwUOP439968",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 67.39
+      },
+      {
+        "type": "stream_started",
+        "turn": 9,
+        "seconds": 67.75
+      },
+      {
+        "type": "stream_finished",
+        "turn": 9,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 68.125
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "call_00_zFgPNsLptuaisRK8BS660582",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 68.125
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "call_00_zFgPNsLptuaisRK8BS660582",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 68.14
+      },
+      {
+        "type": "stream_started",
+        "turn": 10,
+        "seconds": 68.906
+      },
+      {
+        "type": "tool_started",
+        "turn": 10,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 83.422
+      },
+      {
+        "type": "tool_completed",
+        "turn": 10,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 83.422
+      },
+      {
+        "type": "tool_started",
+        "turn": 10,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 84.203
+      },
+      {
+        "type": "tool_completed",
+        "turn": 10,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 84.218
+      },
+      {
+        "type": "tool_started",
+        "turn": 10,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 84.984
+      },
+      {
+        "type": "tool_completed",
+        "turn": 10,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 85.0
+      },
+      {
+        "type": "stream_finished",
+        "turn": 10,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 93.078
+      },
+      {
+        "type": "stream_started",
+        "turn": 11,
+        "seconds": 93.843
+      },
+      {
+        "type": "stream_finished",
+        "turn": 11,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 94.5
+      },
+      {
+        "type": "tool_started",
+        "turn": 11,
+        "id": "call_00_FGlID9OrwnPVzTkU1JNY8395",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 94.5
+      },
+      {
+        "type": "tool_completed",
+        "turn": 11,
+        "id": "call_00_FGlID9OrwnPVzTkU1JNY8395",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 94.515
+      },
+      {
+        "type": "stream_started",
+        "turn": 12,
+        "seconds": 94.875
+      },
+      {
+        "type": "stream_finished",
+        "turn": 12,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 96.125
+      },
+      {
+        "type": "tool_started",
+        "turn": 12,
+        "id": "call_00_un9zORLYHKIvnme9j42L2113",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 96.125
+      },
+      {
+        "type": "tool_completed",
+        "turn": 12,
+        "id": "call_00_un9zORLYHKIvnme9j42L2113",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 96.14
+      },
+      {
+        "type": "stream_started",
+        "turn": 13,
+        "seconds": 96.578
+      },
+      {
+        "type": "stream_finished",
+        "turn": 13,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 97.156
+      },
+      {
+        "type": "tool_started",
+        "turn": 13,
+        "id": "call_00_ET_nvxZ3ZMAoVBOFDqYpwW58955",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 97.156
+      },
+      {
+        "type": "tool_completed",
+        "turn": 13,
+        "id": "call_00_ET_nvxZ3ZMAoVBOFDqYpwW58955",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 97.172
+      },
+      {
+        "type": "stream_started",
+        "turn": 14,
+        "seconds": 97.562
+      },
+      {
+        "type": "stream_finished",
+        "turn": 14,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 98.265
+      },
+      {
+        "type": "tool_started",
+        "turn": 14,
+        "id": "call_00_uiIfIAibDDLPdvvX6a7Z7556",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 98.265
+      },
+      {
+        "type": "tool_completed",
+        "turn": 14,
+        "id": "call_00_uiIfIAibDDLPdvvX6a7Z7556",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 98.281
+      },
+      {
+        "type": "stream_started",
+        "turn": 15,
+        "seconds": 98.687
+      },
+      {
+        "type": "stream_finished",
+        "turn": 15,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 99.047
+      },
+      {
+        "type": "tool_started",
+        "turn": 15,
+        "id": "call_00_WogMd72yOyGxCFVW9YF89483",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 99.047
+      },
+      {
+        "type": "tool_completed",
+        "turn": 15,
+        "id": "call_00_WogMd72yOyGxCFVW9YF89483",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 99.062
+      },
+      {
+        "type": "stream_started",
+        "turn": 16,
+        "seconds": 99.609
+      },
+      {
+        "type": "stream_finished",
+        "turn": 16,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 100.562
+      },
+      {
+        "type": "tool_started",
+        "turn": 16,
+        "id": "call_00_9eytetpYcn0myrFqag9Z4715",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 100.562
+      },
+      {
+        "type": "tool_completed",
+        "turn": 16,
+        "id": "call_00_9eytetpYcn0myrFqag9Z4715",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 100.578
+      },
+      {
+        "type": "stream_started",
+        "turn": 17,
+        "seconds": 110.093
+      },
+      {
+        "type": "stream_finished",
+        "turn": 17,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 110.5
+      },
+      {
+        "type": "tool_started",
+        "turn": 17,
+        "id": "call_00_wZeHpwJhdWDkfF0pRZjs5981",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 110.5
+      },
+      {
+        "type": "tool_completed",
+        "turn": 17,
+        "id": "call_00_wZeHpwJhdWDkfF0pRZjs5981",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 110.515
+      },
+      {
+        "type": "stream_started",
+        "turn": 18,
+        "seconds": 111.015
+      },
+      {
+        "type": "stream_finished",
+        "turn": 18,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 111.75
+      },
+      {
+        "type": "tool_started",
+        "turn": 18,
+        "id": "call_00_ET_68ua0rjg7EaZvH00UCgj8444",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 111.75
+      },
+      {
+        "type": "tool_completed",
+        "turn": 18,
+        "id": "call_00_ET_68ua0rjg7EaZvH00UCgj8444",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 111.765
+      },
+      {
+        "type": "stream_started",
+        "turn": 19,
+        "seconds": 112.343
+      },
+      {
+        "type": "stream_finished",
+        "turn": 19,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 112.797
+      },
+      {
+        "type": "tool_started",
+        "turn": 19,
+        "id": "call_00_T4ghtJPzDToGFJT3nPbn4473",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 112.797
+      },
+      {
+        "type": "tool_completed",
+        "turn": 19,
+        "id": "call_00_T4ghtJPzDToGFJT3nPbn4473",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 112.812
+      },
+      {
+        "type": "stream_started",
+        "turn": 20,
+        "seconds": 113.265
+      },
+      {
+        "type": "stream_finished",
+        "turn": 20,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 124.718
+      },
+      {
+        "type": "tool_started",
+        "turn": 20,
+        "id": "call_00_mICRUWUvEOKKUKWA8hLV3389",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 124.718
+      },
+      {
+        "type": "tool_completed",
+        "turn": 20,
+        "id": "call_00_mICRUWUvEOKKUKWA8hLV3389",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 124.734
+      },
+      {
+        "type": "stream_started",
+        "turn": 21,
+        "seconds": 128.703
+      },
+      {
+        "type": "stream_finished",
+        "turn": 21,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 129.328
+      },
+      {
+        "type": "tool_started",
+        "turn": 21,
+        "id": "call_00_Lhl83PG2ofX7iySi6htx0306",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 129.328
+      },
+      {
+        "type": "tool_completed",
+        "turn": 21,
+        "id": "call_00_Lhl83PG2ofX7iySi6htx0306",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 129.343
+      },
+      {
+        "type": "stream_started",
+        "turn": 22,
+        "seconds": 131.797
+      },
+      {
+        "type": "stream_finished",
+        "turn": 22,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 132.547
+      },
+      {
+        "type": "tool_started",
+        "turn": 22,
+        "id": "call_00_Xa71OCQqCenSUTI63Ebi3902",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 132.547
+      },
+      {
+        "type": "tool_completed",
+        "turn": 22,
+        "id": "call_00_Xa71OCQqCenSUTI63Ebi3902",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 132.562
+      },
+      {
+        "type": "stream_started",
+        "turn": 23,
+        "seconds": 133.0
+      },
+      {
+        "type": "stream_finished",
+        "turn": 23,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 133.562
+      },
+      {
+        "type": "tool_started",
+        "turn": 23,
+        "id": "call_00_CMAliNbIqmDrfMisPnzF9376",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 133.562
+      },
+      {
+        "type": "tool_completed",
+        "turn": 23,
+        "id": "call_00_CMAliNbIqmDrfMisPnzF9376",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 133.578
+      },
+      {
+        "type": "stream_started",
+        "turn": 24,
+        "seconds": 133.984
+      },
+      {
+        "type": "stream_finished",
+        "turn": 24,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 134.672
+      },
+      {
+        "type": "tool_started",
+        "turn": 24,
+        "id": "call_00_tVrPBvjDxLjrDhLiijy97554",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 134.672
+      },
+      {
+        "type": "tool_completed",
+        "turn": 24,
+        "id": "call_00_tVrPBvjDxLjrDhLiijy97554",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 134.687
+      },
+      {
+        "type": "error",
+        "turn": 24,
+        "seconds": 134.687
+      },
+      {
+        "type": "run_finished",
+        "turn": 24,
+        "seconds": 134.687
+      }
+    ],
+    "last_error": "Run stopped at configured limit: max_run_turns",
+    "stopped_reason": "max_run_turns",
+    "tool_records": [
+      {
+        "id": "call_00_ET_jGZLi6wboSbu2yXSQSMx3101",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_mvL18XFJAEEPFNH2kYP34185",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_liVQpsyYrLw3T66SYjZr9866",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_WUjfmY63ZAoGo6CprmCl0707",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_ET_mKowHSvmBodBKW61gyUE1312",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_vZZ92jd4oZEZfRmyfedS9589",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_0v81PdfyF2IFCDoKIkrq3555",
+        "tool": "update_plan",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_S7RXkn3mUlHMZPbjCUE61579",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_M4sruIoiVYCqg4qf6XvQ1889",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_ET_uzSCbi0wuqfVXLwUOP439968",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_zFgPNsLptuaisRK8BS660582",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_FGlID9OrwnPVzTkU1JNY8395",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_un9zORLYHKIvnme9j42L2113",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_ET_nvxZ3ZMAoVBOFDqYpwW58955",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_uiIfIAibDDLPdvvX6a7Z7556",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_WogMd72yOyGxCFVW9YF89483",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_9eytetpYcn0myrFqag9Z4715",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_wZeHpwJhdWDkfF0pRZjs5981",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_ET_68ua0rjg7EaZvH00UCgj8444",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_T4ghtJPzDToGFJT3nPbn4473",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_mICRUWUvEOKKUKWA8hLV3389",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_Lhl83PG2ofX7iySi6htx0306",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_Xa71OCQqCenSUTI63Ebi3902",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_CMAliNbIqmDrfMisPnzF9376",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_00_tVrPBvjDxLjrDhLiijy97554",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      }
+    ],
+    "writes_before_stream_finished": 3
+  },
+  "receipt_package-thinkflow-r1": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.875
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.75
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_ml1u6YpE77WC60EGXJT92620",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.75
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_ml1u6YpE77WC60EGXJT92620",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.75
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_UnFIUyy2nhSY3XCGzmw06858",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.75
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_UnFIUyy2nhSY3XCGzmw06858",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.75
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 2.047
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.625
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_ET_JdmYJ9ArktPzI85zvNPj3897",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.625
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_ET_JdmYJ9ArktPzI85zvNPj3897",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.625
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_ET_tbiXmpPr3JNDudLCMRU57064",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.625
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_ET_tbiXmpPr3JNDudLCMRU57064",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.625
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 3.0
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 38.375
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 38.719
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "1",
+        "tool": "mkdir",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 40.031
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "1",
+        "tool": "mkdir",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 40.031
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "2",
+        "tool": "mkdir",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 40.078
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "2",
+        "tool": "mkdir",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 40.078
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 43.203
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 43.219
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "4",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 43.5
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "4",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 43.5
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 43.547
+      },
+      {
+        "type": "run_finished",
+        "turn": 4,
+        "seconds": 43.547
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_ml1u6YpE77WC60EGXJT92620",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_UnFIUyy2nhSY3XCGzmw06858",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_ET_JdmYJ9ArktPzI85zvNPj3897",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_tbiXmpPr3JNDudLCMRU57064",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "mkdir",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "mkdir",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "4",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 4
+  },
+  "receipt_package-thinkflow-r2": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.875
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.453
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_27C3mMoHCPVgnmHqMI2h4669",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.453
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_27C3mMoHCPVgnmHqMI2h4669",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.453
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_1Ftt2mz1w3rIdVC2ZBQf1480",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.453
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_1Ftt2mz1w3rIdVC2ZBQf1480",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.468
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_02_ET_Gr5rZhgkjVc8l4KgIFnh0970",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.468
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_02_ET_Gr5rZhgkjVc8l4KgIFnh0970",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.468
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.781
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.125
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_ET_bSE9L3KWpYLgCr4V46G12733",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.125
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_ET_bSE9L3KWpYLgCr4V46G12733",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.125
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 2.422
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "tool_use",
+        "finish_reason": "length",
+        "seconds": 36.578
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "call_00_dPfC6JbduZWIaVM2XcKP2482",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 36.578
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "call_00_dPfC6JbduZWIaVM2XcKP2482",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 36.578
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 36.953
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 39.343
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_00_SEekJ1EfZTCp5QDseMLL1482",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 39.343
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_00_SEekJ1EfZTCp5QDseMLL1482",
+        "tool": "update_plan",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 39.343
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 39.734
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 43.703
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 43.703
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 43.922
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 43.922
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 46.562
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "3",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 46.562
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "4",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 58.937
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "4",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 58.937
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 59.218
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_UQbO63JXPm6chZ30GEGy1376",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 59.218
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_UQbO63JXPm6chZ30GEGy1376",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 59.359
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 59.75
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 60.562
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_lgcUFeSRdc5TrBVckYfU0510",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 60.562
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_lgcUFeSRdc5TrBVckYfU0510",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 62.25
+      },
+      {
+        "type": "stream_started",
+        "turn": 7,
+        "seconds": 62.656
+      },
+      {
+        "type": "stream_finished",
+        "turn": 7,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 66.281
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "call_00_EevwJsJXZ3cDrdsYeylb2299",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 66.281
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "call_00_EevwJsJXZ3cDrdsYeylb2299",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 66.281
+      },
+      {
+        "type": "stream_started",
+        "turn": 8,
+        "seconds": 67.062
+      },
+      {
+        "type": "stream_finished",
+        "turn": 8,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 78.625
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_00_SRjOh4R5rZp8xaXwlush6399",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 78.625
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_00_SRjOh4R5rZp8xaXwlush6399",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 78.672
+      },
+      {
+        "type": "tool_started",
+        "turn": 8,
+        "id": "call_01_64nV8qSADUXElAKRVZn18485",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 78.672
+      },
+      {
+        "type": "tool_completed",
+        "turn": 8,
+        "id": "call_01_64nV8qSADUXElAKRVZn18485",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 78.672
+      },
+      {
+        "type": "stream_started",
+        "turn": 9,
+        "seconds": 79.093
+      },
+      {
+        "type": "stream_finished",
+        "turn": 9,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 80.859
+      },
+      {
+        "type": "tool_started",
+        "turn": 9,
+        "id": "call_00_AblPXXb5Od9i74ru7MGm3469",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 80.859
+      },
+      {
+        "type": "tool_completed",
+        "turn": 9,
+        "id": "call_00_AblPXXb5Od9i74ru7MGm3469",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 80.875
+      },
+      {
+        "type": "stream_started",
+        "turn": 10,
+        "seconds": 81.297
+      },
+      {
+        "type": "stream_finished",
+        "turn": 10,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 83.172
+      },
+      {
+        "type": "tool_started",
+        "turn": 10,
+        "id": "call_00_SSrUrgI6GawnEjq4MGNf4036",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 83.172
+      },
+      {
+        "type": "tool_completed",
+        "turn": 10,
+        "id": "call_00_SSrUrgI6GawnEjq4MGNf4036",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 84.828
+      },
+      {
+        "type": "stream_started",
+        "turn": 11,
+        "seconds": 85.25
+      },
+      {
+        "type": "stream_finished",
+        "turn": 11,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 87.265
+      },
+      {
+        "type": "tool_started",
+        "turn": 11,
+        "id": "call_00_oQzcGo7BtHeAsv53OAvP5808",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 87.265
+      },
+      {
+        "type": "tool_completed",
+        "turn": 11,
+        "id": "call_00_oQzcGo7BtHeAsv53OAvP5808",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 88.828
+      },
+      {
+        "type": "error",
+        "turn": 11,
+        "seconds": 88.828
+      },
+      {
+        "type": "run_finished",
+        "turn": 11,
+        "seconds": 88.828
+      }
+    ],
+    "last_error": "Run stopped at configured limit: max_consecutive_failures",
+    "stopped_reason": "max_consecutive_failures",
+    "tool_records": [
+      {
+        "id": "call_00_ET_27C3mMoHCPVgnmHqMI2h4669",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_1Ftt2mz1w3rIdVC2ZBQf1480",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_02_ET_Gr5rZhgkjVc8l4KgIFnh0970",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_ET_bSE9L3KWpYLgCr4V46G12733",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_dPfC6JbduZWIaVM2XcKP2482",
+        "tool": "update_plan",
+        "status": "failed",
+        "error": "Invalid tool arguments: Unterminated string starting at: line 1 column 766 (char 765)",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_SEekJ1EfZTCp5QDseMLL1482",
+        "tool": "update_plan",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "4",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_UQbO63JXPm6chZ30GEGy1376",
+        "tool": "bash",
+        "status": "failed",
+        "error": "test_summary (__main__.Smoke.test_summary) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 1 test in 0.000s\r\n\r\nOK\r\n'tail' �����ڲ����ⲿ���Ҳ���ǿ����еĳ���\r\n���������ļ���\r\n",
+        "exit_code": 255
+      },
+      {
+        "id": "call_00_lgcUFeSRdc5TrBVckYfU0510",
+        "tool": "bash",
+        "status": "failed",
+        "error": "test_blank_and_missing_lines (test_receipt_tools.CliTests.test_blank_and_missing_lines) ... ok\r\ntest_csv_quoting_and_lf_endings (test_receipt_tools.CliTests.test_csv_quoting_and_lf_endings) ... FAIL\r\ntest_directory_as_input (test_receipt_tools.CliTests.test_directory_as_input) ... ok\r\ntest_invalid_receipt_creates_no_output (test_receipt_tools.CliTests.test_invalid_receipt_creates_no_output) ... ok\r\ntest_invalid_receipt_leaves_output_unchanged (test_receipt_tools.CliTests.test_invalid_receipt_leaves_output_unchanged) ... ok\r\ntest_invalid_utf8_input (test_receipt_tools.CliTests.test_invalid_utf8_input) ... ok\r\ntest_json_error_line_number_reported (test_receipt_tools.CliTests.test_json_error_line_number_reported) ... ok\r\ntest_large_cli_run (test_receipt_tools.CliTests.test_large_cli_run) ... ok\r\ntest_main_returns_int (test_receipt_tools.CliTests.test_main_returns_int) ... error: [Errno 2] No such file or directory: 'D:\\\\the things of mine\\\\��Ŀ��\\\\agent\\\\thinkflow\\\\artifacts\\\\benchmark-202",
+        "exit_code": 1
+      },
+      {
+        "id": "call_00_EevwJsJXZ3cDrdsYeylb2299",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_SRjOh4R5rZp8xaXwlush6399",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_01_64nV8qSADUXElAKRVZn18485",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_AblPXXb5Od9i74ru7MGm3469",
+        "tool": "bash",
+        "status": "failed",
+        "error": "��ʱ��Ӧ�� <<��\r\n",
+        "exit_code": 1
+      },
+      {
+        "id": "call_00_SSrUrgI6GawnEjq4MGNf4036",
+        "tool": "bash",
+        "status": "failed",
+        "error": ".\r\n----------------------------------------------------------------------\r\nRan 1 test in 0.000s\r\n\r\nOK\r\n",
+        "exit_code": 1
+      },
+      {
+        "id": "call_00_oQzcGo7BtHeAsv53OAvP5808",
+        "tool": "bash",
+        "status": "failed",
+        "error": ".F......error: [Errno 2] No such file or directory: 'D:\\\\the things of mine\\\\��Ŀ��\\\\agent\\\\thinkflow\\\\artifacts\\\\benchmark-20260929\\\\formal\\\\receipt_package-thinkflow-r2\\\\profile\\\\tmp\\\\tmpkjb1nq_i\\\\input.jsonl.missing'\r\n...............F..............F.\r\n======================================================================\r\nFAIL: test_csv_quoting_and_lf_endings (test_receipt_tools.CliTests.test_csv_quoting_and_lf_endings)\r\n----------------------------------------------------------------------\r\nTraceback (most recent call last):\r\n  File \"D:\\the things of mine\\��Ŀ��\\agent\\thinkflow\\artifacts\\benchmark-20260929\\formal\\receipt_package-thinkflow-r2\\workspace\\tests\\test_receipt_tools.py\", line 298, in test_csv_quoting_and_lf_endings\r\n    self.assertEqual(\r\nAssertionError: Lists differ: [['cu[53 chars] '1.00'], ['multi\\nline', '1', '2.00'], ['plain', '1', '3.00']] != [['cu[53 chars] '1.00'], ['multi\\nline', '2', '2.00'], ['plain', '3', '3.00']]\r\n\r\nFirst differing element 2:\r\n['multi\\nline', '",
+        "exit_code": 1
+      }
+    ],
+    "writes_before_stream_finished": 4
+  },
+  "repair_routes-thinkflow-r1": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.828
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.313
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_RX78O3tCSh7f9UlU5csN9636",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.313
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_RX78O3tCSh7f9UlU5csN9636",
+        "tool": "read_skill",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.313
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_Lmi4cckbubmqmzbecv5O6256",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.313
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_Lmi4cckbubmqmzbecv5O6256",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.328
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_02_ET_h8hkHhuI1SJ5dVEzZPnd0431",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.328
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_02_ET_h8hkHhuI1SJ5dVEzZPnd0431",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.328
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.61
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.25
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_ET_isw7ImAm339UT2I99CIj8724",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.25
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_ET_isw7ImAm339UT2I99CIj8724",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.266
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_ET_HjL0v38rmrBnzof8egTQ5925",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.266
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_ET_HjL0v38rmrBnzof8egTQ5925",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.266
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 2.594
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 20.532
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 20.547
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 27.688
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 27.688
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 27.688
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "call_00_rZm8gLreuWA7dTSa7ffs6819",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 27.688
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "call_00_rZm8gLreuWA7dTSa7ffs6819",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 27.797
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "call_01_aS1iL6OqJ7o09XBUkiqZ8985",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 27.797
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "call_01_aS1iL6OqJ7o09XBUkiqZ8985",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 27.891
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 28.235
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 29.375
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_00_GkkJGNsxJX1WdeFRRUH14394",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 29.375
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_00_GkkJGNsxJX1WdeFRRUH14394",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 29.391
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 30.172
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 31.594
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 31.594
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 31.61
+      },
+      {
+        "type": "run_finished",
+        "turn": 5,
+        "seconds": 31.61
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_RX78O3tCSh7f9UlU5csN9636",
+        "tool": "read_skill",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_Lmi4cckbubmqmzbecv5O6256",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_02_ET_h8hkHhuI1SJ5dVEzZPnd0431",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_ET_isw7ImAm339UT2I99CIj8724",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_HjL0v38rmrBnzof8egTQ5925",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_rZm8gLreuWA7dTSa7ffs6819",
+        "tool": "bash",
+        "status": "success",
+        "error": "",
+        "exit_code": 0
+      },
+      {
+        "id": "call_01_aS1iL6OqJ7o09XBUkiqZ8985",
+        "tool": "bash",
+        "status": "failed",
+        "error": "",
+        "exit_code": 1
+      },
+      {
+        "id": "call_00_GkkJGNsxJX1WdeFRRUH14394",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 1
+  },
+  "repair_routes-thinkflow-r2": {
+    "events": [
+      {
+        "type": "stream_started",
+        "turn": 1,
+        "seconds": 0.906
+      },
+      {
+        "type": "stream_finished",
+        "turn": 1,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 1.578
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_00_ET_29jjojbOEff1307l0e637251",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.578
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_00_ET_29jjojbOEff1307l0e637251",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.578
+      },
+      {
+        "type": "tool_started",
+        "turn": 1,
+        "id": "call_01_ET_xCqPWBJz0uxNqW8rTnNU6869",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 1.578
+      },
+      {
+        "type": "tool_completed",
+        "turn": 1,
+        "id": "call_01_ET_xCqPWBJz0uxNqW8rTnNU6869",
+        "tool": "list_files",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 1.578
+      },
+      {
+        "type": "stream_started",
+        "turn": 2,
+        "seconds": 1.891
+      },
+      {
+        "type": "stream_finished",
+        "turn": 2,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 2.422
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_00_BmCz519Mz9zki2mvQEUE6495",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.422
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_00_BmCz519Mz9zki2mvQEUE6495",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.422
+      },
+      {
+        "type": "tool_started",
+        "turn": 2,
+        "id": "call_01_VAi6t1dlwamDfAqcltzK8891",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 2.422
+      },
+      {
+        "type": "tool_completed",
+        "turn": 2,
+        "id": "call_01_VAi6t1dlwamDfAqcltzK8891",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 2.422
+      },
+      {
+        "type": "stream_started",
+        "turn": 3,
+        "seconds": 2.734
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 24.609
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "1",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 24.625
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 33.016
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "2",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 33.031
+      },
+      {
+        "type": "tool_started",
+        "turn": 3,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 33.359
+      },
+      {
+        "type": "tool_completed",
+        "turn": 3,
+        "id": "3",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 33.375
+      },
+      {
+        "type": "stream_finished",
+        "turn": 3,
+        "reason": "length",
+        "finish_reason": "length",
+        "seconds": 33.453
+      },
+      {
+        "type": "stream_started",
+        "turn": 4,
+        "seconds": 34.531
+      },
+      {
+        "type": "stream_finished",
+        "turn": 4,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 35.875
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_00_KNwjiDL3ecPDB9rOCouN2740",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 35.875
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_00_KNwjiDL3ecPDB9rOCouN2740",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 35.891
+      },
+      {
+        "type": "tool_started",
+        "turn": 4,
+        "id": "call_01_cv7IVd65EZRpDnftRvbG7809",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 35.891
+      },
+      {
+        "type": "tool_completed",
+        "turn": 4,
+        "id": "call_01_cv7IVd65EZRpDnftRvbG7809",
+        "tool": "read",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "success",
+        "success": true,
+        "seconds": 35.891
+      },
+      {
+        "type": "stream_started",
+        "turn": 5,
+        "seconds": 36.75
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 53.484
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "4",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 53.5
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "5",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 53.922
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "5",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 53.937
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "6",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 57.859
+      },
+      {
+        "type": "stream_finished",
+        "turn": 5,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 57.859
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "6",
+        "tool": "write",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 57.875
+      },
+      {
+        "type": "tool_started",
+        "turn": 5,
+        "id": "call_00_amJA3Xy0x2AVTASzfZua7696",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 57.875
+      },
+      {
+        "type": "tool_completed",
+        "turn": 5,
+        "id": "call_00_amJA3Xy0x2AVTASzfZua7696",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 58.156
+      },
+      {
+        "type": "stream_started",
+        "turn": 6,
+        "seconds": 58.531
+      },
+      {
+        "type": "stream_finished",
+        "turn": 6,
+        "reason": "tool_use",
+        "finish_reason": "tool_calls",
+        "seconds": 62.734
+      },
+      {
+        "type": "tool_started",
+        "turn": 6,
+        "id": "call_00_rbIjKnCCU77Ju5GgVVZH6765",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "seconds": 62.734
+      },
+      {
+        "type": "tool_completed",
+        "turn": 6,
+        "id": "call_00_rbIjKnCCU77Ju5GgVVZH6765",
+        "tool": "bash",
+        "channel": "native",
+        "flow": "blocking",
+        "status": "failed",
+        "success": false,
+        "seconds": 62.797
+      },
+      {
+        "type": "stream_started",
+        "turn": 7,
+        "seconds": 63.187
+      },
+      {
+        "type": "tool_started",
+        "turn": 7,
+        "id": "7",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "seconds": 66.234
+      },
+      {
+        "type": "stream_finished",
+        "turn": 7,
+        "reason": "end_turn",
+        "finish_reason": "stop",
+        "seconds": 66.234
+      },
+      {
+        "type": "tool_completed",
+        "turn": 7,
+        "id": "7",
+        "tool": "edit",
+        "channel": "text",
+        "flow": "delayed",
+        "status": "success",
+        "success": true,
+        "seconds": 66.234
+      },
+      {
+        "type": "run_finished",
+        "turn": 7,
+        "seconds": 66.234
+      }
+    ],
+    "last_error": "",
+    "stopped_reason": "completed",
+    "tool_records": [
+      {
+        "id": "call_00_ET_29jjojbOEff1307l0e637251",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_ET_xCqPWBJz0uxNqW8rTnNU6869",
+        "tool": "list_files",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_BmCz519Mz9zki2mvQEUE6495",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_VAi6t1dlwamDfAqcltzK8891",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "2",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "3",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_KNwjiDL3ecPDB9rOCouN2740",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_01_cv7IVd65EZRpDnftRvbG7809",
+        "tool": "read",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "4",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "5",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "6",
+        "tool": "write",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      },
+      {
+        "id": "call_00_amJA3Xy0x2AVTASzfZua7696",
+        "tool": "bash",
+        "status": "failed",
+        "error": ".\r\n----------------------------------------------------------------------\r\nRan 1 test in 0.000s\r\n\r\nOK\r\n..........................F.....\r\n======================================================================\r\nFAIL: test_invalid_parameter_segments (__main__.ValidationTests.test_invalid_parameter_segments)\r\n----------------------------------------------------------------------\r\nTraceback (most recent call last):\r\n  File \"D:\\the things of mine\\��Ŀ��\\agent\\thinkflow\\artifacts\\benchmark-20260929\\formal\\repair_routes-thinkflow-r2\\workspace\\test_router_extra.py\", line 32, in test_invalid_parameter_segments\r\n    with self.assertRaises(ValueError):\r\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\r\nAssertionError: ValueError not raised\r\n\r\n----------------------------------------------------------------------\r\nRan 32 tests in 0.001s\r\n\r\nFAILED (failures=1)\r\n",
+        "exit_code": 1
+      },
+      {
+        "id": "call_00_rbIjKnCCU77Ju5GgVVZH6765",
+        "tool": "bash",
+        "status": "failed",
+        "error": "Traceback (most recent call last):\r\n  File \"<string>\", line 1, in <module>\r\n  File \"D:\\the things of mine\\��Ŀ��\\agent\\thinkflow\\artifacts\\benchmark-20260929\\formal\\repair_routes-thinkflow-r2\\workspace\\router.py\", line 84, in add\r\n    segments = _pattern_segments(pattern)\r\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^\r\n  File \"D:\\the things of mine\\��Ŀ��\\agent\\thinkflow\\artifacts\\benchmark-20260929\\formal\\repair_routes-thinkflow-r2\\workspace\\router.py\", line 50, in _pattern_segments\r\n    raise ValueError(\"invalid parameter segment: %r\" % (segment,))\r\nValueError: invalid parameter segment: ':'\r\n",
+        "exit_code": 1
+      },
+      {
+        "id": "7",
+        "tool": "edit",
+        "status": "success",
+        "error": "",
+        "exit_code": null
+      }
+    ],
+    "writes_before_stream_finished": 5
+  }
+}

@@ -30,6 +30,8 @@ bench_agent_efficiency/
 bench_compare_latest/
 bench_web_compare/
 review/
+temp/
+artifacts/
 
 # Benchmark raw outputs and local logs.
 # Keep curated prompts/reports/scripts tracked, but do not publish generated workspaces.

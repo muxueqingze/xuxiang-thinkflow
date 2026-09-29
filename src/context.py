@@ -6,6 +6,7 @@ ThinkFlow Context Manager — 上下文管理
 """
 
 import hashlib
+import re
 import time
 from dataclasses import dataclass, asdict
 from typing import Optional
@@ -40,6 +41,7 @@ class CommandRecord:
     stdout: str = ""
     stderr: str = ""
     exit_code: Optional[int] = None
+    evidence_ref: str = ""
 
     @staticmethod
     def _clip_text(text: str, max_chars: int = 4000) -> str:
@@ -60,6 +62,8 @@ class CommandRecord:
         lines = []
 
         attrs = [f'id="{self.id}"']
+        if self.evidence_ref:
+            attrs.append(f'evidence_ref="{self.evidence_ref}"')
 
         if self.path:
             attrs.append(f'path="{self.path}"')
@@ -101,6 +105,14 @@ class CommandRecord:
                 lines.append(f'  stderr: {self._clip_text(self.stderr, max_content_chars)}')
         elif self.tool in ("mkdir", "touch", "copy"):
             lines.append(f'<{self.tool} {attr_str} />')
+        else:
+            # Native tools can be checkpointed before their provider result message
+            # is appended. Preserve the observation when resuming that checkpoint.
+            lines.append(f'<tool name="{self.tool}" {attr_str} />')
+            if self.stdout:
+                lines.append(self._clip_text(self.stdout, max_content_chars))
+            if self.stderr:
+                lines.append(self._clip_text(self.stderr, max_content_chars))
 
         if self.output_summary:
             lines.append(f'  summary: {self.output_summary}')
@@ -121,6 +133,8 @@ class ContextManager:
     def __init__(self, start_stamp: int = 1):
         self.records: list[CommandRecord] = []
         self.next_stamp: int = start_stamp
+        self.next_receipt_ref: int = 1
+        self.archived_records = 0
         self._last_failure: Optional[CommandRecord] = None
         self._last_need_result: Optional[CommandRecord] = None
         self._pending_auto_result: Optional[CommandRecord] = None
@@ -135,12 +149,13 @@ class ContextManager:
         rec = CommandRecord(
             id=command.id,
             tool=command.tool,
+            evidence_ref=f"receipt:{self.next_receipt_ref}",
             path=command.path,
             dest=command.dest,
             cmd=command.cmd,
-            content=command.content,
-            old_text=command.old_text,
-            new_text=command.new_text,
+            content=CommandRecord._clip_text(command.content, 8000) if command.content else command.content,
+            old_text=CommandRecord._clip_text(command.old_text, 8000) if command.old_text else command.old_text,
+            new_text=CommandRecord._clip_text(command.new_text, 8000) if command.new_text else command.new_text,
             need_result=command.need_result,
             flow=flow,
             risk=risk,
@@ -157,6 +172,7 @@ class ContextManager:
             exit_code=result.exit_code,
         )
         self.records.append(rec)
+        self.next_receipt_ref += 1
 
         # 更新戳记
         try:
@@ -173,6 +189,14 @@ class ContextManager:
             self._last_need_result = rec
         elif result.success and flow == "blocking":
             self._pending_auto_result = rec
+
+    def evidence_ref_for(self, command_id: str) -> Optional[str]:
+        """Reuse the original receipt reference, excluding unexecuted skips."""
+        original = next((record for record in self.records
+                         if record.id == command_id and record.status != "skipped"), None)
+        if original is None:
+            return None
+        return original.evidence_ref or None
 
     @property
     def last_failure(self) -> Optional[CommandRecord]:
@@ -276,15 +300,43 @@ class ContextManager:
         """重置（新会话）。"""
         self.records.clear()
         self.next_stamp = 1
+        self.next_receipt_ref = 1
+        self.archived_records = 0
         self._last_failure = None
         self._last_need_result = None
         self._pending_auto_result = None
+
+    def compact_history(self, *, keep_records: int = 4096, payload_budget: int = 2_000_000):
+        """Bound retained receipts after feedback; never discard pending results.
+
+        Hashes and summaries survive payload clipping. Desktop also keeps its
+        separate intent journal; this is not a full file-version archive.
+        """
+        cutoff = max(0, len(self.records) - keep_records)
+        retained = [record for i, record in enumerate(self.records) if i >= cutoff or not record.injected]
+        self.archived_records += len(self.records) - len(retained)
+        self.records = retained
+        for record in reversed(self.records):
+            for name in ("stdout", "stderr", "content", "old_text", "new_text"):
+                value = getattr(record, name) or ""
+                if not value:
+                    continue
+                if not record.injected:
+                    payload_budget = max(0, payload_budget - len(value))
+                    continue
+                limit = min(8000, payload_budget)
+                if len(value) > limit:
+                    setattr(record, name, (CommandRecord._clip_text(value, limit) if limit > 120
+                                          else "[THINKFLOW ARCHIVED PAYLOAD — inspect the current file or original output]"))
+                payload_budget = max(0, payload_budget - min(len(value), limit))
 
     def to_dict(self) -> dict:
         """序列化为会话快照。"""
         return {
             "records": [asdict(r) for r in self.records],
             "next_stamp": self.next_stamp,
+            "next_receipt_ref": self.next_receipt_ref,
+            "archived_records": self.archived_records,
             "last_failure_id": self._last_failure.id if self._last_failure else None,
             "last_need_result_id": self._last_need_result.id if self._last_need_result else None,
             "pending_auto_result_id": self._pending_auto_result.id if self._pending_auto_result else None,
@@ -294,10 +346,32 @@ class ContextManager:
     def from_dict(cls, data: dict) -> "ContextManager":
         """从会话快照恢复。"""
         ctx = cls(start_stamp=data.get("next_stamp", 1))
+        ctx.archived_records = int(data.get("archived_records", 0))
         ctx.records = [
             CommandRecord.from_dict(item)
             for item in data.get("records", [])
         ]
+        counter = data.get("next_receipt_ref", 1)
+        if type(counter) is not int or counter < 1:
+            raise ValueError("Invalid receipt reference counter in context snapshot")
+        used_refs = set()
+        for record in ctx.records:
+            if record.evidence_ref == "":
+                continue
+            reference = record.evidence_ref
+            if not isinstance(reference, str) or not re.fullmatch(r"receipt:[1-9][0-9]*", reference):
+                raise ValueError("Invalid receipt reference in context snapshot")
+            if reference in used_refs:
+                raise ValueError("Duplicate receipt reference in context snapshot")
+            used_refs.add(reference)
+            counter = max(counter, int(reference.split(":", 1)[1]) + 1)
+        # Old snapshots have no aliases. Assign once, above every retained or
+        # previously allocated number; subsequent snapshots preserve the mapping.
+        for record in ctx.records:
+            if record.evidence_ref == "":
+                record.evidence_ref = f"receipt:{counter}"
+                counter += 1
+        ctx.next_receipt_ref = counter
         by_id = {r.id: r for r in ctx.records}
         ctx._last_failure = by_id.get(data.get("last_failure_id"))
         ctx._last_need_result = by_id.get(data.get("last_need_result_id"))

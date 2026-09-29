@@ -1,0 +1,11 @@
+2026-09-29 task-owned temporary/build directories sent to Recycle Bin:
+temp
+desktop\temp
+build
+xuxiang_agent.egg-info
+src\__pycache__
+tests\__pycache__
+artifacts\desktop-2026-09-29T07-59-03-221Z
+artifacts\desktop-2026-09-29T08-11-05-413Z
+artifacts\desktop-2026-09-29T08-17-47-670Z
+artifacts\desktop-2026-09-29T08-19-51-393Z\runtime

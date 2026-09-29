@@ -10,6 +10,7 @@ import httpx
 
 
 MODEL_PREFERENCE = [
+    "deepseek-flash",
     "glm-5.2",
     "glm-5.2-air",
     "glm-5.2-thinking",
@@ -127,6 +128,8 @@ def merge_active_provider(config: dict, active_provider: str | None = None) -> d
         "api_key",
         "model",
         "thinking_budget",
+        "thinking_mode",
+        "reasoning_effort",
         "max_tokens",
         "stream_options_include_usage",
         "enable_native_tools",
@@ -138,7 +141,7 @@ def merge_active_provider(config: dict, active_provider: str | None = None) -> d
     ):
         if key in profile:
             value = profile[key]
-            if value not in ("", None, [], {}) or not merged.get(key):
+            if key == "max_tokens" or value not in ("", None, [], {}) or not merged.get(key):
                 merged[key] = value
     merged["active_provider"] = str(selected)
     return merged

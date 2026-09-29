@@ -1,7 +1,7 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.3
-> 日期：2026-08-25
+> 版本：1.4
+> 日期：2026-09-29
 
 ---
 
@@ -9,8 +9,10 @@
 
 1. **主路径扫描 thinking 流，正文 parser 只做兼容兜底。** 职责上仍鼓励模型只在 thinking 输出命令；DeepSeek 等模型偶尔漏到正文时，框架负责执行并从显示/消息历史剥离命令块。
 2. **默认只执行 canonical `tf-` 标签。** `<tf-write>` 才是执行协议；普通 `<write>` 更像文档/XML 示例，默认不会被 agent 执行。
-3. **模型自由决策。** 框架不硬编码 FIRE/NEED 分类，模型自己决定每条命令要不要结果。
+3. **工具语义决定最低反馈要求。** `blocking/confirm` 必须等待结果；模型可用 `need_result` 把 delayed 操作升级为阻塞，不能把信息型工具降为后台操作。
 4. **流式扫描 + 结构化解析。** 开标签用逐字符 scanner 找不在引号里的 `>`，属性用 quoted-attribute parser，避免 `>`、引号转义和跨 chunk 截断导致误判；不用 LLM 做格式转换，降低延迟和成本。
+
+属性支持双/单引号、匹配属性定界符的反斜线转义，以及XML五个命名实体 `&quot;`、`&apos;`、`&lt;`、`&gt;`、`&amp;`。只解码一次；未知实体和普通Windows路径反斜线原样保留。正文不做属性实体解码。read/bash优先原生接口；文本协议仍支持正确转义后的shell命令。
 
 ---
 
@@ -56,7 +58,7 @@
 
 | 属性 | 必需 | 默认值 | 说明 |
 |------|------|--------|------|
-| `id` | 是 | — | 全局唯一戳记。系统提示告知起始值，模型递增。 |
+| `id` | 是 | — | 最多32位 ASCII 十进制数字戳记。系统提示告知起始值，模型递增。 |
 | `path` | read/write/append/mkdir/touch/copy/edit 必需 | — | 文件/目录路径。 |
 | `dest` | copy 必需 | — | 复制目标路径。 |
 | `cmd` | bash 必需 | — | Shell 命令。 |
@@ -71,10 +73,10 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 | flow | 含义 | 默认工具 |
 |------|------|----------|
 | `delayed` | 可预测副作用，不需要中间观察结果，默认不中断推理 | `write`、`append`、`mkdir`、`touch`、`copy`、`edit` |
-| `blocking` | 信息型工具，结果会影响后续判断，必须返回结果后再继续 | `read`、`grep`、`glob`、`list_files`、`web_search`、`fetch_url`、`list_skills`、`read_skill` |
-| `confirm` | 高风险或用户应显式授权的工具，配置层可进入审批模式 | `bash`、custom command tools |
+| `blocking` | 结果会影响后续判断，必须返回后再继续 | `read`、`bash`、搜索、联网、skills、custom command tools |
+| `confirm` | 必须经反馈边界处理的扩展工具类型 | 由工具注册表声明 |
 
-渲染层会同时显示 `kind / flow / risk`。例如写文件显示 `OUTPUT DELAY LOW`，读取文件显示 `INPUT BLOCK LOW`，shell/custom 工具显示高风险标记。`security.approval_mode` 目前提供 `auto`、`approve_all`、`request_all` 三种策略入口；实际执行仍由 cwd 沙箱、敏感文件拦截和 `bash_policy` 兜底，交互式逐条确认会在后续版本接入。
+`flow` 与 `risk` 是两个维度；bash 是 blocking 且 high risk。`security.approval_mode` 提供 `auto`、`approve_all`、`request_all`；桌面 balanced 模式对高风险工具逐次询问，批准只对当前调用生效。CLI 保留原策略，没有桌面授权回调时返回明确的未授权错误。路径约束与命令过滤不等于操作系统沙箱。
 
 默认安全规则：
 
@@ -154,8 +156,8 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 <tf-bash id="N" cmd="命令" [need_result="true"] />
 ```
 
-- 无 `need_result`：执行，丢弃 stdout/stderr，不通知模型。
-- 有 `need_result="true"`：执行，打断，返回 stdout + stderr + exit_code。
+- 无论是否带 `need_result`，均先等待之前的 FIFO 写入完成，再执行并返回 stdout/stderr/exit_code。
+- 同一流块中位于这个反馈边界之后的命令记为 skipped，不执行；模型拿到结果后用新 id 重新决定下一步。
 
 ### 4.7 edit
 
@@ -219,7 +221,9 @@ IN_CONTENT → 逐字符累积
 COMMAND_READY → 输出命令对象 → 回到 IDLE
 ```
 
-### 5.2 正则表达式
+### 5.2 标签形式示意
+
+以下正则仅示意协议外形，不是当前解析实现。实际开标签由引号感知 scanner 处理，不能用 `[^>]*` 解析属性内的 `>`；见 `src/parser.py`。
 
 开始标签 + 属性：
 ```python
@@ -254,7 +258,7 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 | 正文包含 `</write>` | 模型需转义为 `<\/write>`。解析器检测到转义序列时还原。 |
 | 正文包含 XML 特殊字符 | 不需要转义。解析器按原始文本提取。 |
 | 命令块被 abort 截断 | 检测到不完整（有开始标签无结束标签）→ 丢弃，记日志。 |
-| id 跳号 | 解析器校验。跳号 → 记 warning，不打断。 |
+| id 跳号 | 允许；运行状态按最大已记录数字戳记继续。 |
 | id 重复 | 解析器校验。重复 → 记 error，打断。 |
 | 属性顺序不固定 | 正则按名提取，不依赖顺序。 |
 | 属性缺失（如 write 没有 path） | 解析器校验。必需属性缺失 → 视为格式错误，丢弃，记日志。 |
@@ -265,10 +269,10 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 ## 六、系统提示词片段
 
-ThinkFlow 默认不注入系统提示词；自定义 `--system-prompt` 或配置 `system_prompt` 会使用自定义提示词。只有显式传 `--use-built-in-system-prompt` 或配置 `use_builtin_system_prompt: true` 时，才启用内置 harness 提示词。模板重点如下：
+ThinkFlow 默认注入内置协议骨架，并引导模型按需读取 `thinkflow` skill。自定义 `--system-prompt` 或配置 `system_prompt` 可替换骨架；显式禁用系统提示词则不注入。当前实现见 `src/cli.py:resolve_system_prompt`，模板重点如下：
 
 ```
-ThinkFlow 的核心思想：确定性的 tool 行为不应该打断流式推理。write/append/mkdir/touch/copy/edit/bash 这类动作可用 canonical `tf-` 标签旁路执行；失败、need_result 或 provider 原生 tool_call 才进入下一轮。
+ThinkFlow 的核心思想：可预测副作用成功时无需打断流式推理。write/append/mkdir/touch/copy/edit 可通过 canonical `tf-` 标签排队执行；read/bash、失败、need_result 和 provider 原生 tool_call 形成结果反馈边界。
 
 ## 格式规则
 
@@ -308,8 +312,8 @@ ThinkFlow 的核心思想：确定性的 tool 行为不应该打断流式推理�
 ## 规则
 
 1. id 是全局唯一戳记，从 {起始戳记} 开始递增。每条命令的 id 不能重复。
-2. 如果思考没有被错误信息打断，说明所有旁路命令都执行成功了。
-3. 如果某条命令需要知道执行结果，添加 need_result="true" 属性。该命令执行后思考会被打断，结果会返回给模型。
+2. 生成继续不代表队列已经执行成功。已落盘以执行回执为准，失败会打断输出。
+3. delayed 命令需要即时结果时添加 need_result="true"；read/bash 无论是否带该属性，都等待并返回结果。
 4. 优先在 thinking 中输出命令块；如果 provider 把命令写进正文，text parser 会兜底执行并从 UI/history 剥离。
 5. 命令块必须格式完整（有开始标签和结束标签），否则不会被识别。
 6. 写入、修改、执行命令后，最终正文必须给简短报告：路径、改动、验证、后续或风险。不能只说“写好了”。
@@ -337,7 +341,7 @@ ThinkFlow 的核心思想：确定性的 tool 行为不应该打断流式推理�
 <mkdir id="003" path="D:/output" status="success" flow="delayed" risk="low" hash="91aa22bb33cc44dd" />
   summary: mkdir D:/output
 
-<bash id="004" cmd="git status --short" status="success" flow="confirm" risk="high" hash="abcd1234abcd1234" exit_code="0" />
+<bash id="004" cmd="git status --short" status="success" flow="blocking" risk="high" hash="abcd1234abcd1234" exit_code="0" />
   summary: bash exit_code=0 stdout= stderr=
 
 [END COMMAND LEDGER]
@@ -352,12 +356,15 @@ ThinkFlow 的核心思想：确定性的 tool 行为不应该打断流式推理�
 
 压缩消息以 `[THINKFLOW COMPACTED CONTEXT]` 开头，包含被压缩消息数量、角色、tool_call id、内容片段等。为了保持 OpenAI-compatible tool message 合法性，压缩边界不会把 `tool` result 单独留下。
 
+摘录会丢失细节。已反馈的账本最多保留4096条，正文/输出保留总预算约200万字符；被裁剪处有明确标记，hash与摘要保留，未反馈结果不丢弃。桌面展示最近120条消息和500条回执，单条长消息显示末尾32000字符，完整展示对话可导出。它不是文件版本仓库。
+
 ---
 
 ## 九、版本历史
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.4 | 2026-09-29 | 强制信息边界、native去重/失败短路、取消清理、实例事件、运行限额、桌面意图恢复与授权。 |
 | 0.1 | 2026-06-29 | 初版。定义 write/mkdir/bash/edit 四种工具、XML 标签格式、状态机解析规则。 |
 | 0.2 | 2026-06-30 | 补 read 原生 tool_use、cwd 路径规则、正文 fallback、Windows/会话恢复等生产化约束。 |
 | 0.3 | 2026-06-30 | 补开源默认安全策略、bash policy、环境变量白名单、API 重试和真实 smoke 脚本。 |

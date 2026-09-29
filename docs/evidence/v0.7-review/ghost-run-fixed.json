@@ -1,0 +1,8 @@
+{
+  "save_failure_rolled_back": true,
+  "no_task_after_failure": true,
+  "cancel_status": "idle",
+  "retry_user_rows": 1,
+  "retry_agent_user_messages": 1,
+  "real_network_requests": 0
+}

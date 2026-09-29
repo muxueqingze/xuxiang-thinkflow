@@ -28,3 +28,6 @@ bench_agent_efficiency/
 bench_compare_latest/
 bench_web_compare/
 review/
+desktop/
+temp/
+artifacts/

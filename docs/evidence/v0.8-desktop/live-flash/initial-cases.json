@@ -1,0 +1,905 @@
+{
+  "endpoint": "https://api.deepseek.com",
+  "results": [
+    {
+      "name": "predictable",
+      "model": "deepseek-flash",
+      "thinking": false,
+      "artifact_check": true,
+      "runtime_error": "",
+      "duration_seconds": 2.782,
+      "successful_stream_writes": 3,
+      "writes_before_stream_closed": 3,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1790674992.141547,
+        "elapsed": 0.0,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 852,
+            "completion_tokens": 316,
+            "reasoning_tokens": 0,
+            "text_tokens": 316,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 852,
+            "total_tokens": 1168,
+            "commands_executed": 3,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 3,
+            "usage_reported": true
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 852,
+          "completion_tokens": 316,
+          "reasoning_tokens": 0,
+          "text_tokens": 316,
+          "cached_tokens": 0,
+          "effective_input": 852,
+          "total_tokens": 1168,
+          "api_calls": 1,
+          "total_commands": 3,
+          "estimated_saved_api_calls": 3,
+          "estimated_avoided_prompt_tokens": 2556
+        }
+      },
+      "events": [
+        {
+          "type": "turn_started",
+          "turn": 1,
+          "seconds": 0.547
+        },
+        {
+          "type": "stream_started",
+          "turn": 1,
+          "seconds": 0.641
+        },
+        {
+          "type": "tool_started",
+          "turn": 1,
+          "id": "1",
+          "tool": "write",
+          "channel": "text",
+          "flow": "delayed",
+          "seconds": 1.188
+        },
+        {
+          "type": "tool_completed",
+          "turn": 1,
+          "id": "1",
+          "tool": "write",
+          "channel": "text",
+          "flow": "delayed",
+          "status": "success",
+          "success": true,
+          "seconds": 1.204
+        },
+        {
+          "type": "tool_started",
+          "turn": 1,
+          "id": "2",
+          "tool": "write",
+          "channel": "text",
+          "flow": "delayed",
+          "seconds": 1.25
+        },
+        {
+          "type": "tool_completed",
+          "turn": 1,
+          "id": "2",
+          "tool": "write",
+          "channel": "text",
+          "flow": "delayed",
+          "status": "success",
+          "success": true,
+          "seconds": 1.266
+        },
+        {
+          "type": "tool_started",
+          "turn": 1,
+          "id": "3",
+          "tool": "write",
+          "channel": "text",
+          "flow": "delayed",
+          "seconds": 1.297
+        },
+        {
+          "type": "tool_completed",
+          "turn": 1,
+          "id": "3",
+          "tool": "write",
+          "channel": "text",
+          "flow": "delayed",
+          "status": "success",
+          "success": true,
+          "seconds": 1.313
+        },
+        {
+          "type": "stream_finished",
+          "turn": 1,
+          "reason": "end_turn",
+          "finish_reason": "stop",
+          "seconds": 2.782
+        },
+        {
+          "type": "turn_finished",
+          "turn": 1,
+          "seconds": 2.782
+        },
+        {
+          "type": "run_finished",
+          "turn": 1,
+          "seconds": 2.782
+        }
+      ],
+      "errors": [],
+      "reasoning_fields_preserved": 1,
+      "plan": {
+        "explanation": "",
+        "steps": []
+      }
+    },
+    {
+      "name": "mixed",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "artifact_check": true,
+      "runtime_error": "",
+      "duration_seconds": 19.203,
+      "successful_stream_writes": 1,
+      "writes_before_stream_closed": 1,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1790674994.8642635,
+        "elapsed": 16.72721004486084,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 1478,
+            "completion_tokens": 487,
+            "reasoning_tokens": 258,
+            "text_tokens": 229,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 1478,
+            "total_tokens": 1965,
+            "commands_executed": 0,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 2,
+            "prompt_tokens": 2190,
+            "completion_tokens": 47,
+            "reasoning_tokens": 9,
+            "text_tokens": 38,
+            "cached_tokens": 1408,
+            "cache_miss_tokens": 782,
+            "total_tokens": 2237,
+            "commands_executed": 0,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 3,
+            "prompt_tokens": 2264,
+            "completion_tokens": 455,
+            "reasoning_tokens": 227,
+            "text_tokens": 228,
+            "cached_tokens": 1792,
+            "cache_miss_tokens": 472,
+            "total_tokens": 2719,
+            "commands_executed": 0,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 4,
+            "prompt_tokens": 2748,
+            "completion_tokens": 493,
+            "reasoning_tokens": 357,
+            "text_tokens": 136,
+            "cached_tokens": 1920,
+            "cache_miss_tokens": 828,
+            "total_tokens": 3241,
+            "commands_executed": 1,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 1,
+            "usage_reported": true
+          },
+          {
+            "turn": 5,
+            "prompt_tokens": 3350,
+            "completion_tokens": 1113,
+            "reasoning_tokens": 1075,
+            "text_tokens": 38,
+            "cached_tokens": 2304,
+            "cache_miss_tokens": 1046,
+            "total_tokens": 4463,
+            "commands_executed": 0,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 6,
+            "prompt_tokens": 4490,
+            "completion_tokens": 391,
+            "reasoning_tokens": 168,
+            "text_tokens": 223,
+            "cached_tokens": 2944,
+            "cache_miss_tokens": 1546,
+            "total_tokens": 4881,
+            "commands_executed": 0,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 7,
+            "prompt_tokens": 4907,
+            "completion_tokens": 328,
+            "reasoning_tokens": 0,
+            "text_tokens": 328,
+            "cached_tokens": 4096,
+            "cache_miss_tokens": 811,
+            "total_tokens": 5235,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 21427,
+          "completion_tokens": 3314,
+          "reasoning_tokens": 2094,
+          "text_tokens": 1220,
+          "cached_tokens": 14464,
+          "effective_input": 6963,
+          "total_tokens": 24741,
+          "api_calls": 7,
+          "total_commands": 1,
+          "estimated_saved_api_calls": 1,
+          "estimated_avoided_prompt_tokens": 3061
+        }
+      },
+      "events": [
+        {
+          "type": "turn_started",
+          "turn": 1,
+          "seconds": 0.484
+        },
+        {
+          "type": "stream_started",
+          "turn": 1,
+          "seconds": 0.703
+        },
+        {
+          "type": "stream_finished",
+          "turn": 1,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 2.953
+        },
+        {
+          "type": "tool_started",
+          "turn": 1,
+          "id": "call_00_bu0LpgXRhy87ARevsz1t1469",
+          "tool": "update_plan",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 2.953
+        },
+        {
+          "type": "plan_updated",
+          "turn": 1,
+          "seconds": 2.953
+        },
+        {
+          "type": "tool_completed",
+          "turn": 1,
+          "id": "call_00_bu0LpgXRhy87ARevsz1t1469",
+          "tool": "update_plan",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "success",
+          "success": true,
+          "seconds": 2.953
+        },
+        {
+          "type": "turn_finished",
+          "turn": 1,
+          "seconds": 2.953
+        },
+        {
+          "type": "turn_started",
+          "turn": 2,
+          "seconds": 2.953
+        },
+        {
+          "type": "stream_started",
+          "turn": 2,
+          "seconds": 3.062
+        },
+        {
+          "type": "stream_finished",
+          "turn": 2,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 3.625
+        },
+        {
+          "type": "tool_started",
+          "turn": 2,
+          "id": "call_00_VtnsWJUb3za4Jjs3u7gv1263",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 3.625
+        },
+        {
+          "type": "tool_completed",
+          "turn": 2,
+          "id": "call_00_VtnsWJUb3za4Jjs3u7gv1263",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "success",
+          "success": true,
+          "seconds": 3.64
+        },
+        {
+          "type": "turn_finished",
+          "turn": 2,
+          "seconds": 3.64
+        },
+        {
+          "type": "turn_started",
+          "turn": 3,
+          "seconds": 3.64
+        },
+        {
+          "type": "stream_started",
+          "turn": 3,
+          "seconds": 3.843
+        },
+        {
+          "type": "stream_finished",
+          "turn": 3,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 6.047
+        },
+        {
+          "type": "tool_started",
+          "turn": 3,
+          "id": "call_00_llRXOkOkX7nRz5xcKgEa5426",
+          "tool": "update_plan",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 6.047
+        },
+        {
+          "type": "tool_completed",
+          "turn": 3,
+          "id": "call_00_llRXOkOkX7nRz5xcKgEa5426",
+          "tool": "update_plan",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "failed",
+          "success": false,
+          "seconds": 6.047
+        },
+        {
+          "type": "turn_finished",
+          "turn": 3,
+          "seconds": 6.047
+        },
+        {
+          "type": "turn_started",
+          "turn": 4,
+          "seconds": 6.047
+        },
+        {
+          "type": "stream_started",
+          "turn": 4,
+          "seconds": 6.203
+        },
+        {
+          "type": "tool_started",
+          "turn": 4,
+          "id": "1",
+          "tool": "edit",
+          "channel": "text",
+          "flow": "delayed",
+          "seconds": 8.625
+        },
+        {
+          "type": "tool_completed",
+          "turn": 4,
+          "id": "1",
+          "tool": "edit",
+          "channel": "text",
+          "flow": "delayed",
+          "status": "success",
+          "success": true,
+          "seconds": 8.625
+        },
+        {
+          "type": "stream_finished",
+          "turn": 4,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 8.843
+        },
+        {
+          "type": "tool_started",
+          "turn": 4,
+          "id": "call_00_R3toHlpJtmk1cSFwaEzy2980",
+          "tool": "bash",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 8.843
+        },
+        {
+          "type": "tool_completed",
+          "turn": 4,
+          "id": "call_00_R3toHlpJtmk1cSFwaEzy2980",
+          "tool": "bash",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "success",
+          "success": true,
+          "seconds": 8.89
+        },
+        {
+          "type": "turn_finished",
+          "turn": 4,
+          "seconds": 8.89
+        },
+        {
+          "type": "turn_started",
+          "turn": 5,
+          "seconds": 8.89
+        },
+        {
+          "type": "stream_started",
+          "turn": 5,
+          "seconds": 9.078
+        },
+        {
+          "type": "stream_finished",
+          "turn": 5,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 15.047
+        },
+        {
+          "type": "tool_started",
+          "turn": 5,
+          "id": "call_00_wvueqqJIi24wlSeMW9oo1050",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 15.047
+        },
+        {
+          "type": "tool_completed",
+          "turn": 5,
+          "id": "call_00_wvueqqJIi24wlSeMW9oo1050",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "success",
+          "success": true,
+          "seconds": 15.047
+        },
+        {
+          "type": "turn_finished",
+          "turn": 5,
+          "seconds": 15.047
+        },
+        {
+          "type": "turn_started",
+          "turn": 6,
+          "seconds": 15.047
+        },
+        {
+          "type": "stream_started",
+          "turn": 6,
+          "seconds": 15.203
+        },
+        {
+          "type": "stream_finished",
+          "turn": 6,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 17.218
+        },
+        {
+          "type": "tool_started",
+          "turn": 6,
+          "id": "call_00_OQZt0lp7oje2rzUf2arf8659",
+          "tool": "update_plan",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 17.218
+        },
+        {
+          "type": "plan_updated",
+          "turn": 6,
+          "seconds": 17.218
+        },
+        {
+          "type": "tool_completed",
+          "turn": 6,
+          "id": "call_00_OQZt0lp7oje2rzUf2arf8659",
+          "tool": "update_plan",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "success",
+          "success": true,
+          "seconds": 17.218
+        },
+        {
+          "type": "turn_finished",
+          "turn": 6,
+          "seconds": 17.218
+        },
+        {
+          "type": "turn_started",
+          "turn": 7,
+          "seconds": 17.218
+        },
+        {
+          "type": "stream_started",
+          "turn": 7,
+          "seconds": 17.39
+        },
+        {
+          "type": "stream_finished",
+          "turn": 7,
+          "reason": "end_turn",
+          "finish_reason": "stop",
+          "seconds": 19.203
+        },
+        {
+          "type": "turn_finished",
+          "turn": 7,
+          "seconds": 19.203
+        },
+        {
+          "type": "run_finished",
+          "turn": 7,
+          "seconds": 19.203
+        }
+      ],
+      "errors": [
+        {
+          "tool": "update_plan",
+          "status": "failed",
+          "error": "update_plan failed: 完成项引用了不存在或未成功的工具回执。"
+        }
+      ],
+      "reasoning_fields_preserved": 7,
+      "plan": {
+        "explanation": "修复与验证均已完成：edit 回执 id=1（calc.py，return a + b），bash 断言返回 CHECK_OK / exit_code=0，并复读文件确认内容。",
+        "steps": [
+          {
+            "acceptance": "原生 read 读出 calc.py 原内容为 return a - b，与加法语义不符",
+            "evidence": [
+              "1"
+            ],
+            "id": "s1",
+            "status": "completed",
+            "title": "读取 calc.py 现状，定位 add 的 bug"
+          },
+          {
+            "acceptance": "edit 修复后，python -c 断言 add(2,3)==5 输出 CHECK_OK 且 exit_code=0",
+            "evidence": [
+              "1"
+            ],
+            "id": "s2",
+            "status": "completed",
+            "title": "修复 add 使其做加法并跑断言验证"
+          }
+        ]
+      }
+    },
+    {
+      "name": "conflict",
+      "model": "deepseek-flash",
+      "thinking": true,
+      "artifact_check": true,
+      "runtime_error": "",
+      "duration_seconds": 4.375,
+      "successful_stream_writes": 1,
+      "writes_before_stream_closed": 1,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1790675014.0685651,
+        "elapsed": 2.7425906658172607,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 1433,
+            "completion_tokens": 104,
+            "reasoning_tokens": 66,
+            "text_tokens": 38,
+            "cached_tokens": 1152,
+            "cache_miss_tokens": 281,
+            "total_tokens": 1537,
+            "commands_executed": 0,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 2,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "reasoning_tokens": 0,
+            "text_tokens": 0,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 0,
+            "commands_executed": 1,
+            "tool_calls_traditional": 0,
+            "abort_reason": "tool_failed",
+            "delayed_successes": 0,
+            "usage_reported": false
+          },
+          {
+            "turn": 3,
+            "prompt_tokens": 1795,
+            "completion_tokens": 88,
+            "reasoning_tokens": 34,
+            "text_tokens": 54,
+            "cached_tokens": 1536,
+            "cache_miss_tokens": 259,
+            "total_tokens": 1883,
+            "commands_executed": 0,
+            "tool_calls_traditional": 1,
+            "abort_reason": "tool_use",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 4,
+            "prompt_tokens": 1915,
+            "completion_tokens": 133,
+            "reasoning_tokens": 83,
+            "text_tokens": 50,
+            "cached_tokens": 1536,
+            "cache_miss_tokens": 379,
+            "total_tokens": 2048,
+            "commands_executed": 1,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 1,
+            "usage_reported": true
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 5143,
+          "completion_tokens": 325,
+          "reasoning_tokens": 183,
+          "text_tokens": 142,
+          "cached_tokens": 4224,
+          "effective_input": 919,
+          "total_tokens": 5468,
+          "api_calls": 4,
+          "total_commands": 2,
+          "estimated_saved_api_calls": 1,
+          "estimated_avoided_prompt_tokens": 1285
+        }
+      },
+      "events": [
+        {
+          "type": "turn_started",
+          "turn": 1,
+          "seconds": 0.484
+        },
+        {
+          "type": "stream_started",
+          "turn": 1,
+          "seconds": 0.625
+        },
+        {
+          "type": "stream_finished",
+          "turn": 1,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 1.203
+        },
+        {
+          "type": "tool_started",
+          "turn": 1,
+          "id": "call_00_iJfe855h5C8J8ckQodwH1552",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 1.203
+        },
+        {
+          "type": "tool_completed",
+          "turn": 1,
+          "id": "call_00_iJfe855h5C8J8ckQodwH1552",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "success",
+          "success": true,
+          "seconds": 1.203
+        },
+        {
+          "type": "turn_finished",
+          "turn": 1,
+          "seconds": 1.203
+        },
+        {
+          "type": "turn_started",
+          "turn": 2,
+          "seconds": 1.203
+        },
+        {
+          "type": "stream_started",
+          "turn": 2,
+          "seconds": 1.297
+        },
+        {
+          "type": "tool_started",
+          "turn": 2,
+          "id": "1",
+          "tool": "append",
+          "channel": "text",
+          "flow": "delayed",
+          "seconds": 2.344
+        },
+        {
+          "type": "tool_completed",
+          "turn": 2,
+          "id": "1",
+          "tool": "append",
+          "channel": "text",
+          "flow": "delayed",
+          "status": "conflict",
+          "success": false,
+          "seconds": 2.344
+        },
+        {
+          "type": "stream_finished",
+          "turn": 2,
+          "reason": "none",
+          "finish_reason": "",
+          "seconds": 2.344
+        },
+        {
+          "type": "error",
+          "turn": 2,
+          "seconds": 2.344
+        },
+        {
+          "type": "turn_finished",
+          "turn": 2,
+          "seconds": 2.344
+        },
+        {
+          "type": "turn_started",
+          "turn": 3,
+          "seconds": 2.344
+        },
+        {
+          "type": "stream_started",
+          "turn": 3,
+          "seconds": 2.5
+        },
+        {
+          "type": "stream_finished",
+          "turn": 3,
+          "reason": "tool_use",
+          "finish_reason": "tool_calls",
+          "seconds": 3.234
+        },
+        {
+          "type": "tool_started",
+          "turn": 3,
+          "id": "call_00_uBpRHYi4GXPUJPRaO61F9106",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "seconds": 3.234
+        },
+        {
+          "type": "tool_completed",
+          "turn": 3,
+          "id": "call_00_uBpRHYi4GXPUJPRaO61F9106",
+          "tool": "read",
+          "channel": "native",
+          "flow": "blocking",
+          "status": "success",
+          "success": true,
+          "seconds": 3.234
+        },
+        {
+          "type": "turn_finished",
+          "turn": 3,
+          "seconds": 3.234
+        },
+        {
+          "type": "turn_started",
+          "turn": 4,
+          "seconds": 3.234
+        },
+        {
+          "type": "stream_started",
+          "turn": 4,
+          "seconds": 3.375
+        },
+        {
+          "type": "tool_started",
+          "turn": 4,
+          "id": "2",
+          "tool": "append",
+          "channel": "text",
+          "flow": "delayed",
+          "seconds": 4.359
+        },
+        {
+          "type": "tool_completed",
+          "turn": 4,
+          "id": "2",
+          "tool": "append",
+          "channel": "text",
+          "flow": "delayed",
+          "status": "success",
+          "success": true,
+          "seconds": 4.359
+        },
+        {
+          "type": "stream_finished",
+          "turn": 4,
+          "reason": "end_turn",
+          "finish_reason": "stop",
+          "seconds": 4.375
+        },
+        {
+          "type": "turn_finished",
+          "turn": 4,
+          "seconds": 4.375
+        },
+        {
+          "type": "run_finished",
+          "turn": 4,
+          "seconds": 4.375
+        }
+      ],
+      "errors": [
+        {
+          "tool": "append",
+          "status": "conflict",
+          "error": "revision_conflict: file changed since the model's full read; read again"
+        }
+      ],
+      "reasoning_fields_preserved": 4,
+      "plan": {
+        "explanation": "",
+        "steps": []
+      }
+    }
+  ],
+  "passed": true
+}

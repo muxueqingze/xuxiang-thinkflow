@@ -7,6 +7,8 @@ must not display raw tool tags. This filter streams ordinary text immediately
 while withholding possible command blocks until it can safely drop them.
 """
 
+import re
+
 from .parser import TOOLS, build_open_tag_re
 
 
@@ -109,6 +111,10 @@ class SafeTextStreamFilter:
         self.fence_marker = ""
 
     def _feed_line(self, line: str) -> str:
+        # A fence within an unfinished command is file data, not visible
+        # Markdown. Keep it in the command buffer until the closing tag arrives.
+        if self.buffer and self._tool_prefix_state(self.buffer) in ("partial", "tool"):
+            return self._feed_plain(line)
         marker = self._fence_marker(line)
         if marker:
             if not self.in_fence:
@@ -159,12 +165,22 @@ class SafeTextStreamFilter:
 
 
 class MarkdownFenceCommandGate:
-    """Return only text outside Markdown fenced code blocks for command parsing."""
+    """Exclude top-level examples; preserve fences inside active tool payloads."""
 
-    def __init__(self):
+    def __init__(self, allow_legacy_tags: bool = False):
         self.buffer = ""
         self.in_fence = False
         self.fence_marker = ""
+        self.allow_legacy_tags = allow_legacy_tags
+        self._tag_prefixes = [f"<tf-{tool}" for tool in TOOLS]
+        if allow_legacy_tags:
+            self._tag_prefixes.extend(f"<{tool}" for tool in TOOLS)
+        self._start_re = re.compile(
+            r"<(?P<name>" + "|".join(re.escape(prefix[1:]) for prefix in self._tag_prefixes) + r")(?=\s|/?>)"
+        )
+        self._pending_tag = ""
+        self._active_close = ""
+        self._close_tail = ""
 
     def feed(self, text: str) -> str:
         self.buffer += text
@@ -192,8 +208,14 @@ class MarkdownFenceCommandGate:
         self.buffer = ""
         self.in_fence = False
         self.fence_marker = ""
+        self._pending_tag = ""
+        self._active_close = ""
+        self._close_tail = ""
 
     def _process_line(self, line: str) -> str:
+        if self._active_close:
+            self._track_commands(line)
+            return line
         stripped = line.lstrip()
         marker = ""
         if stripped.startswith("```"):
@@ -210,4 +232,53 @@ class MarkdownFenceCommandGate:
                 self.fence_marker = ""
             return ""
 
-        return "" if self.in_fence else line
+        if self.in_fence:
+            return ""
+        self._track_commands(line)
+        return line
+
+    def _track_commands(self, text: str) -> None:
+        """Track boundaries only; command validation/execution stays in parser.
+
+        Retain partial open tags and a short closing-tag tail, never a second
+        copy of the whole payload. Quoted > characters do not end an open tag.
+        """
+        text = self._pending_tag + text
+        self._pending_tag = ""
+        while text:
+            if self._active_close:
+                text = self._close_tail + text
+                end = text.find(self._active_close)
+                if end < 0:
+                    self._close_tail = text[-(len(self._active_close) - 1):]
+                    return
+                text = text[end + len(self._active_close):]
+                self._active_close = self._close_tail = ""
+                continue
+            match = self._start_re.search(text)
+            if match is None:
+                tail = text[text.rfind("<"):] if "<" in text else ""
+                if tail and any(prefix.startswith(tail) for prefix in self._tag_prefixes):
+                    self._pending_tag = tail
+                return
+            quote, escaped, end = "", False, None
+            for index in range(match.end(), len(text)):
+                char = text[index]
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif quote:
+                    if char == quote:
+                        quote = ""
+                elif char in ('"', "\'"):
+                    quote = char
+                elif char == ">":
+                    end = index
+                    break
+            if end is None:
+                self._pending_tag = text[match.start():]
+                return
+            if not text[match.start():end].rstrip().endswith("/"):
+                self._active_close = f"</{match.group('name')}>"
+            text = text[end + 1:]

@@ -11,7 +11,21 @@ from dataclasses import dataclass
 from typing import Awaitable, Callable
 
 
-ToolHandler = Callable[[dict], Awaitable[str]]
+class ToolResult(str):
+    """Text-compatible tool output with explicit execution status."""
+
+    def __new__(cls, content: str, *, success: bool = True):
+        result = super().__new__(cls, content)
+        result.success = success
+        result.error = "" if success else content
+        return result
+
+    @classmethod
+    def failure(cls, error: str) -> "ToolResult":
+        return cls(error, success=False)
+
+
+ToolHandler = Callable[[dict], Awaitable[str | ToolResult]]
 
 TOOL_KIND_INPUT = "input"
 TOOL_KIND_OUTPUT = "output"
@@ -137,11 +151,19 @@ class ToolRegistry:
             for schema in self.schemas()
         ]
 
-    async def execute(self, name: str, tool_input: dict) -> str:
+    async def execute(self, name: str, tool_input: dict) -> ToolResult:
         spec = self._tools.get(name)
         if not spec or not spec.handler:
-            return f"未知工具: {name}"
-        return await spec.handler(tool_input)
+            return ToolResult.failure(f"未知工具: {name}")
+        try:
+            result = await spec.handler(tool_input)
+        except Exception as exc:
+            return ToolResult.failure(f"{name} failed: {exc}")
+        if isinstance(result, ToolResult):
+            return result
+        if isinstance(result, str):
+            return ToolResult(result)
+        return ToolResult.failure(f"{name} returned an unsupported result type: {type(result).__name__}")
 
 
 BUILTIN_TOOL_SPECS = [

@@ -11,6 +11,30 @@ from typing import Optional
 import httpx
 
 
+def normalize_max_tokens(value) -> Optional[int]:
+    """None/zero delegate the output budget to the provider; negatives are invalid."""
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise ValueError("max_tokens must be a non-negative integer or null")
+    try:
+        budget = int(value)
+    except ValueError as exc:
+        raise ValueError("max_tokens must be a non-negative integer or null") from exc
+    if budget < 0:
+        raise ValueError("max_tokens must be a non-negative integer or null")
+    return budget or None
+
+
+def output_budget_options(config, provider_format: Optional[str] = None) -> dict:
+    budget = normalize_max_tokens(config.max_tokens)
+    if budget is None:
+        if (provider_format or config.format) == "anthropic":
+            raise ValueError("Anthropic requires an explicit positive max_tokens; no unlimited output mode is available")
+        return {}
+    return {"max_tokens": budget}
+
+
 @dataclass
 class ProviderProfileConfig:
     """Named provider profile summary used by runtime model switching."""
@@ -21,7 +45,9 @@ class ProviderProfileConfig:
     api_key: str = ""
     model: str = ""
     thinking_budget: int = 0
-    max_tokens: int = 100000
+    thinking_mode: str = "disabled"
+    reasoning_effort: str = "high"
+    max_tokens: Optional[int] = None
     stream_options_include_usage: bool = False
     enable_native_tools: bool = True
     native_tools: list[str] = field(default_factory=list)
@@ -30,6 +56,9 @@ class ProviderProfileConfig:
     model_source: str = ""
     model_discovery_enabled: bool = False
     model_discovery_path: str = ""
+
+    def __post_init__(self):
+        self.max_tokens = normalize_max_tokens(self.max_tokens)
 
 
 @dataclass
@@ -42,7 +71,9 @@ class ProviderConfig:
     model: str = ""
     format: str = "openai"  # "anthropic" or "openai"
     thinking_budget: int = 0  # provider-specific thinking budget, disabled by default
-    max_tokens: int = 100000
+    thinking_mode: str = "disabled"
+    reasoning_effort: str = "high"
+    max_tokens: Optional[int] = None
     stream_options_include_usage: bool = False
     enable_native_tools: bool = True
     native_tools: list[str] = field(default_factory=list)
@@ -52,6 +83,9 @@ class ProviderConfig:
     model_discovery_enabled: bool = False
     model_discovery_path: str = ""
     provider_profiles: list[ProviderProfileConfig] = field(default_factory=list)
+
+    def __post_init__(self):
+        self.max_tokens = normalize_max_tokens(self.max_tokens)
 
 
 class AnthropicProvider:
@@ -78,7 +112,7 @@ class AnthropicProvider:
         """创建流式请求，返回 httpx Response（用于流式读取）。"""
         body = {
             "model": self.config.model,
-            "max_tokens": self.config.max_tokens,
+            **output_budget_options(self.config, "anthropic"),
             "messages": messages,
             "stream": True,
         }
@@ -137,10 +171,12 @@ class OpenAIProvider:
 
         body = {
             "model": self.config.model,
-            "max_tokens": self.config.max_tokens,
+            **output_budget_options(self.config, "openai"),
             "messages": full_messages,
             "stream": True,
         }
+
+        body.update(openai_thinking_options(self.config))
 
         if self.config.stream_options_include_usage:
             body["stream_options"] = {"include_usage": True}
@@ -170,3 +206,19 @@ def create_provider(config: ProviderConfig):
         return OpenAIProvider(config)
     else:
         raise ValueError(f"未知 format: {config.format}")
+
+
+def is_deepseek(config: ProviderConfig) -> bool:
+    from urllib.parse import urlsplit
+    return urlsplit(config.base_url).hostname == 'api.deepseek.com' or config.model.startswith('deepseek-')
+
+
+def openai_thinking_options(config: ProviderConfig) -> dict:
+    # DeepSeek defaults to thinking; other compatible APIs must not receive
+    # vendor-only options just because the desktop has a thinking selector.
+    if is_deepseek(config):
+        options = {'thinking': {'type': config.thinking_mode}}
+        if config.thinking_mode == 'enabled':
+            options['reasoning_effort'] = config.reasoning_effort
+        return options
+    return {}

@@ -173,11 +173,13 @@ class SecurityPolicy:
 
     def check_path(self, path: str, allowed_roots: Optional[list[str]], operation: str):
         self.check_write_allowed(operation)
+        canonical = os.path.normcase(os.path.realpath(path))
         if allowed_roots is not None:
             allowed = False
             for root in allowed_roots:
                 try:
-                    if os.path.commonpath([path, root]) == root:
+                    canonical_root = os.path.normcase(os.path.realpath(root))
+                    if os.path.commonpath([canonical, canonical_root]) == canonical_root:
                         allowed = True
                         break
                 except ValueError:
@@ -186,12 +188,12 @@ class SecurityPolicy:
                 raise PermissionError(f"路径不在允许范围内: {path}")
 
         if operation == "read" and not self.allow_sensitive_paths:
-            basename = os.path.basename(path)
-            for pattern in self.secret_patterns:
-                if fnmatch.fnmatch(basename, pattern):
-                    raise PermissionError(
-                        f"拒绝读取疑似密钥文件: {basename}。如确需读取，请显式开启 allow_sensitive_paths。"
-                    )
+            for basename in {os.path.basename(path), os.path.basename(canonical)}:
+                for pattern in self.secret_patterns:
+                    if fnmatch.fnmatch(basename, pattern):
+                        raise PermissionError(
+                            f"拒绝读取疑似密钥文件: {basename}。如确需读取，请显式开启 allow_sensitive_paths。"
+                        )
 
     def check_bash(self, cmd: str):
         self.check_write_allowed("bash")
@@ -218,4 +220,3 @@ class SecurityPolicy:
     def redact_text(self, text: str) -> str:
         """Redact obvious secret assignments before returning text to the model."""
         return SENSITIVE_ASSIGNMENT_RE.sub(r"\g<prefix>\g<quote>[REDACTED]\g<quote>", text)
-

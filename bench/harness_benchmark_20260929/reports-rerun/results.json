@@ -1,0 +1,3125 @@
+{
+  "complete_suite": true,
+  "manifest": {
+    "source_commit": "34119c6751a120493d1b120a3df1776a7192d874",
+    "versions": {
+      "thinkflow": "0.8.0",
+      "pi": "0.87.1",
+      "opencode": "1.18.33",
+      "python": "3.12.10",
+      "platform": "Windows-11-10.0.26200-SP0",
+      "node": "v24.15.0"
+    },
+    "generation": {
+      "model": "deepseek-flash",
+      "thinking": "enabled",
+      "reasoning_effort": "high",
+      "temperature": 0,
+      "max_tokens": 8192,
+      "max_requests": 24,
+      "max_seconds": 300
+    },
+    "measurement": "loopback-streaming-bounded-usage-drain",
+    "order_seed": 20260929,
+    "pilot": false,
+    "files": {
+      "bench/harness_benchmark_20260929/adapters.py": "de3f0d8c396906af00a2ef63bf33d41118f5e17c9ce3d42af8a4969ea2c8f607",
+      "bench/harness_benchmark_20260929/meter.py": "103c656d332dcd5c8eb5694d3bb76c7541b379b1c5fbe6e5a2b189f839d70fdc",
+      "bench/harness_benchmark_20260929/monitor.py": "f608cffa8772685a5cf6e5e75209e40b1d8523f3c4d8f25c21172ddfa537585a",
+      "bench/harness_benchmark_20260929/package-lock.json": "61b30f90f3ede72ab58c2e8ee3ec8dc005f8d97c33ba697b70c3e8aaf45641a8",
+      "bench/harness_benchmark_20260929/run.py": "77b012f75efeea662efe87c286507291fe94835da6eccedda66092ce9772abb4",
+      "bench/harness_benchmark_20260929/tasks.py": "19129130bcbd9c9518ba849376fe32c4f636d1bca668f0960d060d299dfd44f6",
+      "bench/harness_benchmark_20260929/thinkflow_worker.py": "fd4d2bab8b5d18c8266772c0f53691fe505622e8c60c476fdb26d8d5f3c9b1e9",
+      "src/__init__.py": "cc5b2573618a733af21c2647d3b2b3404e198ed66c9485c25744832f6b4e2fa5",
+      "src/agent_loop.py": "75e7cd1cfd11be3cc2bf7912f685709ede0c1ef5a51933cd4fe39dd2163badfb",
+      "src/baseline_agent.py": "458996fecdcc21ebc8d6246e9da05d9f25f45140b3a889ed8acce5bfb9435f30",
+      "src/changes.py": "32fb932be508eceef4555eee53ac4cf94997f2f7ae7c118201b507c9a0305b29",
+      "src/cli.py": "bff773bddf40e91e1c163c65e785cada40b11d52f1041b6d1ce404b1b40d2ce3",
+      "src/compaction.py": "94ca86c1f59298759484e3b947cdb2ab71e948d22a00c5c9e7063a30406816f0",
+      "src/context.py": "30b89e093ba40774269b59382a8e3563056d9a65a639274f6ca26bfdb541b141",
+      "src/delivery.py": "8b6da7acd932d610a9c9848fe644518d65894b94876e6cefd4e639bac61636af",
+      "src/desktop_service.py": "a746cba284782a51dbad50cc32343382a624fc33d859bccfe71ab6f3b2ec6a1e",
+      "src/events.py": "893edc37b1fc54f617e600f2a2f24ac41a02735837b16bb30fc69fe736341456",
+      "src/executor.py": "5245cc13cfb9fa57a54ec415ec26f12c2e08ca9d57ddf17b60f7ba3b4355ac6d",
+      "src/interfaces.py": "b4eaf5e5c527e55862fb4b0722d17aa0e1f8685be9107b420e9a15e816a8d2da",
+      "src/model_registry.py": "7f98ef660c2b85cbac4e059cd62dc7dffe1dff1647233fbd9cdb0a07bc7cc4cb",
+      "src/parser.py": "46537d87a13fe8bc5d51f29c519bdced94633254f159937b088d0564e2ea8095",
+      "src/provider.py": "cae35dfbae2789d7f7fc5c07a221a1e0a5411ec0aa409853276c7a2b8e931a0c",
+      "src/provider_diagnostics.py": "82a1f6876b13fc01e1c0e60179076460d5ac03ca7908d78cc5912d4fdbd6f7b9",
+      "src/renderer.py": "979ef29f73bb61296bd4be0371bb1adcec4d75a4f47b40da9d72c37456c5bcac",
+      "src/runtime_context.py": "a8bc50979647abfc8f575eac40605eaa2852267f6111d06333004da5e0051672",
+      "src/security.py": "4c775f5180216092868b273967684cc9438d1fc3eada8f06be1d3d91cc1dbbef",
+      "src/session.py": "35616432b7e7f3bfb80f7402fab5bda98b05fa29ff9822756bd763d3d317507f",
+      "src/skills/thinkflow/SKILL.md": "44baa005dfc9be16e660d1f4dd90304234d013771decf351bda47062d8d24bb9",
+      "src/skills.py": "ea0c0c46779289e45ba7cbff76591579808a186b58363d628399a9a41c009d0b",
+      "src/streaming.py": "c44daebb7306a023c0261c14dbff4368ab120d1e778c6e59afce282f84e9120c",
+      "src/task_plan.py": "ae5196e4875601a696e6bec40f3b2405b455b3659d8915b186badc13bc534d6d",
+      "src/text_filter.py": "fd1a07d82d0fbd319147b95a080c3e2c77a9a5c90a25569f01a7d300780ef80e",
+      "src/tool_registry.py": "918e6812001fd36298cbec3d07e8b7064db3d615a9fe378cf00e2aa60f60ab86",
+      "src/tui.py": "df7ab973e649837638c9ed94e5ab0f21eb974ca5b8b7db808294aad86a77f3b0",
+      "src/usage_tracker.py": "508a4b87b1006d687396e63e24885ed4aee6e4b3c3b180109d7e9ab3f7dc5e1a",
+      "src/workspace.py": "b28f06268cf7b57fe5e9239375b8e71b93a1ac9b92b3a5572644599a72be94f3"
+    }
+  },
+  "limit_observations": [
+    {
+      "run_id": "frame_decoder-opencode-r1",
+      "harness": "opencode",
+      "request": 3,
+      "requested_max_tokens": 8192,
+      "reported_completion_tokens": 9303,
+      "reported_reasoning_tokens": 8315
+    },
+    {
+      "run_id": "pricing_refactor-opencode-r2",
+      "harness": "opencode",
+      "request": 3,
+      "requested_max_tokens": 8192,
+      "reported_completion_tokens": 9579,
+      "reported_reasoning_tokens": 8834
+    }
+  ],
+  "aggregates": {
+    "thinkflow": {
+      "runs": 12,
+      "passed": 12,
+      "artifact_passed": 12,
+      "output_tokens_on_abandoned_requests": 0,
+      "cache_complete": true,
+      "reasoning_complete": true,
+      "mean_check_score": 1.0,
+      "mean_seconds": 76.88516666666666,
+      "median_seconds": 74.25,
+      "mean_api_requests": 9,
+      "writes_before_stream_finished": 30,
+      "tokens": {
+        "prompt_tokens": 1918537,
+        "cached_tokens": 1624448,
+        "uncached_tokens": 294089,
+        "completion_tokens": 204919,
+        "reasoning_tokens": 125495,
+        "total_tokens": 2123456,
+        "api_requests": 108,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      }
+    },
+    "pi": {
+      "runs": 12,
+      "passed": 10,
+      "artifact_passed": 10,
+      "output_tokens_on_abandoned_requests": 0,
+      "cache_complete": true,
+      "reasoning_complete": true,
+      "mean_check_score": 0.8645833333333334,
+      "mean_seconds": 49.32541666666667,
+      "median_seconds": 43.195,
+      "mean_api_requests": 9.5,
+      "writes_before_stream_finished": 0,
+      "tokens": {
+        "prompt_tokens": 1139247,
+        "cached_tokens": 1087488,
+        "uncached_tokens": 51759,
+        "completion_tokens": 125371,
+        "reasoning_tokens": 73973,
+        "total_tokens": 1264618,
+        "api_requests": 114,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      }
+    },
+    "opencode": {
+      "runs": 12,
+      "passed": 12,
+      "artifact_passed": 12,
+      "output_tokens_on_abandoned_requests": 0,
+      "cache_complete": true,
+      "reasoning_complete": true,
+      "mean_check_score": 1.0,
+      "mean_seconds": 60.370916666666666,
+      "median_seconds": 55.867000000000004,
+      "mean_api_requests": 10,
+      "writes_before_stream_finished": 0,
+      "tokens": {
+        "prompt_tokens": 1781451,
+        "cached_tokens": 1670016,
+        "uncached_tokens": 111435,
+        "completion_tokens": 117265,
+        "reasoning_tokens": 70578,
+        "total_tokens": 1898716,
+        "api_requests": 120,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      }
+    }
+  },
+  "paired_success_only": {
+    "pi": {
+      "successful_pairs": 10,
+      "thinkflow_total_token_ratio": 1.2024347690731143,
+      "thinkflow_output_token_ratio": 1.4476968563770505,
+      "thinkflow_wall_time_ratio": 1.3789597032704173
+    },
+    "opencode": {
+      "successful_pairs": 12,
+      "thinkflow_total_token_ratio": 1.118364199806606,
+      "thinkflow_output_token_ratio": 1.7474864622862747,
+      "thinkflow_wall_time_ratio": 1.273546451036716
+    }
+  },
+  "results": [
+    {
+      "id": "durable_inbox-thinkflow-r1",
+      "task": "durable_inbox",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 119.328,
+      "measurement_seconds": 121.078,
+      "prompt_sha256": "a97aff459bc5a71b16a025046fcba0b818438fda1dc022a8f42bac785283e3e1",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "duplicate_identity_and_conflict",
+            "passed": true
+          },
+          {
+            "check": "fifo_and_running_reservation",
+            "passed": true
+          },
+          {
+            "check": "finish_rules_and_idempotency",
+            "passed": true
+          },
+          {
+            "check": "restart_recovers_without_replay",
+            "passed": true
+          },
+          {
+            "check": "save_failure_preserves_memory_then_retries",
+            "passed": true
+          },
+          {
+            "check": "corrupt_document_preserved",
+            "passed": true
+          },
+          {
+            "check": "payload_validation",
+            "passed": true
+          },
+          {
+            "check": "detached_payloads_and_parent_creation",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 360808,
+        "cached_tokens": 323072,
+        "uncached_tokens": 37736,
+        "completion_tokens": 26510,
+        "reasoning_tokens": 17332,
+        "total_tokens": 387318,
+        "api_requests": 16,
+        "successful_requests": 16,
+        "usage_reported_requests": 16,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 16,
+        "reasoning_reported_requests": 16,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 2,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "frame_decoder-opencode-r2",
+      "task": "frame_decoder",
+      "harness": "opencode",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 84.343,
+      "measurement_seconds": 86.14,
+      "prompt_sha256": "29356a3cb25e93742570fd97a1452abcfcefde2363356c1c3591ec4fecd2b83c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "utf8_every_byte",
+            "passed": true
+          },
+          {
+            "check": "multiple_frames_embedded_delimiters",
+            "passed": true
+          },
+          {
+            "check": "maximum_zero_and_invalid_constructor",
+            "passed": true
+          },
+          {
+            "check": "illegal_headers_poison",
+            "passed": true
+          },
+          {
+            "check": "comma_and_utf8_errors",
+            "passed": true
+          },
+          {
+            "check": "oversize_rejected_before_payload",
+            "passed": true
+          },
+          {
+            "check": "eof_closed_and_type_errors",
+            "passed": true
+          },
+          {
+            "check": "deterministic_arbitrary_chunks",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 218303,
+        "cached_tokens": 207616,
+        "uncached_tokens": 10687,
+        "completion_tokens": 13000,
+        "reasoning_tokens": 8318,
+        "total_tokens": 231303,
+        "api_requests": 13,
+        "successful_requests": 13,
+        "usage_reported_requests": 13,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 13,
+        "reasoning_reported_requests": 13,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 44
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "durable_inbox-opencode-r1",
+      "task": "durable_inbox",
+      "harness": "opencode",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 56.375,
+      "measurement_seconds": 57.797,
+      "prompt_sha256": "a97aff459bc5a71b16a025046fcba0b818438fda1dc022a8f42bac785283e3e1",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "duplicate_identity_and_conflict",
+            "passed": true
+          },
+          {
+            "check": "fifo_and_running_reservation",
+            "passed": true
+          },
+          {
+            "check": "finish_rules_and_idempotency",
+            "passed": true
+          },
+          {
+            "check": "restart_recovers_without_replay",
+            "passed": true
+          },
+          {
+            "check": "save_failure_preserves_memory_then_retries",
+            "passed": true
+          },
+          {
+            "check": "corrupt_document_preserved",
+            "passed": true
+          },
+          {
+            "check": "payload_validation",
+            "passed": true
+          },
+          {
+            "check": "detached_payloads_and_parent_creation",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 97565,
+        "cached_tokens": 89216,
+        "uncached_tokens": 8349,
+        "completion_tokens": 10918,
+        "reasoning_tokens": 6277,
+        "total_tokens": 108483,
+        "api_requests": 7,
+        "successful_requests": 7,
+        "usage_reported_requests": 7,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 7,
+        "reasoning_reported_requests": 7,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 24
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "durable_inbox-pi-r1",
+      "task": "durable_inbox",
+      "harness": "pi",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 36.907,
+      "measurement_seconds": 38.329,
+      "prompt_sha256": "a97aff459bc5a71b16a025046fcba0b818438fda1dc022a8f42bac785283e3e1",
+      "grade": {
+        "passed": false,
+        "checks_passed": 0,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "duplicate_identity_and_conflict",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          },
+          {
+            "check": "fifo_and_running_reservation",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          },
+          {
+            "check": "finish_rules_and_idempotency",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          },
+          {
+            "check": "restart_recovers_without_replay",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          },
+          {
+            "check": "save_failure_preserves_memory_then_retries",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          },
+          {
+            "check": "corrupt_document_preserved",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          },
+          {
+            "check": "payload_validation",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          },
+          {
+            "check": "detached_payloads_and_parent_creation",
+            "passed": false,
+            "error": "NotImplementedError: Implement durable inbox"
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 6817,
+        "cached_tokens": 4352,
+        "uncached_tokens": 2465,
+        "completion_tokens": 8399,
+        "reasoning_tokens": 8205,
+        "total_tokens": 15216,
+        "api_requests": 3,
+        "successful_requests": 3,
+        "usage_reported_requests": 3,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 3,
+        "reasoning_reported_requests": 3,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": false,
+        "source": "stdout.jsonl",
+        "reason": "length",
+        "error": false,
+        "event": "message_end",
+        "line": 8349
+      },
+      "delivery_passed": false
+    },
+    {
+      "id": "durable_inbox-pi-r2",
+      "task": "durable_inbox",
+      "harness": "pi",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 99.046,
+      "measurement_seconds": 100.468,
+      "prompt_sha256": "a97aff459bc5a71b16a025046fcba0b818438fda1dc022a8f42bac785283e3e1",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "duplicate_identity_and_conflict",
+            "passed": true
+          },
+          {
+            "check": "fifo_and_running_reservation",
+            "passed": true
+          },
+          {
+            "check": "finish_rules_and_idempotency",
+            "passed": true
+          },
+          {
+            "check": "restart_recovers_without_replay",
+            "passed": true
+          },
+          {
+            "check": "save_failure_preserves_memory_then_retries",
+            "passed": true
+          },
+          {
+            "check": "corrupt_document_preserved",
+            "passed": true
+          },
+          {
+            "check": "payload_validation",
+            "passed": true
+          },
+          {
+            "check": "detached_payloads_and_parent_creation",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 403797,
+        "cached_tokens": 393216,
+        "uncached_tokens": 10581,
+        "completion_tokens": 21534,
+        "reasoning_tokens": 11583,
+        "total_tokens": 425331,
+        "api_requests": 22,
+        "successful_requests": 22,
+        "usage_reported_requests": 22,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 22,
+        "reasoning_reported_requests": 22,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 21148
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "frame_decoder-opencode-r1",
+      "task": "frame_decoder",
+      "harness": "opencode",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 83.437,
+      "measurement_seconds": 84.641,
+      "prompt_sha256": "29356a3cb25e93742570fd97a1452abcfcefde2363356c1c3591ec4fecd2b83c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "utf8_every_byte",
+            "passed": true
+          },
+          {
+            "check": "multiple_frames_embedded_delimiters",
+            "passed": true
+          },
+          {
+            "check": "maximum_zero_and_invalid_constructor",
+            "passed": true
+          },
+          {
+            "check": "illegal_headers_poison",
+            "passed": true
+          },
+          {
+            "check": "comma_and_utf8_errors",
+            "passed": true
+          },
+          {
+            "check": "oversize_rejected_before_payload",
+            "passed": true
+          },
+          {
+            "check": "eof_closed_and_type_errors",
+            "passed": true
+          },
+          {
+            "check": "deterministic_arbitrary_chunks",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 200841,
+        "cached_tokens": 191616,
+        "uncached_tokens": 9225,
+        "completion_tokens": 15592,
+        "reasoning_tokens": 10749,
+        "total_tokens": 216433,
+        "api_requests": 11,
+        "successful_requests": 11,
+        "usage_reported_requests": 11,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 11,
+        "reasoning_reported_requests": 11,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 40
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "receipt_package-pi-r1",
+      "task": "receipt_package",
+      "harness": "pi",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 38.25,
+      "measurement_seconds": 39.593,
+      "prompt_sha256": "240d205fb710b7a1fa8f049b1fe604d5680e5094f2c7aa562a8a3f0200386814",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "package_and_empty",
+            "passed": true
+          },
+          {
+            "check": "aggregate_then_round",
+            "passed": true
+          },
+          {
+            "check": "void_sort_and_whitespace",
+            "passed": true
+          },
+          {
+            "check": "validation_including_void",
+            "passed": true
+          },
+          {
+            "check": "generator_and_no_mutation",
+            "passed": true
+          },
+          {
+            "check": "cli_csv_utf8_and_quoting",
+            "passed": true
+          },
+          {
+            "check": "cli_invalid_keeps_output",
+            "passed": true
+          },
+          {
+            "check": "cli_missing_input_no_output",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 62358,
+        "cached_tokens": 58624,
+        "uncached_tokens": 3734,
+        "completion_tokens": 8605,
+        "reasoning_tokens": 3784,
+        "total_tokens": 70963,
+        "api_requests": 9,
+        "successful_requests": 9,
+        "usage_reported_requests": 9,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 9,
+        "reasoning_reported_requests": 9,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 8428
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "frame_decoder-thinkflow-r1",
+      "task": "frame_decoder",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 111.594,
+      "measurement_seconds": 112.938,
+      "prompt_sha256": "29356a3cb25e93742570fd97a1452abcfcefde2363356c1c3591ec4fecd2b83c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "utf8_every_byte",
+            "passed": true
+          },
+          {
+            "check": "multiple_frames_embedded_delimiters",
+            "passed": true
+          },
+          {
+            "check": "maximum_zero_and_invalid_constructor",
+            "passed": true
+          },
+          {
+            "check": "illegal_headers_poison",
+            "passed": true
+          },
+          {
+            "check": "comma_and_utf8_errors",
+            "passed": true
+          },
+          {
+            "check": "oversize_rejected_before_payload",
+            "passed": true
+          },
+          {
+            "check": "eof_closed_and_type_errors",
+            "passed": true
+          },
+          {
+            "check": "deterministic_arbitrary_chunks",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 304181,
+        "cached_tokens": 265600,
+        "uncached_tokens": 38581,
+        "completion_tokens": 25103,
+        "reasoning_tokens": 15291,
+        "total_tokens": 329284,
+        "api_requests": 13,
+        "successful_requests": 13,
+        "usage_reported_requests": 13,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 13,
+        "reasoning_reported_requests": 13,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 0,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "repair_routes-opencode-r2",
+      "task": "repair_routes",
+      "harness": "opencode",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 45.813,
+      "measurement_seconds": 46.938,
+      "prompt_sha256": "be4ea0ee2c779675c6e68d471bbee856e38f7d4d37cf819f0c3db2cd4653bf9a",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "static_specificity",
+            "passed": true
+          },
+          {
+            "check": "ties_keep_registration",
+            "passed": true
+          },
+          {
+            "check": "normalized_replacement",
+            "passed": true
+          },
+          {
+            "check": "root_query_fragment_slashes",
+            "passed": true
+          },
+          {
+            "check": "validation_is_nonmutating",
+            "passed": true
+          },
+          {
+            "check": "missing_and_parameter_length",
+            "passed": true
+          },
+          {
+            "check": "literal_static_characters",
+            "passed": true
+          },
+          {
+            "check": "opaque_handler_and_fresh_params",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 119195,
+        "cached_tokens": 109184,
+        "uncached_tokens": 10011,
+        "completion_tokens": 7169,
+        "reasoning_tokens": 4553,
+        "total_tokens": 126364,
+        "api_requests": 9,
+        "successful_requests": 9,
+        "usage_reported_requests": 9,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 9,
+        "reasoning_reported_requests": 9,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 32
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "pricing_refactor-pi-r2",
+      "task": "pricing_refactor",
+      "harness": "pi",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 53.359,
+      "measurement_seconds": 54.672,
+      "prompt_sha256": "411999b5e4bb0fcea8e406dfc12af0bf0d4e6806badf63f2207c572435aedeb6",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "decimal_discount_and_bulk",
+            "passed": true
+          },
+          {
+            "check": "per_line_half_up_not_total_rounding",
+            "passed": true
+          },
+          {
+            "check": "report_aggregation_order_and_zero",
+            "passed": true
+          },
+          {
+            "check": "monetary_validation",
+            "passed": true
+          },
+          {
+            "check": "no_input_mutation",
+            "passed": true
+          },
+          {
+            "check": "shared_runtime_dependency",
+            "passed": true
+          },
+          {
+            "check": "legacy_api_and_empty",
+            "passed": true
+          },
+          {
+            "check": "deterministic_money_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 69804,
+        "cached_tokens": 66048,
+        "uncached_tokens": 3756,
+        "completion_tokens": 11583,
+        "reasoning_tokens": 7109,
+        "total_tokens": 81387,
+        "api_requests": 8,
+        "successful_requests": 8,
+        "usage_reported_requests": 8,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 8,
+        "reasoning_reported_requests": 8,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 11421
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "durable_inbox-opencode-r2",
+      "task": "durable_inbox",
+      "harness": "opencode",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 82.765,
+      "measurement_seconds": 84.312,
+      "prompt_sha256": "a97aff459bc5a71b16a025046fcba0b818438fda1dc022a8f42bac785283e3e1",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "duplicate_identity_and_conflict",
+            "passed": true
+          },
+          {
+            "check": "fifo_and_running_reservation",
+            "passed": true
+          },
+          {
+            "check": "finish_rules_and_idempotency",
+            "passed": true
+          },
+          {
+            "check": "restart_recovers_without_replay",
+            "passed": true
+          },
+          {
+            "check": "save_failure_preserves_memory_then_retries",
+            "passed": true
+          },
+          {
+            "check": "corrupt_document_preserved",
+            "passed": true
+          },
+          {
+            "check": "payload_validation",
+            "passed": true
+          },
+          {
+            "check": "detached_payloads_and_parent_creation",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 250629,
+        "cached_tokens": 239104,
+        "uncached_tokens": 11525,
+        "completion_tokens": 13713,
+        "reasoning_tokens": 8455,
+        "total_tokens": 264342,
+        "api_requests": 14,
+        "successful_requests": 14,
+        "usage_reported_requests": 14,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 14,
+        "reasoning_reported_requests": 14,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 44
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "pricing_refactor-thinkflow-r2",
+      "task": "pricing_refactor",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 86.797,
+      "measurement_seconds": 88.016,
+      "prompt_sha256": "411999b5e4bb0fcea8e406dfc12af0bf0d4e6806badf63f2207c572435aedeb6",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "decimal_discount_and_bulk",
+            "passed": true
+          },
+          {
+            "check": "per_line_half_up_not_total_rounding",
+            "passed": true
+          },
+          {
+            "check": "report_aggregation_order_and_zero",
+            "passed": true
+          },
+          {
+            "check": "monetary_validation",
+            "passed": true
+          },
+          {
+            "check": "no_input_mutation",
+            "passed": true
+          },
+          {
+            "check": "shared_runtime_dependency",
+            "passed": true
+          },
+          {
+            "check": "legacy_api_and_empty",
+            "passed": true
+          },
+          {
+            "check": "deterministic_money_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 86871,
+        "cached_tokens": 61824,
+        "uncached_tokens": 25047,
+        "completion_tokens": 20257,
+        "reasoning_tokens": 15565,
+        "total_tokens": 107128,
+        "api_requests": 7,
+        "successful_requests": 7,
+        "usage_reported_requests": 7,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 7,
+        "reasoning_reported_requests": 7,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 4,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "repair_routes-thinkflow-r1",
+      "task": "repair_routes",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 39.171,
+      "measurement_seconds": 40.656,
+      "prompt_sha256": "be4ea0ee2c779675c6e68d471bbee856e38f7d4d37cf819f0c3db2cd4653bf9a",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "static_specificity",
+            "passed": true
+          },
+          {
+            "check": "ties_keep_registration",
+            "passed": true
+          },
+          {
+            "check": "normalized_replacement",
+            "passed": true
+          },
+          {
+            "check": "root_query_fragment_slashes",
+            "passed": true
+          },
+          {
+            "check": "validation_is_nonmutating",
+            "passed": true
+          },
+          {
+            "check": "missing_and_parameter_length",
+            "passed": true
+          },
+          {
+            "check": "literal_static_characters",
+            "passed": true
+          },
+          {
+            "check": "opaque_handler_and_fresh_params",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 33257,
+        "cached_tokens": 22784,
+        "uncached_tokens": 10473,
+        "completion_tokens": 8606,
+        "reasoning_tokens": 4627,
+        "total_tokens": 41863,
+        "api_requests": 5,
+        "successful_requests": 5,
+        "usage_reported_requests": 5,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 5,
+        "reasoning_reported_requests": 5,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 0,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "frame_decoder-pi-r2",
+      "task": "frame_decoder",
+      "harness": "pi",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 72.844,
+      "measurement_seconds": 74.094,
+      "prompt_sha256": "29356a3cb25e93742570fd97a1452abcfcefde2363356c1c3591ec4fecd2b83c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "utf8_every_byte",
+            "passed": true
+          },
+          {
+            "check": "multiple_frames_embedded_delimiters",
+            "passed": true
+          },
+          {
+            "check": "maximum_zero_and_invalid_constructor",
+            "passed": true
+          },
+          {
+            "check": "illegal_headers_poison",
+            "passed": true
+          },
+          {
+            "check": "comma_and_utf8_errors",
+            "passed": true
+          },
+          {
+            "check": "oversize_rejected_before_payload",
+            "passed": true
+          },
+          {
+            "check": "eof_closed_and_type_errors",
+            "passed": true
+          },
+          {
+            "check": "deterministic_arbitrary_chunks",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 182727,
+        "cached_tokens": 176256,
+        "uncached_tokens": 6471,
+        "completion_tokens": 15035,
+        "reasoning_tokens": 8783,
+        "total_tokens": 197762,
+        "api_requests": 14,
+        "successful_requests": 14,
+        "usage_reported_requests": 14,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 14,
+        "reasoning_reported_requests": 14,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 14817
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "pricing_refactor-pi-r1",
+      "task": "pricing_refactor",
+      "harness": "pi",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 38.703,
+      "measurement_seconds": 40.219,
+      "prompt_sha256": "411999b5e4bb0fcea8e406dfc12af0bf0d4e6806badf63f2207c572435aedeb6",
+      "grade": {
+        "passed": false,
+        "checks_passed": 3,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "decimal_discount_and_bulk",
+            "passed": false,
+            "error": "ModuleNotFoundError: No module named 'pricing'"
+          },
+          {
+            "check": "per_line_half_up_not_total_rounding",
+            "passed": true
+          },
+          {
+            "check": "report_aggregation_order_and_zero",
+            "passed": false,
+            "error": "AssertionError: "
+          },
+          {
+            "check": "monetary_validation",
+            "passed": false,
+            "error": "ModuleNotFoundError: No module named 'pricing'"
+          },
+          {
+            "check": "no_input_mutation",
+            "passed": true
+          },
+          {
+            "check": "shared_runtime_dependency",
+            "passed": false,
+            "error": "ModuleNotFoundError: No module named 'pricing'"
+          },
+          {
+            "check": "legacy_api_and_empty",
+            "passed": true
+          },
+          {
+            "check": "deterministic_money_cases",
+            "passed": false,
+            "error": "ModuleNotFoundError: No module named 'pricing'"
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 7535,
+        "cached_tokens": 4992,
+        "uncached_tokens": 2543,
+        "completion_tokens": 8403,
+        "reasoning_tokens": 8207,
+        "total_tokens": 15938,
+        "api_requests": 3,
+        "successful_requests": 3,
+        "usage_reported_requests": 3,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 3,
+        "reasoning_reported_requests": 3,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": false,
+        "source": "stdout.jsonl",
+        "reason": "length",
+        "error": false,
+        "event": "message_end",
+        "line": 8356
+      },
+      "delivery_passed": false
+    },
+    {
+      "id": "durable_inbox-thinkflow-r2",
+      "task": "durable_inbox",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 89.359,
+      "measurement_seconds": 90.766,
+      "prompt_sha256": "a97aff459bc5a71b16a025046fcba0b818438fda1dc022a8f42bac785283e3e1",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "duplicate_identity_and_conflict",
+            "passed": true
+          },
+          {
+            "check": "fifo_and_running_reservation",
+            "passed": true
+          },
+          {
+            "check": "finish_rules_and_idempotency",
+            "passed": true
+          },
+          {
+            "check": "restart_recovers_without_replay",
+            "passed": true
+          },
+          {
+            "check": "save_failure_preserves_memory_then_retries",
+            "passed": true
+          },
+          {
+            "check": "corrupt_document_preserved",
+            "passed": true
+          },
+          {
+            "check": "payload_validation",
+            "passed": true
+          },
+          {
+            "check": "detached_payloads_and_parent_creation",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 230802,
+        "cached_tokens": 199808,
+        "uncached_tokens": 30994,
+        "completion_tokens": 20870,
+        "reasoning_tokens": 13042,
+        "total_tokens": 251672,
+        "api_requests": 12,
+        "successful_requests": 12,
+        "usage_reported_requests": 12,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 12,
+        "reasoning_reported_requests": 12,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 4,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "interval_coverage-opencode-r1",
+      "task": "interval_coverage",
+      "harness": "opencode",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 31.343,
+      "measurement_seconds": 32.671,
+      "prompt_sha256": "624c6ad86a0f2fe2d23ff7bc1757571d36475aef243b98614d4133e3b5112e8c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "overlap_clip",
+            "passed": true
+          },
+          {
+            "check": "touching_and_duplicates",
+            "passed": true
+          },
+          {
+            "check": "empty_and_outside",
+            "passed": true
+          },
+          {
+            "check": "negative_and_disjoint",
+            "passed": true
+          },
+          {
+            "check": "large_integer_no_enumeration",
+            "passed": true
+          },
+          {
+            "check": "generator_and_immutability",
+            "passed": true
+          },
+          {
+            "check": "reject_invalid_even_outside",
+            "passed": true
+          },
+          {
+            "check": "deterministic_mixed_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 71171,
+        "cached_tokens": 63488,
+        "uncached_tokens": 7683,
+        "completion_tokens": 4062,
+        "reasoning_tokens": 1591,
+        "total_tokens": 75233,
+        "api_requests": 7,
+        "successful_requests": 7,
+        "usage_reported_requests": 7,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 7,
+        "reasoning_reported_requests": 7,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 26
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "repair_routes-opencode-r1",
+      "task": "repair_routes",
+      "harness": "opencode",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 53.844,
+      "measurement_seconds": 55.641,
+      "prompt_sha256": "be4ea0ee2c779675c6e68d471bbee856e38f7d4d37cf819f0c3db2cd4653bf9a",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "static_specificity",
+            "passed": true
+          },
+          {
+            "check": "ties_keep_registration",
+            "passed": true
+          },
+          {
+            "check": "normalized_replacement",
+            "passed": true
+          },
+          {
+            "check": "root_query_fragment_slashes",
+            "passed": true
+          },
+          {
+            "check": "validation_is_nonmutating",
+            "passed": true
+          },
+          {
+            "check": "missing_and_parameter_length",
+            "passed": true
+          },
+          {
+            "check": "literal_static_characters",
+            "passed": true
+          },
+          {
+            "check": "opaque_handler_and_fresh_params",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 145498,
+        "cached_tokens": 136448,
+        "uncached_tokens": 9050,
+        "completion_tokens": 8315,
+        "reasoning_tokens": 4777,
+        "total_tokens": 153813,
+        "api_requests": 11,
+        "successful_requests": 11,
+        "usage_reported_requests": 11,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 11,
+        "reasoning_reported_requests": 11,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 35
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "repair_routes-thinkflow-r2",
+      "task": "repair_routes",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 48.625,
+      "measurement_seconds": 50.187,
+      "prompt_sha256": "be4ea0ee2c779675c6e68d471bbee856e38f7d4d37cf819f0c3db2cd4653bf9a",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "static_specificity",
+            "passed": true
+          },
+          {
+            "check": "ties_keep_registration",
+            "passed": true
+          },
+          {
+            "check": "normalized_replacement",
+            "passed": true
+          },
+          {
+            "check": "root_query_fragment_slashes",
+            "passed": true
+          },
+          {
+            "check": "validation_is_nonmutating",
+            "passed": true
+          },
+          {
+            "check": "missing_and_parameter_length",
+            "passed": true
+          },
+          {
+            "check": "literal_static_characters",
+            "passed": true
+          },
+          {
+            "check": "opaque_handler_and_fresh_params",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 29655,
+        "cached_tokens": 16640,
+        "uncached_tokens": 13015,
+        "completion_tokens": 12024,
+        "reasoning_tokens": 8223,
+        "total_tokens": 41679,
+        "api_requests": 4,
+        "successful_requests": 4,
+        "usage_reported_requests": 4,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 4,
+        "reasoning_reported_requests": 4,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 2,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "receipt_package-opencode-r2",
+      "task": "receipt_package",
+      "harness": "opencode",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 29.375,
+      "measurement_seconds": 31.297,
+      "prompt_sha256": "240d205fb710b7a1fa8f049b1fe604d5680e5094f2c7aa562a8a3f0200386814",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "package_and_empty",
+            "passed": true
+          },
+          {
+            "check": "aggregate_then_round",
+            "passed": true
+          },
+          {
+            "check": "void_sort_and_whitespace",
+            "passed": true
+          },
+          {
+            "check": "validation_including_void",
+            "passed": true
+          },
+          {
+            "check": "generator_and_no_mutation",
+            "passed": true
+          },
+          {
+            "check": "cli_csv_utf8_and_quoting",
+            "passed": true
+          },
+          {
+            "check": "cli_invalid_keeps_output",
+            "passed": true
+          },
+          {
+            "check": "cli_missing_input_no_output",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 51481,
+        "cached_tokens": 43904,
+        "uncached_tokens": 7577,
+        "completion_tokens": 5215,
+        "reasoning_tokens": 2599,
+        "total_tokens": 56696,
+        "api_requests": 5,
+        "successful_requests": 5,
+        "usage_reported_requests": 5,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 5,
+        "reasoning_reported_requests": 5,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 19
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "interval_coverage-pi-r2",
+      "task": "interval_coverage",
+      "harness": "pi",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 30.734,
+      "measurement_seconds": 32.093,
+      "prompt_sha256": "624c6ad86a0f2fe2d23ff7bc1757571d36475aef243b98614d4133e3b5112e8c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "overlap_clip",
+            "passed": true
+          },
+          {
+            "check": "touching_and_duplicates",
+            "passed": true
+          },
+          {
+            "check": "empty_and_outside",
+            "passed": true
+          },
+          {
+            "check": "negative_and_disjoint",
+            "passed": true
+          },
+          {
+            "check": "large_integer_no_enumeration",
+            "passed": true
+          },
+          {
+            "check": "generator_and_immutability",
+            "passed": true
+          },
+          {
+            "check": "reject_invalid_even_outside",
+            "passed": true
+          },
+          {
+            "check": "deterministic_mixed_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 38224,
+        "cached_tokens": 34816,
+        "uncached_tokens": 3408,
+        "completion_tokens": 6034,
+        "reasoning_tokens": 2689,
+        "total_tokens": 44258,
+        "api_requests": 8,
+        "successful_requests": 8,
+        "usage_reported_requests": 8,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 8,
+        "reasoning_reported_requests": 8,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 5913
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "interval_coverage-opencode-r2",
+      "task": "interval_coverage",
+      "harness": "opencode",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 44.0,
+      "measurement_seconds": 45.313,
+      "prompt_sha256": "624c6ad86a0f2fe2d23ff7bc1757571d36475aef243b98614d4133e3b5112e8c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "overlap_clip",
+            "passed": true
+          },
+          {
+            "check": "touching_and_duplicates",
+            "passed": true
+          },
+          {
+            "check": "empty_and_outside",
+            "passed": true
+          },
+          {
+            "check": "negative_and_disjoint",
+            "passed": true
+          },
+          {
+            "check": "large_integer_no_enumeration",
+            "passed": true
+          },
+          {
+            "check": "generator_and_immutability",
+            "passed": true
+          },
+          {
+            "check": "reject_invalid_even_outside",
+            "passed": true
+          },
+          {
+            "check": "deterministic_mixed_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 71146,
+        "cached_tokens": 63616,
+        "uncached_tokens": 7530,
+        "completion_tokens": 4772,
+        "reasoning_tokens": 1944,
+        "total_tokens": 75918,
+        "api_requests": 7,
+        "successful_requests": 7,
+        "usage_reported_requests": 7,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 7,
+        "reasoning_reported_requests": 7,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 27
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "repair_routes-pi-r2",
+      "task": "repair_routes",
+      "harness": "pi",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 47.687,
+      "measurement_seconds": 49.344,
+      "prompt_sha256": "be4ea0ee2c779675c6e68d471bbee856e38f7d4d37cf819f0c3db2cd4653bf9a",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "static_specificity",
+            "passed": true
+          },
+          {
+            "check": "ties_keep_registration",
+            "passed": true
+          },
+          {
+            "check": "normalized_replacement",
+            "passed": true
+          },
+          {
+            "check": "root_query_fragment_slashes",
+            "passed": true
+          },
+          {
+            "check": "validation_is_nonmutating",
+            "passed": true
+          },
+          {
+            "check": "missing_and_parameter_length",
+            "passed": true
+          },
+          {
+            "check": "literal_static_characters",
+            "passed": true
+          },
+          {
+            "check": "opaque_handler_and_fresh_params",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 83955,
+        "cached_tokens": 79488,
+        "uncached_tokens": 4467,
+        "completion_tokens": 9500,
+        "reasoning_tokens": 5506,
+        "total_tokens": 93455,
+        "api_requests": 10,
+        "successful_requests": 10,
+        "usage_reported_requests": 10,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 10,
+        "reasoning_reported_requests": 10,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 9334
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "receipt_package-thinkflow-r1",
+      "task": "receipt_package",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 61.703,
+      "measurement_seconds": 63.625,
+      "prompt_sha256": "240d205fb710b7a1fa8f049b1fe604d5680e5094f2c7aa562a8a3f0200386814",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "package_and_empty",
+            "passed": true
+          },
+          {
+            "check": "aggregate_then_round",
+            "passed": true
+          },
+          {
+            "check": "void_sort_and_whitespace",
+            "passed": true
+          },
+          {
+            "check": "validation_including_void",
+            "passed": true
+          },
+          {
+            "check": "generator_and_no_mutation",
+            "passed": true
+          },
+          {
+            "check": "cli_csv_utf8_and_quoting",
+            "passed": true
+          },
+          {
+            "check": "cli_invalid_keeps_output",
+            "passed": true
+          },
+          {
+            "check": "cli_missing_input_no_output",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 111968,
+        "cached_tokens": 87680,
+        "uncached_tokens": 24288,
+        "completion_tokens": 15242,
+        "reasoning_tokens": 6071,
+        "total_tokens": 127210,
+        "api_requests": 8,
+        "successful_requests": 8,
+        "usage_reported_requests": 8,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 8,
+        "reasoning_reported_requests": 8,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 5,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "interval_coverage-pi-r1",
+      "task": "interval_coverage",
+      "harness": "pi",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 24.875,
+      "measurement_seconds": 26.343,
+      "prompt_sha256": "624c6ad86a0f2fe2d23ff7bc1757571d36475aef243b98614d4133e3b5112e8c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "overlap_clip",
+            "passed": true
+          },
+          {
+            "check": "touching_and_duplicates",
+            "passed": true
+          },
+          {
+            "check": "empty_and_outside",
+            "passed": true
+          },
+          {
+            "check": "negative_and_disjoint",
+            "passed": true
+          },
+          {
+            "check": "large_integer_no_enumeration",
+            "passed": true
+          },
+          {
+            "check": "generator_and_immutability",
+            "passed": true
+          },
+          {
+            "check": "reject_invalid_even_outside",
+            "passed": true
+          },
+          {
+            "check": "deterministic_mixed_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 21192,
+        "cached_tokens": 18816,
+        "uncached_tokens": 2376,
+        "completion_tokens": 5473,
+        "reasoning_tokens": 2783,
+        "total_tokens": 26665,
+        "api_requests": 5,
+        "successful_requests": 5,
+        "usage_reported_requests": 5,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 5,
+        "reasoning_reported_requests": 5,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 5379
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "receipt_package-opencode-r1",
+      "task": "receipt_package",
+      "harness": "opencode",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 55.359,
+      "measurement_seconds": 57.016,
+      "prompt_sha256": "240d205fb710b7a1fa8f049b1fe604d5680e5094f2c7aa562a8a3f0200386814",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "package_and_empty",
+            "passed": true
+          },
+          {
+            "check": "aggregate_then_round",
+            "passed": true
+          },
+          {
+            "check": "void_sort_and_whitespace",
+            "passed": true
+          },
+          {
+            "check": "validation_including_void",
+            "passed": true
+          },
+          {
+            "check": "generator_and_no_mutation",
+            "passed": true
+          },
+          {
+            "check": "cli_csv_utf8_and_quoting",
+            "passed": true
+          },
+          {
+            "check": "cli_invalid_keeps_output",
+            "passed": true
+          },
+          {
+            "check": "cli_missing_input_no_output",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 128710,
+        "cached_tokens": 120320,
+        "uncached_tokens": 8390,
+        "completion_tokens": 9248,
+        "reasoning_tokens": 4796,
+        "total_tokens": 137958,
+        "api_requests": 10,
+        "successful_requests": 10,
+        "usage_reported_requests": 10,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 10,
+        "reasoning_reported_requests": 10,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 33
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "interval_coverage-thinkflow-r1",
+      "task": "interval_coverage",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 37.265,
+      "measurement_seconds": 38.718,
+      "prompt_sha256": "624c6ad86a0f2fe2d23ff7bc1757571d36475aef243b98614d4133e3b5112e8c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "overlap_clip",
+            "passed": true
+          },
+          {
+            "check": "touching_and_duplicates",
+            "passed": true
+          },
+          {
+            "check": "empty_and_outside",
+            "passed": true
+          },
+          {
+            "check": "negative_and_disjoint",
+            "passed": true
+          },
+          {
+            "check": "large_integer_no_enumeration",
+            "passed": true
+          },
+          {
+            "check": "generator_and_immutability",
+            "passed": true
+          },
+          {
+            "check": "reject_invalid_even_outside",
+            "passed": true
+          },
+          {
+            "check": "deterministic_mixed_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 48165,
+        "cached_tokens": 34432,
+        "uncached_tokens": 13733,
+        "completion_tokens": 8446,
+        "reasoning_tokens": 3882,
+        "total_tokens": 56611,
+        "api_requests": 6,
+        "successful_requests": 6,
+        "usage_reported_requests": 6,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 6,
+        "reasoning_reported_requests": 6,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 1,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "pricing_refactor-opencode-r1",
+      "task": "pricing_refactor",
+      "harness": "opencode",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 66.625,
+      "measurement_seconds": 68.188,
+      "prompt_sha256": "411999b5e4bb0fcea8e406dfc12af0bf0d4e6806badf63f2207c572435aedeb6",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "decimal_discount_and_bulk",
+            "passed": true
+          },
+          {
+            "check": "per_line_half_up_not_total_rounding",
+            "passed": true
+          },
+          {
+            "check": "report_aggregation_order_and_zero",
+            "passed": true
+          },
+          {
+            "check": "monetary_validation",
+            "passed": true
+          },
+          {
+            "check": "no_input_mutation",
+            "passed": true
+          },
+          {
+            "check": "shared_runtime_dependency",
+            "passed": true
+          },
+          {
+            "check": "legacy_api_and_empty",
+            "passed": true
+          },
+          {
+            "check": "deterministic_money_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 224492,
+        "cached_tokens": 214272,
+        "uncached_tokens": 10220,
+        "completion_tokens": 10068,
+        "reasoning_tokens": 5835,
+        "total_tokens": 234560,
+        "api_requests": 15,
+        "successful_requests": 15,
+        "usage_reported_requests": 15,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 15,
+        "reasoning_reported_requests": 15,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 52
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "receipt_package-pi-r2",
+      "task": "receipt_package",
+      "harness": "pi",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 38.531,
+      "measurement_seconds": 40.281,
+      "prompt_sha256": "240d205fb710b7a1fa8f049b1fe604d5680e5094f2c7aa562a8a3f0200386814",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "package_and_empty",
+            "passed": true
+          },
+          {
+            "check": "aggregate_then_round",
+            "passed": true
+          },
+          {
+            "check": "void_sort_and_whitespace",
+            "passed": true
+          },
+          {
+            "check": "validation_including_void",
+            "passed": true
+          },
+          {
+            "check": "generator_and_no_mutation",
+            "passed": true
+          },
+          {
+            "check": "cli_csv_utf8_and_quoting",
+            "passed": true
+          },
+          {
+            "check": "cli_invalid_keeps_output",
+            "passed": true
+          },
+          {
+            "check": "cli_missing_input_no_output",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 77122,
+        "cached_tokens": 72704,
+        "uncached_tokens": 4418,
+        "completion_tokens": 7680,
+        "reasoning_tokens": 2757,
+        "total_tokens": 84802,
+        "api_requests": 11,
+        "successful_requests": 11,
+        "usage_reported_requests": 11,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 11,
+        "reasoning_reported_requests": 11,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 7469
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "frame_decoder-pi-r1",
+      "task": "frame_decoder",
+      "harness": "pi",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 62.36,
+      "measurement_seconds": 63.61,
+      "prompt_sha256": "29356a3cb25e93742570fd97a1452abcfcefde2363356c1c3591ec4fecd2b83c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "utf8_every_byte",
+            "passed": true
+          },
+          {
+            "check": "multiple_frames_embedded_delimiters",
+            "passed": true
+          },
+          {
+            "check": "maximum_zero_and_invalid_constructor",
+            "passed": true
+          },
+          {
+            "check": "illegal_headers_poison",
+            "passed": true
+          },
+          {
+            "check": "comma_and_utf8_errors",
+            "passed": true
+          },
+          {
+            "check": "oversize_rejected_before_payload",
+            "passed": true
+          },
+          {
+            "check": "eof_closed_and_type_errors",
+            "passed": true
+          },
+          {
+            "check": "deterministic_arbitrary_chunks",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 97625,
+        "cached_tokens": 94080,
+        "uncached_tokens": 3545,
+        "completion_tokens": 12734,
+        "reasoning_tokens": 7812,
+        "total_tokens": 110359,
+        "api_requests": 10,
+        "successful_requests": 10,
+        "usage_reported_requests": 10,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 10,
+        "reasoning_reported_requests": 10,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 12577
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "repair_routes-pi-r1",
+      "task": "repair_routes",
+      "harness": "pi",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 48.609,
+      "measurement_seconds": 50.109,
+      "prompt_sha256": "be4ea0ee2c779675c6e68d471bbee856e38f7d4d37cf819f0c3db2cd4653bf9a",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "static_specificity",
+            "passed": true
+          },
+          {
+            "check": "ties_keep_registration",
+            "passed": true
+          },
+          {
+            "check": "normalized_replacement",
+            "passed": true
+          },
+          {
+            "check": "root_query_fragment_slashes",
+            "passed": true
+          },
+          {
+            "check": "validation_is_nonmutating",
+            "passed": true
+          },
+          {
+            "check": "missing_and_parameter_length",
+            "passed": true
+          },
+          {
+            "check": "literal_static_characters",
+            "passed": true
+          },
+          {
+            "check": "opaque_handler_and_fresh_params",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 88091,
+        "cached_tokens": 84096,
+        "uncached_tokens": 3995,
+        "completion_tokens": 10391,
+        "reasoning_tokens": 4755,
+        "total_tokens": 98482,
+        "api_requests": 11,
+        "successful_requests": 11,
+        "usage_reported_requests": 11,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 11,
+        "reasoning_reported_requests": 11,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "message_end",
+        "line": 10209
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "pricing_refactor-thinkflow-r1",
+      "task": "pricing_refactor",
+      "harness": "thinkflow",
+      "repeat": 1,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 91.344,
+      "measurement_seconds": 92.687,
+      "prompt_sha256": "411999b5e4bb0fcea8e406dfc12af0bf0d4e6806badf63f2207c572435aedeb6",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "decimal_discount_and_bulk",
+            "passed": true
+          },
+          {
+            "check": "per_line_half_up_not_total_rounding",
+            "passed": true
+          },
+          {
+            "check": "report_aggregation_order_and_zero",
+            "passed": true
+          },
+          {
+            "check": "monetary_validation",
+            "passed": true
+          },
+          {
+            "check": "no_input_mutation",
+            "passed": true
+          },
+          {
+            "check": "shared_runtime_dependency",
+            "passed": true
+          },
+          {
+            "check": "legacy_api_and_empty",
+            "passed": true
+          },
+          {
+            "check": "deterministic_money_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 231744,
+        "cached_tokens": 196224,
+        "uncached_tokens": 35520,
+        "completion_tokens": 21234,
+        "reasoning_tokens": 12086,
+        "total_tokens": 252978,
+        "api_requests": 11,
+        "successful_requests": 11,
+        "usage_reported_requests": 11,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 11,
+        "reasoning_reported_requests": 11,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 5,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "pricing_refactor-opencode-r2",
+      "task": "pricing_refactor",
+      "harness": "opencode",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 91.172,
+      "measurement_seconds": 92.406,
+      "prompt_sha256": "411999b5e4bb0fcea8e406dfc12af0bf0d4e6806badf63f2207c572435aedeb6",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "decimal_discount_and_bulk",
+            "passed": true
+          },
+          {
+            "check": "per_line_half_up_not_total_rounding",
+            "passed": true
+          },
+          {
+            "check": "report_aggregation_order_and_zero",
+            "passed": true
+          },
+          {
+            "check": "monetary_validation",
+            "passed": true
+          },
+          {
+            "check": "no_input_mutation",
+            "passed": true
+          },
+          {
+            "check": "shared_runtime_dependency",
+            "passed": true
+          },
+          {
+            "check": "legacy_api_and_empty",
+            "passed": true
+          },
+          {
+            "check": "deterministic_money_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 202420,
+        "cached_tokens": 191232,
+        "uncached_tokens": 11188,
+        "completion_tokens": 15193,
+        "reasoning_tokens": 10684,
+        "total_tokens": 217613,
+        "api_requests": 11,
+        "successful_requests": 11,
+        "usage_reported_requests": 11,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 11,
+        "reasoning_reported_requests": 11,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "terminal": {
+        "observed": true,
+        "normal": true,
+        "source": "stdout.jsonl",
+        "reason": "stop",
+        "error": false,
+        "event": "step_finish",
+        "line": 44
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "receipt_package-thinkflow-r2",
+      "task": "receipt_package",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 25.937,
+      "measurement_seconds": 27.578,
+      "prompt_sha256": "240d205fb710b7a1fa8f049b1fe604d5680e5094f2c7aa562a8a3f0200386814",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "package_and_empty",
+            "passed": true
+          },
+          {
+            "check": "aggregate_then_round",
+            "passed": true
+          },
+          {
+            "check": "void_sort_and_whitespace",
+            "passed": true
+          },
+          {
+            "check": "validation_including_void",
+            "passed": true
+          },
+          {
+            "check": "generator_and_no_mutation",
+            "passed": true
+          },
+          {
+            "check": "cli_csv_utf8_and_quoting",
+            "passed": true
+          },
+          {
+            "check": "cli_invalid_keeps_output",
+            "passed": true
+          },
+          {
+            "check": "cli_missing_input_no_output",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 15211,
+        "cached_tokens": 11008,
+        "uncached_tokens": 4203,
+        "completion_tokens": 5786,
+        "reasoning_tokens": 3871,
+        "total_tokens": 20997,
+        "api_requests": 3,
+        "successful_requests": 3,
+        "usage_reported_requests": 3,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 3,
+        "reasoning_reported_requests": 3,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 3,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "interval_coverage-thinkflow-r2",
+      "task": "interval_coverage",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 60.265,
+      "measurement_seconds": 61.656,
+      "prompt_sha256": "624c6ad86a0f2fe2d23ff7bc1757571d36475aef243b98614d4133e3b5112e8c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "overlap_clip",
+            "passed": true
+          },
+          {
+            "check": "touching_and_duplicates",
+            "passed": true
+          },
+          {
+            "check": "empty_and_outside",
+            "passed": true
+          },
+          {
+            "check": "negative_and_disjoint",
+            "passed": true
+          },
+          {
+            "check": "large_integer_no_enumeration",
+            "passed": true
+          },
+          {
+            "check": "generator_and_immutability",
+            "passed": true
+          },
+          {
+            "check": "reject_invalid_even_outside",
+            "passed": true
+          },
+          {
+            "check": "deterministic_mixed_cases",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 79054,
+        "cached_tokens": 58496,
+        "uncached_tokens": 20558,
+        "completion_tokens": 14105,
+        "reasoning_tokens": 6978,
+        "total_tokens": 93159,
+        "api_requests": 7,
+        "successful_requests": 7,
+        "usage_reported_requests": 7,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 7,
+        "reasoning_reported_requests": 7,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 4,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    },
+    {
+      "id": "frame_decoder-thinkflow-r2",
+      "task": "frame_decoder",
+      "harness": "thinkflow",
+      "repeat": 2,
+      "pilot": false,
+      "exit_code": 0,
+      "timed_out": false,
+      "infrastructure_error": null,
+      "modified_public_tests": [],
+      "seconds": 151.234,
+      "measurement_seconds": 152.562,
+      "prompt_sha256": "29356a3cb25e93742570fd97a1452abcfcefde2363356c1c3591ec4fecd2b83c",
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "utf8_every_byte",
+            "passed": true
+          },
+          {
+            "check": "multiple_frames_embedded_delimiters",
+            "passed": true
+          },
+          {
+            "check": "maximum_zero_and_invalid_constructor",
+            "passed": true
+          },
+          {
+            "check": "illegal_headers_poison",
+            "passed": true
+          },
+          {
+            "check": "comma_and_utf8_errors",
+            "passed": true
+          },
+          {
+            "check": "oversize_rejected_before_payload",
+            "passed": true
+          },
+          {
+            "check": "eof_closed_and_type_errors",
+            "passed": true
+          },
+          {
+            "check": "deterministic_arbitrary_chunks",
+            "passed": true
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 386821,
+        "cached_tokens": 346880,
+        "uncached_tokens": 39941,
+        "completion_tokens": 26736,
+        "reasoning_tokens": 18527,
+        "total_tokens": 413557,
+        "api_requests": 16,
+        "successful_requests": 16,
+        "usage_reported_requests": 16,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 16,
+        "reasoning_reported_requests": 16,
+        "abandoned_requests": 0,
+        "failed_requests": 0
+      },
+      "stderr_tail": "",
+      "stopped_reason": "completed",
+      "writes_before_stream_finished": 0,
+      "terminal": {
+        "observed": true,
+        "reason": "completed",
+        "normal": true,
+        "source": "harness.json"
+      },
+      "delivery_passed": true
+    }
+  ]
+}

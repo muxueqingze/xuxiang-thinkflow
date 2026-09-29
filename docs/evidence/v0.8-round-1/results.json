@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "stale attachment rejected without model request; existing text draft survives explicit restore",
+    "definitively unreceived candidate can be explicitly restored with its attachment",
+    "real tool receipts feed diff and guarded UI revert through correct field names; task plan shows model-marked evidence"
+  ],
+  "findings": [],
+  "errors": [],
+  "requests": 4,
+  "source": true
+}

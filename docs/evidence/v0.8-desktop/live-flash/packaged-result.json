@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "packaged": true,
+  "version": "0.8.0",
+  "model": "deepseek-flash",
+  "seconds": 4.528,
+  "approvals": 1,
+  "writesBeforeStreamClosed": 2,
+  "events": [
+    {
+      "type": "stream_started",
+      "turn": 1,
+      "at": 228.10000002384186
+    },
+    {
+      "type": "tool_completed",
+      "turn": 1,
+      "id": "1",
+      "tool": "write",
+      "flow": "delayed",
+      "status": "success",
+      "at": 1893.300000011921
+    },
+    {
+      "type": "tool_completed",
+      "turn": 1,
+      "id": "2",
+      "tool": "write",
+      "flow": "delayed",
+      "status": "success",
+      "at": 2720.600000023842
+    },
+    {
+      "type": "stream_finished",
+      "turn": 1,
+      "at": 2857.600000023842
+    },
+    {
+      "type": "tool_completed",
+      "turn": 1,
+      "id": "call_00_z70cAuWwvOU3tLPGzJzp5832",
+      "tool": "bash",
+      "flow": "blocking",
+      "status": "success",
+      "at": 3038.100000023842
+    },
+    {
+      "type": "stream_started",
+      "turn": 2,
+      "at": 3193.5
+    },
+    {
+      "type": "stream_finished",
+      "turn": 2,
+      "at": 4414.600000023842
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 5750,
+    "completion_tokens": 697,
+    "reasoning_tokens": 235,
+    "text_tokens": 462,
+    "cached_tokens": 4480,
+    "effective_input": 1270,
+    "total_tokens": 6447,
+    "api_calls": 2,
+    "total_commands": 2,
+    "estimated_saved_api_calls": 2,
+    "estimated_avoided_prompt_tokens": 5750,
+    "commands": 3,
+    "reported": true,
+    "reported_turns": 2
+  },
+  "ledger": [
+    {
+      "id": "1",
+      "tool": "write",
+      "status": "success",
+      "flow": "delayed",
+      "exit_code": null
+    },
+    {
+      "id": "2",
+      "tool": "write",
+      "status": "success",
+      "flow": "delayed",
+      "exit_code": null
+    },
+    {
+      "id": "call_00_z70cAuWwvOU3tLPGzJzp5832",
+      "tool": "bash",
+      "status": "success",
+      "flow": "blocking",
+      "exit_code": 0
+    }
+  ],
+  "errors": []
+}

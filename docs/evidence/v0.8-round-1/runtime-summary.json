@@ -1,0 +1,50 @@
+{
+  "requests": 4,
+  "status": "idle",
+  "last_error": "",
+  "ledger": [
+    {
+      "id": "qa-read",
+      "tool": "read",
+      "path": "input.txt",
+      "dest": null,
+      "status": "success",
+      "flow": "blocking",
+      "risk": "low",
+      "error": "",
+      "bytes_written": 36,
+      "output_summary": "read ok",
+      "content_hash": "bd336342ed658fd3",
+      "exit_code": null
+    },
+    {
+      "id": "qa-write",
+      "tool": "write",
+      "path": "input.txt",
+      "dest": null,
+      "status": "success",
+      "flow": "delayed",
+      "risk": "low",
+      "error": "",
+      "bytes_written": 34,
+      "output_summary": "write 34 bytes to input.txt",
+      "content_hash": "f5fd075b2385ee8e",
+      "exit_code": null
+    },
+    {
+      "id": "qa-plan",
+      "tool": "update_plan",
+      "path": null,
+      "dest": null,
+      "status": "success",
+      "flow": "blocking",
+      "risk": "low",
+      "error": "",
+      "bytes_written": 0,
+      "output_summary": "update_plan ok",
+      "content_hash": "a99b55ef51294441",
+      "exit_code": null
+    }
+  ],
+  "input_queue": []
+}

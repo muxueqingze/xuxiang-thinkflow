@@ -1,0 +1,73 @@
+{
+  "capabilities": {
+    "source": "https://api.deepseek.com/v1/models",
+    "observed": "2026-09-29",
+    "model": "deepseek-flash",
+    "name": "DeepSeek-V4.1-Flash",
+    "context_window": 1048576,
+    "max_output_tokens": 393216,
+    "client_output_limit": null,
+    "upstream_default": "Omitting max_tokens uses provider default: thinking/high 64K.",
+    "default_source": "https://api-docs.deepseek.com/api/create-chat-completion/"
+  },
+  "results": [
+    {
+      "harness": "pi",
+      "exit_code": 0,
+      "timed_out": false,
+      "requests": [
+        {
+          "keys": [
+            "messages",
+            "model",
+            "reasoning_effort",
+            "stream",
+            "stream_options",
+            "thinking",
+            "tools"
+          ],
+          "output_caps": {},
+          "message_count": 2,
+          "tool_count": 4
+        }
+      ],
+      "passed": true
+    },
+    {
+      "harness": "opencode",
+      "exit_code": 0,
+      "timed_out": false,
+      "requests": [
+        {
+          "keys": [
+            "messages",
+            "model",
+            "stream",
+            "stream_options",
+            "tool_choice",
+            "tools"
+          ],
+          "output_caps": {},
+          "message_count": 2,
+          "tool_count": 10
+        }
+      ],
+      "passed": true
+    }
+  ],
+  "probe": "Loopback fake SSE; real Pi 0.87.1 and OpenCode 1.18.33 CLI; no provider generation.",
+  "versions": {
+    "pi": "0.87.1",
+    "opencode": "1.18.33"
+  },
+  "configuration": {
+    "pi_compaction_enabled": false,
+    "opencode_compaction_auto": false,
+    "opencode_compaction_prune": false,
+    "opencode_project_config_discovery": false,
+    "opencode_home_and_xdg": "isolated per-run profile",
+    "pi_extensions": "only explicitly supplied production hook",
+    "opencode_plugins": "only explicitly supplied production hook"
+  },
+  "note": "Wire captures preceded removal of the Pi retry maxRetries=1 override; that final change only restores default retry policy."
+}

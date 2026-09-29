@@ -373,6 +373,17 @@ def test_canonical_escaped_close_tag_restored():
     print()
 
 
+def test_untrusted_attributes_report_errors_instead_of_crashing():
+    for tag in (
+        '<tf-touch id="1" path="x" injected="banana" />',
+        '<tf-touch id="²" path="x" />',
+        '<tf-touch id="' + '9' * 5000 + '" path="x" />',
+    ):
+        parser = StreamingParser(allow_legacy_tags=False)
+        assert parser.feed(tag) == []
+        assert parser.errors
+
+
 def run_all():
     """运行所有测试。"""
     print("=" * 50)
@@ -398,6 +409,7 @@ def run_all():
     test_large_content()
     test_mixed_thinking_and_commands()
     test_canonical_escaped_close_tag_restored()
+    test_untrusted_attributes_report_errors_instead_of_crashing()
 
     print("=" * 50)
     print("全部通过 ✓")
