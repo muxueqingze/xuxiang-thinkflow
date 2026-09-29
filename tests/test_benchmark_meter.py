@@ -172,7 +172,7 @@ class BenchmarkRunnerTests(unittest.TestCase):
             here = root / 'bench'
             here.mkdir()
             for name in ('meter.py', 'run.py', 'adapters.py', 'thinkflow_worker.py',
-                         'package-lock.json', 'tasks.py'):
+                         'monitor.py', 'package-lock.json', 'tasks.py'):
                 (here / name).write_text('fixture', encoding='utf8')
             source = root / 'src/worker.py'
             source.parent.mkdir()

@@ -12,10 +12,11 @@ import asyncio
 import os
 import json
 import hashlib
+import re
 import sys
 import time
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -233,6 +234,7 @@ class AgentLoop:
         self.approval_handler = approval_handler
         self._run_active = False
         self._last_turn_failed = False
+        self._replayed_unknown_effect = False
         self.stopped_reason = ""
         self.executor = Executor(
             cwd=config.cwd,
@@ -439,6 +441,11 @@ class AgentLoop:
             "copy": copy_tool,
         }
         for spec in BUILTIN_TOOL_SPECS:
+            if spec.name == 'bash':
+                shell_contract = ('当前平台使用Windows cmd.exe；不支持Bash heredoc (<<)、tail或单引号引用。'
+                                  '多行Python验证请先写.py文件再python执行；不要用管道隐藏测试退出码。'
+                                  if os.name == 'nt' else '当前执行器使用/bin/sh。')
+                spec = replace(spec, description=spec.description + shell_contract)
             registry.register(spec, handlers[spec.name])
 
         registry.register(ToolSpec(
@@ -601,7 +608,7 @@ class AgentLoop:
         if self.task_plan['steps']:
             content += '\n[CURRENT TASK PLAN]\n' + json.dumps(self.task_plan, ensure_ascii=False)
         if self.native_write_fallback:
-            content += '\n[PROTOCOL FALLBACK] 本轮流式标签曾解析失败，现已提供原生文件工具作为保底。先核对已有回执，不要重放已成功操作。'
+            content += '\n[PROTOCOL FALLBACK] 本次任务出现流式协议错误，现已提供原生文件工具作为保底。原生函数名用write/edit/bash等，不含tf-、id属性或尖括号。先核对已有回执，不要重放已成功操作。'
         return {"role": "user", "content": content}
 
     def _messages_with_runtime_status(self) -> list[dict]:
@@ -747,7 +754,7 @@ class AgentLoop:
                     self.stopped_reason = "max_consecutive_failures"
                     break
                 if not should_continue:
-                    if self.last_error:
+                    if self.last_error and self.stopped_reason == 'completed':
                         self.stopped_reason = "error"
                     break
             else:
@@ -798,6 +805,7 @@ class AgentLoop:
 
     async def _run_one_turn(self) -> bool:
         self._last_turn_failed = False
+        self._replayed_unknown_effect = False
         self.events.turn = self._turn_count + 1
         self.events.emit("turn_started")
         try:
@@ -970,6 +978,11 @@ class AgentLoop:
                         if dispatch_abort != AbortReason.NONE:
                             self.view.flush_text()
                             abort_reason = dispatch_abort
+                    # A native call start is not proof of complete arguments.
+                    # Discard the unfinished native batch on length; text effects
+                    # already executed still have their own durable receipts.
+                    if finish_reason in ('length', 'max_tokens') and abort_reason in (AbortReason.NONE, AbortReason.TOOL_USE):
+                        abort_reason = AbortReason.LENGTH
                     if abort_reason != AbortReason.NONE:
                         break
                     visible_text = self.text_filter.flush()
@@ -1069,9 +1082,7 @@ class AgentLoop:
             if self._stop_for_uncertain_effect(self.context.records[record_start_index:]):
                 return False
             if parser_error_message:
-                if self.config.provider.enable_native_tools and not self.config.provider.native_tools:
-                    self.native_write_fallback = True
-                    self.view.render_info('流式命令格式有误，已开放原生文件工具保底；已成功的操作不会重放。')
+                self._enable_native_write_fallback()
                 self.messages.append({
                     "role": "user",
                     "content": (
@@ -1124,12 +1135,21 @@ class AgentLoop:
                         "请补全未完成的段落、列表或代码块。如果命令标签被截断，请重新输出完整的 "
                         "canonical tf- 命令标签并使用新的 id。"
                     )
+                if traditional_tools:
+                    continue_message += ('\n本轮原生工具参数未完整结束，整个原生批次均未执行。'
+                                         '重新提交完整的原生调用；已成功的文本流式操作按账本保留，不要重放。')
+                    self._enable_native_write_fallback()
+                elif assistant_reasoning and not clean_text and not commands_this_turn:
+                    continue_message += ('\n上一轮只有思考而没有执行或可交付输出。已有分析保留，'
+                                         '请推进最小可验证操作，避免重新展开完整方案。')
                 self.messages.append({
                     "role": "user",
                     "content": continue_message,
                 })
                 return True
-            self.view.render_error("模型连续达到 max_tokens，已停止自动续写")
+            self.stopped_reason = 'max_auto_continues'
+            self.last_error = '模型输出仍被截断，已达到自动续写上限；任务尚未完成。'
+            self.view.render_error(self.last_error)
             return False
 
         elif abort_reason == AbortReason.TOOL_USE:
@@ -1586,6 +1606,8 @@ class AgentLoop:
         if expected is None and previous is not None:
             expected = previous.content_hash  # Legacy text-only snapshots.
         if previous and expected == fingerprint:
+            if previous.status == 'unknown':
+                self._replayed_unknown_effect = True
             if previous.status != "success":
                 self.context._last_failure = previous
             if command.need_result:
@@ -1648,7 +1670,7 @@ class AgentLoop:
         return result
 
     def _stop_for_uncertain_effect(self, records):
-        if any(record.status == 'unknown' for record in records):
+        if self._replayed_unknown_effect or any(record.status == 'unknown' for record in records):
             self.last_error = '工具可能已经修改文件，但执行回执未完整保存。已停止自动继续，请核对实际文件后恢复。'
             self.stopped_reason = 'unconfirmed_side_effect'
             self.view.render_error(self.last_error)
@@ -1681,7 +1703,9 @@ class AgentLoop:
                              if batch_failed else ""))
             batch_failed = batch_failed or not result.success
             result_text = self._native_result_text(result)
-            result_text = f'[THINKFLOW RECEIPT id="{tool_id}" tool="{tool_name}" status="{result.status_str}"]\n' + result_text
+            evidence = self.context.evidence_ref_for(tool_id) if result.success else ''
+            result_text = (f'[THINKFLOW RECEIPT id="{tool_id}" evidence_ref="{evidence}" '
+                           f'tool="{tool_name}" status="{result.status_str}"]\n') + result_text
             self.view.render_tool_result(tool_name, result_text)
 
             normalized.append({
@@ -1759,6 +1783,27 @@ class AgentLoop:
             return self._format_tool_result(result)
         return result.content
 
+    def _enable_native_write_fallback(self):
+        if self.config.provider.enable_native_tools and not self.config.provider.native_tools:
+            if not self.native_write_fallback:
+                self.view.render_info('流式命令格式有误，已开放原生文件工具保底；已成功的操作不会重放。')
+            self.native_write_fallback = True
+
+    def _native_protocol_error(self, name):
+        # Diagnose known tag names/fragments only. Never translate and execute a
+        # malformed call: arguments may also belong to a different tool.
+        match = re.match(r'^tf-([a-z]+)(?:\s|$)', name)
+        if self.tool_registry.has(name) or not match or match[1] not in TOOLS:
+            return ''
+        self._enable_native_write_fallback()
+        canonical = match[1]
+        enabled = self._enabled_native_tool_names()
+        available = enabled is None or canonical in enabled
+        correction = (f'下一轮使用原生函数 {canonical}，参数按提供的JSON schema填写。'
+                      if available else f'该原生函数当前未开放；如需流式执行，请输出完整的tf-{canonical}文本标签。')
+        return (f'[THINKFLOW PROTOCOL ERROR] {name!r}是流式标签名/片段，不是原生函数名；本调用未执行。'
+                + correction + '原生工具名中不要包含tf-、id属性或尖括号。已成功操作按回执保留，不要重做。')
+
     async def _execute_traditional_result(self, tool_name: str, tool_input: dict, *, tool_id=None,
                                           input_error="", skip_reason="") -> ExecutionResult:
         actual_flow = self.tool_registry.flow(tool_name)
@@ -1794,7 +1839,8 @@ class AgentLoop:
                 self.config.security.read_only and
                 self.tool_registry.kind(tool_name) in (TOOL_KIND_OUTPUT, TOOL_KIND_EXEC, TOOL_KIND_GENERATE)
             )
-            error = input_error or (
+            protocol_error = self._native_protocol_error(tool_name)
+            error = input_error or protocol_error or (
                 f"read-only permission mode blocks side-effect operation: {tool_name}" if read_only_denial
                 else await self._authorize_tool(command, tool_input)
             )

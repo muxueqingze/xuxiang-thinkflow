@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT))
 from adapters import configuration
 from adapters import PI_ROOT
 from meter import Meter
+from monitor import print_progress
 from scripts.live_deepseek import load_key
 
 HARNESSES = ('thinkflow','pi','opencode')
@@ -26,7 +27,7 @@ PILOT = "This is an isolated connectivity check. Create hello.py containing a fu
 
 
 def freeze_manifest(directory, pilot):
-    files=[HERE/name for name in ('meter.py','run.py','adapters.py','thinkflow_worker.py','package-lock.json')]
+    files=[HERE/name for name in ('meter.py','run.py','adapters.py','thinkflow_worker.py','monitor.py','package-lock.json')]
     if not pilot:
         files.append(HERE/'tasks.py')
     files.extend(p for p in (ROOT/'src').rglob('*') if p.is_file() and p.suffix in ('.py','.md'))
@@ -103,11 +104,21 @@ def run_one(job, directory, key, pilot=False):
             process = subprocess.Popen(command,cwd=workspace,env=env,stdin=subprocess.PIPE,
                                        stdout=out,stderr=err,start_new_session=os.name!='nt',
                                        creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
-            try:
-                process.communicate(prompt.encode('utf-8'),timeout=300)
-            except subprocess.TimeoutExpired:
-                timed_out=True
-                kill_tree(process)
+            deadline = time.monotonic() + 300
+            first_wait = True
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    timed_out = True
+                    kill_tree(process)
+                    break
+                try:
+                    process.communicate(prompt.encode('utf-8') if first_wait else None,
+                                        timeout=min(8, remaining))
+                    break
+                except subprocess.TimeoutExpired:
+                    first_wait = False
+                    print_progress(job['id'], destination, meter)
     except Exception as exc:
         infrastructure_error = type(exc).__name__ + ': ' + str(exc)[:500].replace(key,'[REDACTED]')
         if process is not None:
@@ -149,6 +160,7 @@ def run_one(job, directory, key, pilot=False):
             result['diagnostic_error']='Unreadable optional harness record'
     save(destination/'result.json',result)
     print(json.dumps({'done':job['id'],'passed':grade['passed'],'score':f"{grade['checks_passed']}/{grade['checks_total']}",
+                      'stopped_reason':result.get('stopped_reason'),
                       'seconds':run_seconds,'tokens':usage['total_tokens'],'usage_complete':usage['usage_complete'],
                       'calls':usage['api_requests'],'exit_code':exit_code}),flush=True)
     return result
