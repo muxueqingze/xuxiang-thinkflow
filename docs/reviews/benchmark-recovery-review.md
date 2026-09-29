@@ -47,3 +47,37 @@
 - **推广前限制**：末条若为 assistant，或 user/tool 的 content 为结构化列表，代码会回退到新增 user status 消息。因此“始终不新建 user 轮”不是这一实现的普遍性质；当前两项文本编码 benchmark 的常规续轮满足附加条件。
 - **推广前消息语义风险**：status 附在 tool content 后面时，不再是独立运行时消息，而是工具结果字符串的一部分；如果某个工具输出要求机器可解析 JSON，附加文本会破坏其纯 JSON 形式。多工具结果中状态只归到最后一个工具结果，不能在未验证下泛化到其他 provider 的原生内容块协议。
 - 实验保留原工具结果与任务内容，但改变消息角色边界与模型对状态的归属判断，这正是实验变量；不能仅凭本地请求体相等部分或小样本结果宣称生产推广安全，也不能把可能的token变化解释成删除了reasoning。
+
+## 默认文件 schema 可见实验的补充核对
+
+仅审查 `status_ablation.py::files_available` 及其 worker 分流，未改生产源码或发起 API 请求。
+
+- 结论：对于当前 registry 和调用方，实验函数等价于从生产 `_enabled_native_tool_names` 删除默认隐藏 write/append/edit/mkdir/touch/copy 的两行。enable_native_tools=False 返回空集；非空 allowlist 优先并扣除 deny；无 allowlist 时返回 registry 全集扣除 deny。显式 allow/deny 没有被扩展或撤销。
+- 一个内部返回值差别：无 allow/deny 时，删除两行的生产函数返回 None（表示全部），实验函数返回全部名称集合。实际 OpenAI/Anthropic schema构造输出相同；已检查的错误名称纠正调用方对当前内置工具也等价。
+- 独立本地验证直接读取生产方法，仅在内存删除指定两行作为比较基准。组合 OpenAI/Anthropic × enable开关 × 3种allow × 4种deny × fallback开关，共96种配置，两种实现的完整 build_request_body 均相等；不只是比较名称集合。原 runtime role、系统prompt与其他请求配置保持一致。
+- 另在 MockTransport 下执行真实文本 write→append，实际文件为 `first second`、回执顺序1→2、均为delayed、仅1次请求、正常completed。files_available只替换schema过滤函数，没有改parser、FIFO、executor、授权与读取基线机制。
+- 不从单份或4份样本承诺性能收益。“grader 8/8”与“模型主动执行要求的测试”是不同证据，正常收尾但没有运行要求测试的样本应继续明确记录，不能只用更少请求数判为完整改善。
+
+## 最终实测证据收口
+
+核对范围限于 `bench/harness_benchmark_20260929/reports/recovery-results.json` 中协议修复 pricing/inbox 各2次与 files_available pricing/inbox 各2次。已与8个原始运行目录的 result.json、meter.json、trace.jsonl、live.json逐项交叉核对；请求数、token 从原 meter.requests 重算，流式重叠从 trace 的同轮完成时间早于 stream_finished 重算。未重新调用模型或重跑测试。
+
+| files_available 样本 | 请求 | meter总token | 停止 / 外部grader | 流式重叠 | 模型执行测试的事实 |
+|---|---:|---:|---|---:|---|
+| pricing r1 | 4 | 43,136 | completed / 8/8 | 4 | 没有任何 bash 调用。第4轮写入3个生产文件与 tests/test_pricing.py，但未观察到运行 public 或新增测试；不能宣称模型完成了要求的测试流程 |
+| pricing r2 | 19 | 564,981 | completed / 8/8 | 5 | 第5轮 public+新增测试命令失败，第7轮两者成功；第12轮 edge_check 成功；第16轮 random_check 失败，第17轮修改后成功 |
+| inbox r1 | 12 | 251,615 | completed / 8/8 | 0 | 第6轮测试组合失败；第8、11轮 public+新增测试组合成功 |
+| inbox r2 | 9 | 154,324 | completed / 8/8 | 5 | 第4轮public成功；第5轮extra失败，第7轮修复后成功；第8轮public+extra组合成功 |
+
+四份 files_available 均为退出码0、未超时、无基础设施错误；meter usage_complete 均为true，各请求已结束且HTTP 200、无transport_error。run_finished、live.json与result的停止原因一致，live.run_active为false。
+
+| 同题同重复数的阶段 | completed且外部验收通过 | 请求总数 | meter总token | 流结束前成功的delayed文件操作 |
+|---|---:|---:|---:|---:|
+| 协议修复，pricing/inbox各2次 | 2/4 | 75 | 1,844,477 | 15 |
+| 默认提供文件schema，pricing/inbox各2次 | 4/4 | 44 | 1,014,056 | 14 |
+
+协议修复四份各自为 pricing r1 7请求/83,705/completed、pricing r2 24请求/625,332/max_run_turns、inbox r1 24请求/503,538/max_run_turns、inbox r2 20请求/631,902/completed；四份外部grader均8/8。因此2/4与4/4表示“正常停止且外部验收通过”的观测，不是“逐项满足了模型执行测试要求”的比例。
+
+14次流式重叠均来自text通道的成功delayed操作，包含write和edit，不等于14次write。inbox r1没有重叠；开放原生文件schema没有保证每次运行都会采用流式写入。pricing r2仍出现打印cwd、print(1)、仅import等低价值调用，不能声称循环或过度验证问题已全部消失。
+
+主会话已将默认隐藏六个文件schema的两行删除合入当前生产工作树；该变化与前述96配置等价性核对一致。以上4份对照支持本轮采用此小改动，但样本仅覆盖两项任务、每项两次，生成仍有波动，且pricing r1缺少实际执行测试的证据；不承诺稳定性能提升，不替换原36次基准成绩，不冒称完成全版本验收。

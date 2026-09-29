@@ -219,6 +219,8 @@ thinkflow --config config.json --sandbox balanced
 
 本组正常交付分别为7/12、10/12、12/12；续想目前没有表现出整体省token优势。[完整结果与限制](bench/harness_benchmark_20260929/reports/summary.md)保留全部失败，后续优先改进协议纠错与任务收尾。
 
+后续[受监控的故障诊断](docs/benchmark-debug-20260929.md)修复了误通道恢复、截断/停止处理和计划回执引用，并撤回默认隐藏原生文件工具的策略。同两题各两次从2/4正常收尾变为4/4，总token从184.45万降至101.41万，保留14次与输出重叠的文件操作；最快一次缺少主动执行测试的证据。原36次成绩不变，小样本不代表稳定优势；原0.8便携包尚不含这些源码补丁。
+
 历史 benchmark 材料保留，不能与新套题直接混算：
 
 - `bench/reproducible_agent_efficiency/`：早期可重复效率实验。

@@ -2,6 +2,8 @@
 
 状态：36次正式运行完成。源码基线 `e49b717`，未运行 Claude Code。
 
+后续[16次受监控的诊断](reports/recovery-summary.md)与[恢复修复说明](../../docs/benchmark-debug-20260929.md)单独记录，不替换本报告。当前源码已修复恢复链并让原生文件工具首轮可用；下述“冻结生产核心”指原36次阶段，复现该基准须还原e49b717核心及记录的装置指纹，不能把当前HEAD结果混入原样本。
+
 **本组结果：OpenCode交付最稳定，Pi用量最低；ThinkFlow尚未表现出整体优势。** ThinkFlow正常交付7/12、产物通过10/12；Pi为10/12与11/12；OpenCode均为12/12。总token分别为2,540,386、978,364、1,916,744。即使只比较双方正常完成的同题配对，ThinkFlow对Pi的总token为2.513倍，对OpenCode为1.545倍。
 
 这些结论只适用于本次同模型、单agent、8K请求参数和共同本地预算，不是默认桌面配置或行业排行榜。详细口径与全部失败见[结果表](reports/summary.md)，逐请求数据见[requests.json](reports/requests.json)，定向复核见[review.md](review.md)，已有证据支持的改进方向见[diagnosis.md](diagnosis.md)。

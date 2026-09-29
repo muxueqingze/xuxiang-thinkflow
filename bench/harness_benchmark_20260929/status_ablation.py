@@ -1,4 +1,4 @@
-"""Opt-in single-variable diagnostic: attach runtime state without a new user turn.
+"""Opt-in diagnostics: runtime-state placement or native file-tool availability.
 
 This experiment does not change the production AgentLoop or the frozen suite.
 """
@@ -26,11 +26,20 @@ def attached_status(agent):
     return [*messages, {'role': 'user', 'content': status}]
 
 
+def files_available(agent):
+    provider = agent.config.provider
+    if not provider.enable_native_tools:
+        return set()
+    allow = {name for name in provider.native_tools if name}
+    deny = {name for name in provider.disabled_native_tools if name}
+    return (allow or {schema['name'] for schema in agent.tool_registry.schemas()}) - deny
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--run', action='store_true')
     parser.add_argument('--worker', action='store_true', help=argparse.SUPPRESS)
-    parser.add_argument('--mode', choices=('message', 'attached'), default='attached')
+    parser.add_argument('--mode', choices=('message', 'attached', 'files_available'), default='attached')
     parser.add_argument('--name', default='debug-attached-status')
     parser.add_argument('--task', choices=('pricing_refactor', 'durable_inbox'), required=True)
     parser.add_argument('--repetitions', type=int, choices=(1, 2), default=2)
@@ -41,6 +50,8 @@ def main():
         from thinkflow_worker import main as worker
         if args.mode == 'attached':
             AgentLoop._messages_with_runtime_status = attached_status
+        elif args.mode == 'files_available':
+            AgentLoop._enabled_native_tool_names = files_available
         asyncio.run(worker())
         return
     if not args.run:
@@ -54,7 +65,9 @@ def main():
     runner.freeze_manifest(directory, False)
     experiment = {'mode': args.mode, 'task': args.task, 'repetitions': args.repetitions,
                   'script_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                  'only_variable': 'runtime state placement; generation, tools and tasks unchanged'}
+                  'only_variable': ('native file schemas visible from first request; status, generation, prompt and tasks unchanged'
+                                    if args.mode == 'files_available' else
+                                    'runtime state placement; generation, tools and tasks unchanged')}
     experiment_path = directory / 'ablation.json'
     if experiment_path.exists() and json.loads(experiment_path.read_text(encoding='utf8')) != experiment:
         raise RuntimeError('Ablation changed; preserve data and use a new name')

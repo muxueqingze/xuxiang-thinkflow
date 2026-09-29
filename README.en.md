@@ -183,6 +183,8 @@ The [2026-09-29 same-model benchmark](bench/harness_benchmark_20260929/README.md
 
 Normal completion was 7/12, 10/12 and 12/12 respectively. ThinkFlow did not show an overall token advantage in this suite. [All results and limitations](bench/harness_benchmark_20260929/reports/summary.md) retain failures; protocol recovery and task completion are the next priorities.
 
+A subsequent [monitored investigation](docs/benchmark-debug-20260929.md) fixed protocol recovery, truncation/stop handling and receipt references, and restored native file tools from the first request. Across the same two tasks repeated twice, normal completion changed from 2/4 to 4/4 and total tokens from 1,844,477 to 1,014,056, while retaining 14 file operations completed before their output streams closed. The fastest run did not execute its tests. These are small diagnostic samples, not a new ranking; the original 36 results remain unchanged and the existing 0.8 portable package does not contain these source patches.
+
 Historical benchmark materials remain available; their results must not be mixed with the new suite:
 
 - `bench/reproducible_agent_efficiency/`: early reproducible efficiency experiment.

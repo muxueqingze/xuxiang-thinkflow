@@ -688,8 +688,8 @@ class AgentLoop:
         deny = {name for name in p.disabled_native_tools if name}
         if allow:
             return allow - deny
-        if not self.native_write_fallback:
-            deny |= {'write', 'append', 'edit', 'mkdir', 'touch', 'copy'}
+        # Prefer streamed file operations through the prompt. Keep native
+        # recovery available from the first request instead of hiding capability.
         if deny:
             return {
                 schema["name"]
@@ -1786,7 +1786,7 @@ class AgentLoop:
     def _enable_native_write_fallback(self):
         if self.config.provider.enable_native_tools and not self.config.provider.native_tools:
             if not self.native_write_fallback:
-                self.view.render_info('流式命令格式有误，已开放原生文件工具保底；已成功的操作不会重放。')
+                self.view.render_info('流式命令格式有误，请使用原生文件工具保底；已成功的操作不会重放。')
             self.native_write_fallback = True
 
     def _native_protocol_error(self, name):
