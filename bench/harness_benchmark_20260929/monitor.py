@@ -6,9 +6,11 @@ import os
 from pathlib import Path
 import time
 
+from src.parser import parser_error_metadata
+
 
 KEY_EVENTS = {'turn_started', 'stream_started', 'stream_finished', 'tool_started',
-              'tool_completed', 'turn_finished', 'run_finished', 'error', 'request_usage'}
+              'tool_completed', 'turn_finished', 'run_finished', 'error', 'parser_error', 'request_usage'}
 SAFE_FIELDS = ('seq', 'turn', 'id', 'tool', 'channel', 'flow', 'risk', 'path', 'dest',
                'need_result', 'input_hash', 'cmd', 'content_bytes', 'input_summary',
                'status', 'success', 'error', 'bytes_written', 'change_id', 'reason',
@@ -51,8 +53,16 @@ class Monitor:
             return
         if kind not in KEY_EVENTS:
             return
-        record = {'type': kind, 'seconds': round(self.clock() - self.started, 4),
-                  **{key: event[key] for key in SAFE_FIELDS if key in event}}
+        if kind == 'parser_error':
+            # This event must never inherit cmd/path/error/body fields from the general projection.
+            fields = {key: event[key] for key in ('seq', 'turn')
+                      if type(event.get(key)) is int and event[key] >= 0}
+            fields.update(parser_error_metadata(event.get('error_kind'),
+                          channel=event.get('channel'), phase=event.get('phase'),
+                          position=event.get('position'), position_scope=event.get('position_scope')))
+        else:
+            fields = {key: event[key] for key in SAFE_FIELDS if key in event}
+        record = {'type': kind, 'seconds': round(self.clock() - self.started, 4), **fields}
         for key in ('cmd', 'input_summary', 'error'):
             if key in record:
                 record[key] = str(record[key])[:2000]
@@ -64,7 +74,7 @@ class Monitor:
         phases = {'turn_started': 'preparing', 'stream_started': 'streaming',
                   'stream_finished': 'tool_feedback', 'tool_started': 'tool_running',
                   'tool_completed': 'tool_finished', 'turn_finished': 'turn_finished',
-                  'run_finished': 'finished', 'error': 'error'}
+                  'run_finished': 'finished', 'error': 'error', 'parser_error': 'error'}
         self.state['phase'] = phases.get(kind, self.state['phase'])
         if kind.startswith('tool_'):
             self.state['last_tool'] = {key: record[key] for key in

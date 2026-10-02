@@ -45,12 +45,40 @@ class Command:
     raw: str = ""                      # 原始命令块文本
 
 
+PARSER_ERROR_KINDS = frozenset({
+    "buffer_overflow", "incomplete_tag", "unclosed_block", "missing_id",
+    "invalid_id", "duplicate_id", "invalid_injected", "missing_path",
+    "missing_dest", "missing_cmd", "missing_edit_sections", "missing_edit_body",
+})
+
+
+def parser_error_metadata(kind, *, channel=None, phase=None,
+                          position=None, position_scope=None):
+    """Project only bounded, non-body diagnostics; never inspect message or raw."""
+    result = {
+        "error_kind": kind if type(kind) is str and kind in PARSER_ERROR_KINDS else "unknown",
+        "channel": channel if type(channel) is str and channel in ("thinking", "text") else "unknown",
+        "phase": phase if type(phase) is str and phase in ("feed", "flush") else "unknown",
+    }
+    # A legacy default zero is not evidence of a location. Only flush knows its buffer offset.
+    if (position_scope == "parser_buffer" and type(position) is int
+            and 0 <= position <= MAX_BUFFER_SIZE):
+        result.update(position=position, position_scope="parser_buffer")
+    return result
+
+
 @dataclass
 class ParseError:
     """解析错误"""
     message: str
     raw: str = ""
     position: int = 0
+    kind: str = "unknown"
+    position_scope: Optional[str] = None
+
+    def diagnostic(self, *, channel, phase):
+        return parser_error_metadata(self.kind, channel=channel, phase=phase,
+                                     position=self.position, position_scope=self.position_scope)
 
 
 def build_open_tag_re(allow_legacy_tags: bool = True) -> re.Pattern:
@@ -114,6 +142,7 @@ class StreamingParser:
             self.errors.append(ParseError(
                 message=f"缓冲区超过上限 {MAX_BUFFER_SIZE}，可能有未闭合标签。清空缓冲区。",
                 raw=self.buffer[:200],
+                kind="buffer_overflow",
             ))
             self.buffer = ""
             return []
@@ -144,6 +173,7 @@ class StreamingParser:
             if parsed is None:
                 error = ParseError(
                     message="检测到未完成的 ThinkFlow 命令开标签（流被截断）",
+                    kind="incomplete_tag", position_scope="parser_buffer",
                     raw=self.buffer[start:start + 200],
                     position=start,
                 )
@@ -155,6 +185,7 @@ class StreamingParser:
             if not self_closing and close_tag not in self.buffer[tag_end:]:
                 error = ParseError(
                     message=f"检测到未闭合的 <{prefix}{tool}> 命令块（流被截断）",
+                    kind="unclosed_block", position_scope="parser_buffer",
                     raw=self.buffer[start:start + 200],
                     position=start,
                 )
@@ -295,12 +326,14 @@ class StreamingParser:
         if not cmd_id:
             self.errors.append(ParseError(
                 message=f"<{tool}> 缺少 id 属性",
+                kind="missing_id",
                 raw=raw[:100],
             ))
             return None
         if not cmd_id.isascii() or not cmd_id.isdecimal() or len(cmd_id) > 32:
             self.errors.append(ParseError(
                 message=f"<{tool}> id 必须是最多32位的十进制数字: {cmd_id}",
+                kind="invalid_id",
                 raw=raw[:100],
             ))
             return None
@@ -309,6 +342,7 @@ class StreamingParser:
         if cmd_id in self._seen_ids:
             self.errors.append(ParseError(
                 message=f"id={cmd_id} 重复",
+                kind="duplicate_id",
                 raw=raw[:100],
             ))
             return None
@@ -325,7 +359,7 @@ class StreamingParser:
         need_result = attrs.get("need_result") == "true"
         injected_value = attrs.get("injected", "0") or "0"
         if injected_value not in ("0", "1"):
-            self.errors.append(ParseError(message=f"<{tool}> injected 必须是 0 或 1", raw=raw[:100]))
+            self.errors.append(ParseError(message=f"<{tool}> injected 必须是 0 或 1", raw=raw[:100], kind="invalid_injected"))
             return None
         injected = int(injected_value)
 
@@ -333,6 +367,7 @@ class StreamingParser:
         if tool in ("read", "write", "append", "mkdir", "touch", "copy", "edit") and not path:
             self.errors.append(ParseError(
                 message=f"<{tool} id={cmd_id}> 缺少 path 属性",
+                kind="missing_path",
                 raw=raw[:100],
             ))
             return None
@@ -340,6 +375,7 @@ class StreamingParser:
         if tool == "copy" and not dest:
             self.errors.append(ParseError(
                 message=f"<copy id={cmd_id}> 缺少 dest 属性",
+                kind="missing_dest",
                 raw=raw[:100],
             ))
             return None
@@ -347,6 +383,7 @@ class StreamingParser:
         if tool == "bash" and not cmd_str:
             self.errors.append(ParseError(
                 message=f"<bash id={cmd_id}> 缺少 cmd 属性",
+                kind="missing_cmd",
                 raw=raw[:100],
             ))
             return None
@@ -374,6 +411,7 @@ class StreamingParser:
                 if not old_match or not new_match:
                     self.errors.append(ParseError(
                         message=f"<edit id={cmd_id}> 缺少 <old> 或 <new> 子标签",
+                        kind="missing_edit_sections",
                         raw=raw[:200],
                     ))
                     return None
@@ -382,6 +420,7 @@ class StreamingParser:
             else:
                 self.errors.append(ParseError(
                     message=f"<edit id={cmd_id}> 缺少正文（<old>/<new>）",
+                    kind="missing_edit_body",
                     raw=raw[:100],
                 ))
                 return None

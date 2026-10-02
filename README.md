@@ -221,6 +221,8 @@ thinkflow --config config.json --sandbox balanced
 
 ThinkFlow保留25次与stream重叠的文件操作，但协议恢复、测试修订和验收后的多余探测使总输入显著增加；[独立案例拆解](docs/reviews/production-cost-cases.md)列出具体证据。不能靠8K额度压指标，也不能把完整历史或全部额外测试都称作浪费。
 
+2026-10-02本地源码补齐解析失败的非正文诊断：固定错误类别、通道、阶段和确证的缓冲区相对位置；监视器过滤正文与秘密，原执行/恢复流程保持。19项parser、82项core、208项unittest及13项桌面Node测试通过，见[生产接力](docs/benchmark-production-handoff.md#非正文解析诊断--2026-10-02仅本地)。本次未调用模型或重跑基准，旧便携包未更新。
+
 [上一轮8K复测](bench/harness_benchmark_20260929/reports-rerun/README.md)、[原轮](bench/harness_benchmark_20260929/reports/summary.md)及[历史与源码核对](docs/benchmark-history-diagnosis.md)保留。这组六题不等于原GitHub前端/长篇小说任务，不能混算排名或据此否定旧案例。旧0.8便携包尚未包含后续源码修补。
 
 历史 benchmark 材料保留，不能与新套题直接混算：

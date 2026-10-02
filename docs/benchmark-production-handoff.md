@@ -18,8 +18,15 @@ repair_routes-thinkflow-r2因父进程GBK stdout不能编码U+FFFD而被run.py�
 
 全部生成结束并核验指纹后，永久将monitor进度JSON改ASCII转义；run_one捕获可选progress异常并保存observer_errors，不再kill worker，关键meter.finish失败仍传播。离线复现GBK和注入观察器异常均通过。这些后置修补不属于被测91e4911，未来新跑须新建实验名，不要续入旧数据。
 
+## 非正文解析诊断 · 2026-10-02（仅本地）
+
+- 已补齐原P2诊断缺口：12种固定错误类别、thinking/text通道及feed/flush阶段；7个运行时分支发出parser_error。只有flush确认的位置带parser_buffer范围，默认0及无法确认的位置不记录。
+- 监视器对parser_error单独白名单投影，只保留上述元数据及原有数值序号/轮次/计数；不保存message、raw、提示词、模型正文、命令、路径或秘密。既有恢复反馈、工具执行、成功回执与length续写保持。
+- 原项目离线验收：19项parser、82项core、208项unittest（原199+新增9）和13项桌面Node测试全过。新增合成测试覆盖双通道feed/flush、MESSAGE_STOP尾段、length清理、恶意字段不落盘及运行时到监视器链路；实际文件与已测副本字节一致。结果见[校验记录](evidence/parser-diagnostics-20261002/results.json)，复验python tests/run_all.py与npm --prefix desktop test。
+- 仅源码本地保存；未调用模型API、重跑付费基准、改写旧实验数据、重打桌面包或推送/发布。本项增加诊断能力，不证明原成本案例的具体根因或性能提升。
+
 ## 判断与下一步
 
 8K/24请求/300秒是此前装置的人为条件，用它代表生产表现有误。取消以后，ThinkFlow仍更慢、更费；有效token较旧轮观察值+81.1%、时间+37.1%，不是本轮性能提升。具体损耗包括协议恢复、自建测试修订、验收后多余探测和历史重传；未发现native bash成功stdout丢失。案例阶段成本不等于可以直接省掉的量，详情见独立cost-cases报告。
 
-下一步若继续优化，针对已记录的协议歧义、解析错误非正文诊断、验收后及时收尾开展最小实验；不得恢复额度来压分，也不再次无目标全量重跑。六题不等于原前端/长篇小说基准。旧桌面包未重打，本轮更新源码和报告，不发布Release/npm，不使用Claude Code或Pro。
+解析错误非正文诊断已按上节离线补齐；下一步若继续优化，针对已记录的协议歧义、验收后及时收尾开展最小实验；不得恢复额度来压分，也不再次无目标全量重跑。六题不等于原前端/长篇小说基准。旧桌面包未重打，本轮更新源码和报告，不发布Release/npm，不使用Claude Code或Pro。

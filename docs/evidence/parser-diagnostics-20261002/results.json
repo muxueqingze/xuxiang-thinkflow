@@ -1,0 +1,37 @@
+{
+  "verifiedAtUtc": "2026-10-02T17:24:10.996502+00:00",
+  "baselineCommit": "c18a3c4dc6a7bd5b84307bdd02e2513ac02ef4af",
+  "validation": {
+    "unittest": 208,
+    "newDiagnosticTests": 9,
+    "originalUnittestBaseline": 199,
+    "parserScriptChecks": 19,
+    "coreScriptChecks": 82,
+    "diagnosticEmitBranches": 7,
+    "syntaxValid": true,
+    "sourceMatchesTestedStage": true,
+    "rawOrMessageReadByMetadataHelper": false
+  },
+  "desktopNode": {
+    "exitCode": 0,
+    "testFiles": 3,
+    "tests": 13,
+    "passed": 13,
+    "failed": 0
+  },
+  "commands": [
+    "python -X utf8 -B tests/run_all.py",
+    "node --test --test-reporter=tap desktop/tests/*.test.cjs"
+  ],
+  "privacyBoundary": "parser_error metadata is projected twice; no raw/message/prompt/body/cmd/path/secret fields",
+  "modelApiCalls": 0,
+  "paidBenchmarkRerun": false,
+  "desktopPackageRebuilt": false,
+  "sha256": {
+    "src/parser.py": "838053fb88717e5d28bc80a47a2c56e616f9680926466a3c947019894dcd1d46",
+    "src/agent_loop.py": "58b8c1d51fbb9d877eb3e48312170d1097e8c0ca6b5b103b031e98aab2ba83d1",
+    "bench/harness_benchmark_20260929/monitor.py": "f815879fc1d154f101342ccbd4f3a4098d305b45310430176b3c09a157a31af2",
+    "tests/run_all.py": "0a71ba252ba0ea9da1627a5320fe8b34768a143a8d607d97ad2cbf86e9f87882",
+    "tests/test_parser_diagnostics.py": "1727fa723f130b3c8b09422c1ef1b0e8f70634c9a22ddad9933feb7592163d28"
+  }
+}

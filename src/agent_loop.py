@@ -888,6 +888,7 @@ class AgentLoop:
                     parser_error_count += len(new_errors)
                     if new_errors:
                         parser_error_message = new_errors[-1].message
+                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="thinking", phase="feed"))
                         self.view.flush_text()
                         abort_reason = AbortReason.TOOL_FAILED
                         break
@@ -916,6 +917,7 @@ class AgentLoop:
                     text_parser_error_count += len(new_errors)
                     if new_errors:
                         parser_error_message = new_errors[-1].message
+                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
                         self.view.flush_text()
                         abort_reason = AbortReason.TOOL_FAILED
                         break
@@ -978,6 +980,7 @@ class AgentLoop:
                         text_parser_error_count += len(new_errors)
                         if new_errors:
                             parser_error_message = new_errors[-1].message
+                            self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
                             self.view.flush_text()
                             abort_reason = AbortReason.TOOL_FAILED
                             break
@@ -1048,6 +1051,7 @@ class AgentLoop:
             error = self.parser.flush()
             if error:
                 parser_error_message = error.message
+                self.events.emit("parser_error", **error.diagnostic(channel="thinking", phase="flush"))
                 if self.config.verbose:
                     self.view.render_info(error.message)
                 if abort_reason == AbortReason.END_TURN:
@@ -1055,13 +1059,18 @@ class AgentLoop:
             text_error = self.text_parser.flush()
             if text_error:
                 parser_error_message = text_error.message
+                self.events.emit("parser_error", **text_error.diagnostic(channel="text", phase="flush"))
                 if abort_reason == AbortReason.END_TURN:
                     abort_reason = AbortReason.TOOL_FAILED
         else:
             # Continuation instructions request a fresh complete command.
             # Keeping an old body would concatenate its prefix with that retry.
-            self.parser.flush()
-            self.text_parser.flush()
+            error = self.parser.flush()
+            if error:
+                self.events.emit("parser_error", **error.diagnostic(channel="thinking", phase="flush"))
+            text_error = self.text_parser.flush()
+            if text_error:
+                self.events.emit("parser_error", **text_error.diagnostic(channel="text", phase="flush"))
         self.text_filter.reset()
         self.text_command_gate.reset()
 
