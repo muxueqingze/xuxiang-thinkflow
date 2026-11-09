@@ -1,0 +1,250 @@
+{
+  "allow_read_only": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read"
+    ],
+    "ledger": [
+      {
+        "id": "excluded-write",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "marker.txt"
+    ],
+    "marker": "EXECUTED"
+  },
+  "disabled_write": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [
+      {
+        "id": "excluded-write",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "marker.txt"
+    ],
+    "marker": "EXECUTED"
+  },
+  "native_off": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [],
+    "ledger": [
+      {
+        "id": "excluded-write",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "marker.txt"
+    ],
+    "marker": "EXECUTED"
+  },
+  "coalesced": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 3,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [],
+    "parser_errors": [
+      "missing_path",
+      "duplicate_id"
+    ],
+    "errors": [
+      "命令格式错误，推理已打断",
+      "命令格式错误，推理已打断"
+    ],
+    "files": [],
+    "marker": null
+  },
+  "split": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [],
+    "parser_errors": [
+      "missing_path"
+    ],
+    "errors": [
+      "命令格式错误，推理已打断"
+    ],
+    "files": [],
+    "marker": null
+  },
+  "delivery_bypass": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 1,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "app.txt",
+      "check.py",
+      "marker.txt",
+      "package.json"
+    ],
+    "marker": "DUMMY_FIXTURE_ONLY"
+  },
+  "delivery_failure": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 1,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [
+      "交付前验证失败，已达到自动修复上限"
+    ],
+    "files": [
+      "app.txt",
+      "check.py",
+      "marker.txt",
+      "package.json"
+    ],
+    "marker": "DUMMY_FIXTURE_ONLY"
+  }
+}

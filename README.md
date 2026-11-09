@@ -10,6 +10,8 @@ Language: [中文](README.md) | [English](README.en.md)
 
 续想 ThinkFlow 是一个实验性流式工具调用 agent harness。它验证一个核心判断：并不是所有工具调用都应该成为模型回合边界。
 
+2026-11-09源码加入按需工具、Python代码执行和精确正文去重；Go DS Flash固定三题均完成，缓存输入较旧版合计减少15.99%、总token减少19.97%，Pi仍更省。实测与全部探索见[结果报告](docs/efficiency-results-20261109.md)，接手见[当前接力](docs/efficiency-handoff.md)，按任务定位见[代码地图](docs/代码地图.md)。
+
 对于 `read`、`grep`、`web`、`bash` 这类会带来新信息或高风险副作用的工具，续想仍然使用阻塞、确认、反馈路径。对于 `write`、`append`、`mkdir`、`touch`、`copy`、`edit` 这类可预测副作用工具，续想允许模型在连续 streaming 中写出结构化 `tf-*` 命令，由本地状态机、FIFO 队列、执行器和 ledger 接管执行。成功执行只是回执，不必打断模型正在进行的推理。
 
 ## 核心路线

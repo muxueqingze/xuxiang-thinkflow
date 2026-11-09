@@ -1,0 +1,13 @@
+{
+  "purpose": "Completed experiment profiles, including isolated system TEMP and user caches",
+  "recycled": [
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\frame_decoder-pi-r1\\profile",
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\frame_decoder-thinkflow-r1\\profile",
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\pricing_refactor-baseline-r1\\profile",
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\pricing_refactor-pi-r1\\profile",
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\pricing_refactor-thinkflow-r1\\profile",
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\receipt_package-baseline-r1\\profile",
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\receipt_package-pi-r1\\profile",
+    "D:\\the things of mine\\项目库\\agent\\thinkflow\\bench\\efficiency_20261011\\artifacts\\go-efficiency-20261109-r1\\receipt_package-thinkflow-r1\\profile"
+  ]
+}

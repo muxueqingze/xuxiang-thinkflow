@@ -42,9 +42,9 @@ CLI / Electron desktop
 |---|---|
 | `agent_loop.py` | provider 调用、反馈边界、FIFO 生命周期、运行限额 |
 | `parser.py / text_filter.py` | 完整命令解析、显示过滤、围栏保护 |
-| `executor.py / security.py` | 文件与shell动作、路径规则、敏感文件与命令策略 |
+| `executor.py / security.py` | 文件动作、shell与原生Python代码块；共用进程输出、取消及权限策略 |
 | `tool_registry.py / interfaces.py` | 工具schema、分流/风险、自定义接口 |
-| `context.py / compaction.py` | 可审计回执、结果注入、确定性摘录 |
+| `context.py / feedback.py / compaction.py` | 可审计回执、observation 合并、去重与确定性摘录；先压缩再按最终历史判断重复 |
 | `events.py` | 实例级事件与可选终端视图，不修改全局renderer来服务桌面 |
 | `session.py` | 原子快照、fsync、历史保留 |
 | `desktop_service.py` | 私有NDJSON RPC、工作区会话、分支、授权、恢复、导出 |
@@ -82,7 +82,15 @@ update_plan将步骤、验收条件和工具回执引用存入agent快照。完�
 
 工具事件区分开始、完成、成功、失败、跳过与取消。账本展示 path/hash/bytes/flow/risk。用量来自供应商返回；缺少usage时不应据此推断免费调用。节省API调用是「成功的delayed操作若逐条同步调用」的反事实估算，不是对原生批量调用的实测胜率，也不是实际省下的钱。
 
-默认native schema只公开信息/执行/扩展工具，六种可预测文件工具优先通过tf-*输出。一次run内出现解析错误后才开放原生文件工具保底，下一次run重置；用户显式native_tools配置保持优先。native实际回执流标记blocking，即使对应文件工具可支持流式，也不把已经走原生回合的调用误记为delayed。故意在反馈边界提前关闭供应商流时，可能收不到最终usage，界面应标明用量不完整。
+默认native schema包含read/write/edit/bash/python/read_skill/load_tools；搜索、计划、联网和扩展工具仍在同一registry中，由load_tools(names)按需开放完整schema，会话及快照保留已加载名称。显式native_tools名单优先，disabled_native_tools继续生效。可预测文件操作仍通过tf-*在生成流中执行；原生多个文件操作也可同批提交，只形成一次反馈。协议错误、原生批次截断或tf-*误作函数名沿用既有恢复提示。native实际回执流标记blocking，即使对应文件工具可支持流式，也不把原生回合误记为delayed。故意在反馈边界提前关闭供应商流时，可能收不到最终usage，界面应标明用量不完整。
+
+2026-11-09 的效率实现：未反馈的命令载荷和执行器输出完整保留；模型请求先完成历史压缩，再按最终有效历史精确去重成功写入正文。DeepSeek携带tools时保留完整reasoning；未携带tools时不把其忽略的reasoning当成正文副本。runtime与待反馈账本合入末尾observation，不另造原生工具后的用户回合。已反馈的本机旧账本按原预算归档，与首次模型反馈分开。
+
+OpenCode Go 请求使用 ThinkFlow 自有 User-Agent 和会话级 x-opencode-session；会话标识随快照恢复，新CLI会话重新分配。Python子进程沿用调用方已有的UTF-8及不写bytecode设置，API密钥仍不在默认传递列表。
+
+`python(code)`把多行Python直接通过stdin交给独立解释器，可用普通代码组合文件处理与一组独立检查。它与bash共用`Executor._run_process`，复用cwd、环境、输出捕获、超时和进程树取消；不生成临时脚本，不经过shell转义。工具授权与read-only检查仍由AgentLoop原执行链处理。解释器是`THINKFLOW_PYTHON`或PATH中的`python`，每次调用没有跨进程变量状态。
+
+工具失败继续进入原有反馈恢复链。`max_consecutive_failures`默认null，可在配置中显式指定数字；它不再以隐藏的3次阈值截停仍可恢复的工具错误。现有任务轮数/时间预算、取消及不确定副作用停止保持原语义。
 
 验证分三层：解析/调度隔离测试，真实本地HTTP SSE与文件系统集成，实际桌面及独立包流程。真实商业端点、长时负载与多操作系统是单独的验证边界。
 

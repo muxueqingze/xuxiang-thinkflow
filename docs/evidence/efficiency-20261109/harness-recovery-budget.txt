@@ -1,0 +1,8 @@
+................Executing <Task finished name='Task-123' coro=<HarnessTests.test_native_duplicate_receipt_survives_snapshot_and_conflict() done, defined at D:\the things of mine\项目库\agent\thinkflow\tests\test_harness.py:349> result=None created at C:\Users\andy1\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> took 2.047 seconds
+.Executing <Task finished name='Task-128' coro=<HarnessTests.test_native_failure_skips_rest_and_keeps_provider_pairs() done, defined at D:\the things of mine\项目库\agent\thinkflow\tests\test_harness.py:384> result=None created at C:\Users\andy1\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> took 2.016 seconds
+.........Executing <Task finished name='Task-191' coro=<HarnessTests.test_turn_and_failure_limits() done, defined at D:\the things of mine\项目库\agent\thinkflow\tests\test_harness.py:238> result=None created at C:\Users\andy1\AppData\Local\Programs\Python\Python312\Lib\asyncio\runners.py:100> took 2.281 seconds
+..
+----------------------------------------------------------------------
+Ran 28 tests in 33.733s
+
+OK

@@ -1,0 +1,259 @@
+{
+  "allow_read_only": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read"
+    ],
+    "ledger": [
+      {
+        "id": "excluded-write",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "marker.txt"
+    ],
+    "marker": "EXECUTED"
+  },
+  "disabled_write": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [
+      {
+        "id": "excluded-write",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "marker.txt"
+    ],
+    "marker": "EXECUTED"
+  },
+  "native_off": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [],
+    "ledger": [
+      {
+        "id": "excluded-write",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "marker.txt"
+    ],
+    "marker": "EXECUTED"
+  },
+  "coalesced": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 3,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [],
+    "parser_errors": [
+      "missing_path",
+      "duplicate_id"
+    ],
+    "errors": [
+      "\u547d\u4ee4\u683c\u5f0f\u9519\u8bef\uff0c\u63a8\u7406\u5df2\u6253\u65ad",
+      "\u547d\u4ee4\u683c\u5f0f\u9519\u8bef\uff0c\u63a8\u7406\u5df2\u6253\u65ad"
+    ],
+    "files": [],
+    "marker": null
+  },
+  "split": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 2,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [
+      "missing_path"
+    ],
+    "errors": [
+      "\u547d\u4ee4\u683c\u5f0f\u9519\u8bef\uff0c\u63a8\u7406\u5df2\u6253\u65ad"
+    ],
+    "files": [
+      "marker.txt"
+    ],
+    "marker": "EXECUTED"
+  },
+  "delivery_bypass": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 1,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [],
+    "files": [
+      "app.txt",
+      "check.py",
+      "marker.txt",
+      "package.json"
+    ],
+    "marker": "DUMMY_FIXTURE_ONLY"
+  },
+  "delivery_failure": {
+    "stopped_reason": "completed",
+    "last_error": "",
+    "requests": 1,
+    "approval_requests": [],
+    "advertised_native_tools": [
+      "read",
+      "pwd",
+      "list_files",
+      "glob",
+      "grep",
+      "bash",
+      "write",
+      "append",
+      "edit",
+      "mkdir",
+      "touch",
+      "copy",
+      "web_search",
+      "fetch_url",
+      "image_generate",
+      "list_skills",
+      "read_skill",
+      "update_plan",
+      "verify"
+    ],
+    "ledger": [
+      {
+        "id": "1",
+        "tool": "write",
+        "status": "success",
+        "error": ""
+      }
+    ],
+    "parser_errors": [],
+    "errors": [
+      "\u4ea4\u4ed8\u524d\u9a8c\u8bc1\u5931\u8d25\uff0c\u5df2\u8fbe\u5230\u81ea\u52a8\u4fee\u590d\u4e0a\u9650"
+    ],
+    "files": [
+      "app.txt",
+      "check.py",
+      "marker.txt",
+      "package.json"
+    ],
+    "marker": "DUMMY_FIXTURE_ONLY"
+  }
+}
