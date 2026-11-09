@@ -1129,11 +1129,21 @@ class AgentLoop:
         if abort_reason == AbortReason.END_TURN and is_deepseek(self.config.provider):
             gate = MarkdownFenceCommandGate()
             plain_text = gate.feed(clean_text) + gate.flush()
-            if re.search(r'</｜DSML｜\s*(?:parameter|invoke|calls)>\s*$', plain_text):
+            if not assistant_text.strip() and not commands_this_turn:
+                parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
+                                        '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
+                self.events.emit('provider_protocol_error', kind='empty_assistant_response')
+                abort_reason = AbortReason.TOOL_FAILED
+                turn_usage.abort_reason = abort_reason
+            elif re.search(r'</｜+DSML｜+\s*(?:parameter|invoke|calls)>\s*$', plain_text):
+                protocol_hint = ('请使用当前提供的原生工具或tf-*继续未完成操作；'
+                                 if self._openai_provider_tools() else
+                                 '当前使用tf-*文本协议：文件操作用tf-write/tf-edit，Python代码用tf-python，shell用tf-bash；')
                 parser_error_message = ('供应商把原生工具调用的DSML控制标记返回成了正文，该调用没有执行。'
-                                        '请用已提供的原生工具继续未完成操作；已成功的tf写入按账本保留，不要重放。')
+                                        + protocol_hint + '已成功的tf写入按账本保留，不要重放。')
                 self.events.emit('provider_protocol_error', kind='deepseek_tool_markup_tail')
                 abort_reason = AbortReason.TOOL_FAILED
+                turn_usage.abort_reason = abort_reason
         if abort_reason != AbortReason.TOOL_USE and (clean_text or assistant_reasoning):
             message = {"role": "assistant", "content": clean_text}
             if self.config.provider.format == 'openai' and (assistant_reasoning or is_deepseek(self.config.provider)):
@@ -1230,13 +1240,13 @@ class AgentLoop:
         elif abort_reason == AbortReason.END_TURN:
             msg = self.context.build_auto_result_message()
             if msg:
-                pending = self.context.pending_auto_result
-                if pending:
-                    self.context.mark_injected(pending.id)
+                pending = self.context.pending_auto_results
                 self.messages.append({"role": "user", "content": msg})
+                for record in pending:
+                    self.context.mark_injected(record.id)
                 self.view.render_need_result_return(
-                    pending.tool if pending else "",
-                    pending.id if pending else "",
+                    pending[-1].tool,
+                    pending[-1].id,
                 )
                 self.context.clear_flags()
                 return True
@@ -1339,7 +1349,7 @@ class AgentLoop:
         dispatched = 0
         for index, cmd in enumerate(commands):
             dispatched += 1
-            if cmd.need_result or self.tool_registry.flow(cmd.tool) in (TOOL_FLOW_BLOCKING, TOOL_FLOW_CONFIRM):
+            if cmd.need_result or self.tool_registry.flow(cmd.tool) == TOOL_FLOW_CONFIRM:
                 cmd.need_result = True
                 prior_failure = await command_queue.barrier()
                 if prior_failure:
@@ -1919,8 +1929,6 @@ class AgentLoop:
                 result = ExecutionResult(success=False, tool=tool_name, error=error)
             elif tool_name in TOOLS:
                 result = await self.executor.execute(command)
-            elif tool_name == "python":
-                result = await self.executor.python(**tool_input)
             elif tool_name in ("list_files", "glob", "grep"):
                 result = await getattr(self.executor, tool_name)(**tool_input)
             else:

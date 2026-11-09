@@ -119,6 +119,7 @@ class Executor:
             "touch": self._touch,
             "copy": self._copy,
             "bash": self._bash,
+            "python": self._python_command,
             "edit": self._edit,
         }
 
@@ -514,6 +515,9 @@ class Executor:
             )
 
         return await self._run_process(command.cmd, shell=True, tool="bash")
+
+    async def _python_command(self, command: Command) -> ExecutionResult:
+        return await self.python(command.cmd)
 
     async def python(self, code: str) -> ExecutionResult:
         """Run a Python code block directly, without shell quoting or a script file."""

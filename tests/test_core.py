@@ -862,8 +862,10 @@ def test_system_prompt_defaults_to_builtin_and_context_is_appended():
     # 协议骨架必须留在系统提示词里（模型不读 skill 也要会写 tf-* 标签），
     # 工作方法/文件归纳迁移进内置 skill，提示词只保留指引。
     assert '<tf-write ' in BUILTIN_SYSTEM_PROMPT
-    assert 'read_skill' in BUILTIN_SYSTEM_PROMPT
-    assert 'name="thinkflow"' in BUILTIN_SYSTEM_PROMPT
+    assert '<tf-python ' in BUILTIN_SYSTEM_PROMPT
+    native_prompt = resolve_system_prompt({'enable_native_tools': True, 'context': {'enabled': False}})
+    assert 'read_skill' in native_prompt
+    assert 'name="thinkflow"' in native_prompt
     assert "文件归纳整理" not in BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"use_builtin_system_prompt": True, "context": {"enabled": False}}) == BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"context": {"enabled": False}}, use_builtin=True) == BUILTIN_SYSTEM_PROMPT
@@ -1585,7 +1587,7 @@ def test_agent_auto_continues_after_blocking_text_command_result():
                 await agent.run("read then continue")
                 assert len(seen_bodies) == 2
                 assert len(agent.usage.turns) == 2
-                assert agent.usage.turns[0].abort_reason == "need_result"
+                assert agent.usage.turns[0].abort_reason == "end_turn"
                 second_messages = seen_bodies[1]["messages"]
                 assert any(
                     "PROMPT_TEXT" in message.get("content", "")

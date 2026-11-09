@@ -13,7 +13,7 @@ from typing import Optional
 
 
 # 支持的工具类型。append/touch/copy 属于可预测的确定性流式工具。
-TOOLS = ("read", "write", "append", "mkdir", "touch", "copy", "bash", "edit")
+TOOLS = ("read", "write", "append", "mkdir", "touch", "copy", "bash", "edit", "python")
 
 # 最大缓冲区大小（防止格式错误导致无限增长）
 MAX_BUFFER_SIZE = 2 * 1024 * 1024  # 2MB
@@ -33,10 +33,10 @@ class ParseState(Enum):
 class Command:
     """解析出的命令"""
     id: str
-    tool: str                          # read / write / append / mkdir / touch / copy / bash / edit
+    tool: str                          # file operations, read, bash or python
     path: Optional[str] = None
     dest: Optional[str] = None         # copy 目标路径
-    cmd: Optional[str] = None          # bash 命令
+    cmd: Optional[str] = None          # shell 命令或 Python 源码
     content: Optional[str] = None      # write 正文
     old_text: Optional[str] = None     # edit 旧文本
     new_text: Optional[str] = None     # edit 新文本
@@ -403,6 +403,9 @@ class StreamingParser:
         # 按工具处理正文
         if tool in ("write", "append"):
             command.content = _unescape_command_tags(content or "")
+
+        elif tool == "python":
+            command.cmd = _unescape_command_tags(content or "")
 
         elif tool == "edit":
             if content:

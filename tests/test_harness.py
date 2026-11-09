@@ -79,10 +79,10 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(agent._turn_count, 1)
         self.assertEqual([e["id"] for e in events if e["type"] == "tool_completed"], ["1", "2"])
 
-    async def test_blocking_read_returns_before_dependent_write(self):
+    async def test_explicit_read_returns_before_dependent_write(self):
         agent, _, _ = self.agent()
         agent.executor.execute = AsyncMock(return_value=ExecutionResult(success=True, tool="read", content="fact"))
-        self.stream(agent, [thinking('<tf-read id="1" path="a" />'
+        self.stream(agent, [thinking('<tf-read id="1" path="a" need_result="true" />'
                                     '<tf-write id="2" path="b">guess</tf-write>'), stop()])
         self.assertTrue(await agent._run_one_turn())
         self.assertEqual(agent.executor.execute.await_count, 1)

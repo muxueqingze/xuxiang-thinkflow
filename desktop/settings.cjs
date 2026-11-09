@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: null, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true });
+const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: null, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true, enable_native_tools: false });
 function normalizeConfig(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('设置格式不正确');
   const config = {};
@@ -14,6 +14,8 @@ function normalizeConfig(input) {
   config.thinking_mode = input.thinking_mode ?? 'disabled';
   config.reasoning_effort = input.reasoning_effort ?? 'high';
   config.stream_options_include_usage = input.stream_options_include_usage !== false;
+  config.enable_native_tools = input.enable_native_tools ?? false;
+  if (typeof config.enable_native_tools !== 'boolean') throw new Error('原生工具设置须为布尔值');
   if (!['disabled', 'enabled'].includes(config.thinking_mode) || !['low', 'high', 'max'].includes(config.reasoning_effort)) throw new Error('思考设置无效');
   if (config.base_url) {
     let url;

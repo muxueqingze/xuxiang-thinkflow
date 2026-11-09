@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 from pathlib import Path
 import sys
 import time
@@ -39,7 +40,38 @@ async def main():
               'disabled_native_tools': ['web_search', 'fetch_url', 'image_generate', 'list_skills'],
               'security': {'profile': 'balanced', 'bash_policy': 'unrestricted', 'approval_mode': 'approve_all',
                            'allowed_roots': [str(Path.cwd())]}}
+    native_setting = os.environ.get('BENCH_NATIVE_TOOLS', 'default')
+    if native_setting != 'default':
+        config['enable_native_tools'] = native_setting == 'enabled'
     agent = create_agent(config, resolve_system_prompt(config, cwd=str(Path.cwd())), str(Path.cwd()), event_sink=observe)
+    response_structure = []
+    process_stream = agent._process_stream
+
+    async def observed_stream(response):
+        channels = {'text': '', 'thinking': ''}
+        native_calls = []
+        try:
+            async for event in process_stream(response):
+                if event.text:
+                    channels['text'] += event.text
+                if event.thinking_text:
+                    channels['thinking'] += event.thinking_text
+                if event.tool_name:
+                    native_calls.append(event.tool_name)
+                yield event
+        finally:
+            # Diagnose protocol routing without persisting model prose or payloads.
+            response_structure.append({
+                'turn': len(response_structure) + 1,
+                'native_calls': native_calls,
+                'channels': {name: {
+                    'chars': len(value),
+                    'tags': [{'name': match.group(1), 'id': match.group(2)} for match in
+                             re.finditer(r'<([\w-]+)\s+id=[\"\x27]([^\"\x27]+)[\"\x27]', value)],
+                } for name, value in channels.items()},
+            })
+
+    agent._process_stream = observed_stream
     if '--preflight' in sys.argv:
         body = agent.build_request_body(agent.build_system_prompt())
         print(json.dumps({'source': os.environ['BENCH_SOURCE'],
@@ -48,6 +80,7 @@ async def main():
                           'max_run_turns': agent.config.max_run_turns, 'max_run_seconds': agent.config.max_run_seconds,
                           'max_auto_continues': agent.config.max_auto_continues,
                           'max_consecutive_failures': agent.config.max_consecutive_failures,
+                          'enable_native_tools': agent.config.provider.enable_native_tools,
                           'compaction_enabled': agent.config.compaction.enabled,
                           'tools': [t.get('function', {}).get('name') for t in body.get('tools', [])]}))
         await agent.close()
@@ -57,9 +90,11 @@ async def main():
     finally:
         await agent.close()
         value = {'events': events, 'usage': agent.usage.to_dict(), 'last_error': agent.last_error,
+                 'response_structure': response_structure,
                  'stopped_reason': agent.stopped_reason,
-                 'execution_config': {k: config[k] for k in ('max_tokens', 'max_run_turns', 'max_run_seconds',
-                                                           'max_auto_continues', 'compaction')},
+                 'execution_config': {**{k: config[k] for k in ('max_tokens', 'max_run_turns', 'max_run_seconds',
+                                                              'max_auto_continues', 'compaction')},
+                                      'enable_native_tools': agent.config.provider.enable_native_tools},
                  'effective_consecutive_failure_limit': agent.config.max_consecutive_failures,
                  'tool_records': [{'id': r.id, 'tool': r.tool, 'status': r.status, 'exit_code': r.exit_code,
                                    'cmd': r.cmd, 'stdout': r.stdout, 'stderr': r.stderr,

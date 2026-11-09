@@ -238,7 +238,7 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="python",
-        description="直接执行多行Python代码，返回stdout/stderr/exit_code。适合批量文件处理、数据变换和集中检查；一段代码可完成多个已知步骤，无须shell转义、heredoc或临时脚本。每次调用是新的Python进程，工作目录与bash相同。",
+        description="直接执行多行Python代码，返回stdout/stderr/exit_code。适合数据变换和集中检查；产物修改使用文件工具以保留版本记录。一段代码可完成多个已知步骤，无须shell转义、heredoc或临时脚本。每次调用是新的Python进程，工作目录与bash相同。",
         kind=TOOL_KIND_EXEC,
         flow=TOOL_FLOW_BLOCKING,
         risk=TOOL_RISK_HIGH,

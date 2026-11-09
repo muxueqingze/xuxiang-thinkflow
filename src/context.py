@@ -71,7 +71,7 @@ class CommandRecord:
             attrs.append(f'path="{self.path}"')
         if self.dest:
             attrs.append(f'dest="{self.dest}"')
-        if self.cmd:
+        if self.cmd and self.tool != "python":
             safe_cmd = self.cmd.replace('"', "'")
             attrs.append(f'cmd="{safe_cmd}"')
 
@@ -101,8 +101,11 @@ class CommandRecord:
             lines.append(f'<old>{old_text}</old>')
             lines.append(f'<new>{new_text}</new>')
             lines.append('</edit>')
-        elif self.tool in ("bash", "read"):
-            lines.append(f'<{self.tool} {attr_str} />')
+        elif self.tool in ("bash", "read", "python"):
+            if self.tool == "python":
+                lines.extend([f'<python {attr_str}>', self.cmd or "", '</python>'])
+            else:
+                lines.append(f'<{self.tool} {attr_str} />')
             if self.stdout:
                 lines.append(f'  stdout: {self._clip_text(self.stdout, max_content_chars)}')
             if self.stderr:
@@ -218,6 +221,12 @@ class ContextManager:
     def pending_auto_result(self) -> Optional[CommandRecord]:
         return self._pending_auto_result
 
+    @property
+    def pending_auto_results(self) -> list[CommandRecord]:
+        return [record for record in self.records
+                if not record.injected and record.status == "success"
+                and record.flow == "blocking" and not record.need_result]
+
     def clear_flags(self):
         """清除一次性标记（每轮 API 调用后调用）。"""
         self._last_failure = None
@@ -283,15 +292,15 @@ class ContextManager:
         return "\n".join(lines)
 
     def build_auto_result_message(self) -> Optional[str]:
-        """Return blocking tool output when a text command omitted need_result."""
-        if not self._pending_auto_result:
+        """Return the complete information batch at the model feedback boundary."""
+        pending = self.pending_auto_results
+        if not pending:
             return None
-        rec = self._pending_auto_result
         lines = [
-            "[THINKFLOW RESULT - blocking tool output returned automatically]",
-            "The previous turn executed an information-bearing command. Continue the original task using this result; do not stop after reading it.",
+            "[THINKFLOW RESULTS — 本批工具结果]",
+            "根据以下新信息判断下一步；任务要求已满足时直接交付。",
             "",
-            rec.to_injection_string(max_content_chars=0),
+            *(record.to_injection_string(max_content_chars=0) for record in pending),
         ]
         return "\n".join(lines)
 

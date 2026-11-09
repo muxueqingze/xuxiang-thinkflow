@@ -183,6 +183,7 @@ def configuration(harness, destination, endpoint, token, manifest):
     if harness != 'claude':
         env.update(BENCH_SOURCE=str(ROOT if harness == 'thinkflow' else HERE / 'baseline'),
                    BENCH_URL=endpoint, BENCH_API_KEY=token, BENCH_RECORD=str(destination / 'harness.json'),
+                   BENCH_NATIVE_TOOLS=manifest.get('provider', {}).get('thinkflow_native_tools', 'default'),
                    THINKFLOW_HOME=str(profile / 'thinkflow'))
         return [sys.executable, '-B', str(HERE / 'thinkflow_worker.py')], env
     env.update(CLAUDE_CONFIG_DIR=str(profile / 'claude'), ANTHROPIC_BASE_URL=endpoint, ANTHROPIC_API_KEY=token,
@@ -309,6 +310,8 @@ def main():
     parser.add_argument('--base-url', help='OpenAI-compatible upstream, e.g. https://opencode.ai/inference/go/openai/v1')
     parser.add_argument('--model', default='deepseek-flash', help='Actual provider model id')
     parser.add_argument('--key-env', help='Read the provider key from this environment variable only')
+    parser.add_argument('--thinkflow-native-tools', choices=('default', 'enabled', 'disabled'), default='default',
+                        help='Use the existing ThinkFlow native-tool setting for a protocol comparison')
     parser.add_argument('--read-job', help='Read one saved completed job, without credentials, freezing, or writes')
     args = parser.parse_args()
     if not args.name.replace('-', '').replace('_', '').isalnum():
@@ -324,7 +327,8 @@ def main():
     if not (args.run or args.prepare):
         parser.print_help()
         return
-    provider = {'base_url': args.base_url, 'model': args.model, 'key_env': args.key_env}
+    provider = {'base_url': args.base_url, 'model': args.model, 'key_env': args.key_env,
+                'thinkflow_native_tools': args.thinkflow_native_tools}
     manifest = freeze(directory, args.tasks, args.harnesses, args.repeats, provider)
     jobs = [{'id': f'{task}-{harness}-r{repeat}', 'task': task, 'harness': harness, 'repeat': repeat}
             for repeat in range(1, args.repeats + 1) for task in args.tasks for harness in args.harnesses]

@@ -1,10 +1,12 @@
 # 续想 ThinkFlow · v0.8 架构
 
-2026-09-29。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.4 与源码为准。
+更新于2026-11-10。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.5 与源码为准。
 
 ## 核心判断
 
-工具是否需要形成模型回合边界，取决于它的结果是否为后续推理提供新信息。可预测的文件写入可以在输出流中排队执行；读取、搜索、测试、shell、失败与显式结果依赖需要反馈边界。
+工具是否需要形成模型回合边界，取决于它的结果是否为后续推理提供新信息。可预测的文件写入在输出流中排队执行；参数已知的独立读取和检查在同次生成中集中声明，结果在批次结束后统一反馈。依赖尚未返回的信息，才需要先结束生成。真实失败、显式need_result和confirm仍即时形成边界。
+
+最小信息量用于选择相关文件、搜索范围和检查输出，并去除已存在的精确正文副本；首次工具结果、实际错误和供应商要求的reasoning完整保留。省量主要来自减少反馈回合，不靠减少必要工程工作或截短思考。
 
 这是一种有边界的乐观执行，不是事务，也不是「正在生成就代表已成功」。最终成功以执行回执为准。模型必须支持可读取的输出流以及遵循协议；无法获取 thinking 的端点可以使用 text 通道。不会假定所有供应商都暴露原始推理内容。
 
@@ -16,7 +18,8 @@ CLI / Electron desktop
     AgentLoop（同一实现）
        ├─ provider SSE → thinking/text parser → 工具分流
        │                                  ├─ delayed → FIFO 单 worker
-       │                                  └─ blocking/confirm → barrier + 返回结果
+       │                                  ├─ blocking → FIFO + 批次结果一起返回
+       │                                  └─ need_result/confirm → barrier + 立即反馈
        ├─ native tool fragments → 按 index 聚合 → 工具执行
        ├─ Executor / ToolRegistry / SecurityPolicy
        ├─ ContextManager 命令账本 → 下一轮反馈
@@ -28,13 +31,13 @@ CLI / Electron desktop
 ### 必须成立的约束
 
 - 解析器只提交完整 canonical tf-* 标签；普通 XML 和正文代码围栏示例不执行。
-- 可预测操作严格 FIFO；信息型工具先等待之前的写入，再执行并反馈。
+- 所有文本命令沿用单worker FIFO；信息工具先等之前的写入，已知独立调用在同批声明，成功结果按序完整反馈一次。批量反馈不等于本机并行。
 - 后台失败与 SSE 读取竞速；发现失败后停止队列中尚未执行的操作。
-- 同一块中落在反馈边界之后的命令记 skipped，由模型根据结果重新决策。
+- 同一块中落在显式need_result/confirm即时边界之后的命令记skipped，由模型根据结果重新决策；普通read/bash/python不会截掉同批后续声明。
 - 截断或断连不把不同请求的残缺命令拼在一起；未完整的命令丢弃，下一请求使用新 id。
 - 取消会等待已开始的文件操作收尾，并清理本次 shell 进程；不回滚已完成副作用。
 - 重复 id 不能伪造成功；相同命令返回原回执，内容冲突报错。去重窗口仍有限，不提供分布式 exactly-once 保证。
-- 模型的自然结束只是本轮结束；不等同于所有需求均被验收。达到40轮、1800秒或连续3次失败会停止。
+- 模型的自然结束只是本轮结束；不等同于所有需求均被验收。应用默认达到40轮或1800秒停止；连续失败阈值默认null，显式数字配置才生效。
 
 ## 模块职责
 
@@ -82,13 +85,15 @@ update_plan将步骤、验收条件和工具回执引用存入agent快照。完�
 
 工具事件区分开始、完成、成功、失败、跳过与取消。账本展示 path/hash/bytes/flow/risk。用量来自供应商返回；缺少usage时不应据此推断免费调用。节省API调用是「成功的delayed操作若逐条同步调用」的反事实估算，不是对原生批量调用的实测胜率，也不是实际省下的钱。
 
-默认native schema包含read/write/edit/bash/python/read_skill/load_tools；搜索、计划、联网和扩展工具仍在同一registry中，由load_tools(names)按需开放完整schema，会话及快照保留已加载名称。显式native_tools名单优先，disabled_native_tools继续生效。可预测文件操作仍通过tf-*在生成流中执行；原生多个文件操作也可同批提交，只形成一次反馈。协议错误、原生批次截断或tf-*误作函数名沿用既有恢复提示。native实际回执流标记blocking，即使对应文件工具可支持流式，也不把原生回合误记为delayed。故意在反馈边界提前关闭供应商流时，可能收不到最终usage，界面应标明用量不完整。
+CLI和桌面默认使用tf-*文本协议；CLI的`--native-tools`、桌面设置的原生工具开关或显式`enable_native_tools=true`启用原生兼容能力。原生模式首批schema包含read/write/edit/bash/python/read_skill/load_tools；搜索、计划、联网和扩展工具从同一registry由load_tools(names)按需开放，会话及快照保留已加载名称。显式native_tools名单优先，disabled_native_tools继续生效。原生多个调用同批提交、一次反馈；其回执仍标记blocking。独立嵌入调用的ProviderConfig保留原生默认，应用入口负责默认策略。
+
+工具声明与内置指引使用同一有效配置，CLI切换provider时同步指引并保留工作区上下文。DeepSeek返回正文DSML控制尾或空正文stop且无已执行命令时，记录provider_protocol_error并进入原有错误反馈；不把空响应当完成，也不执行DSML。供应商要求的reasoning不删改。提前关闭供应商流可能收不到最终usage，界面标明用量不完整。
 
 2026-11-09 的效率实现：未反馈的命令载荷和执行器输出完整保留；模型请求先完成历史压缩，再按最终有效历史精确去重成功写入正文。DeepSeek携带tools时保留完整reasoning；未携带tools时不把其忽略的reasoning当成正文副本。runtime与待反馈账本合入末尾observation，不另造原生工具后的用户回合。已反馈的本机旧账本按原预算归档，与首次模型反馈分开。
 
 OpenCode Go 请求使用 ThinkFlow 自有 User-Agent 和会话级 x-opencode-session；会话标识随快照恢复，新CLI会话重新分配。Python子进程沿用调用方已有的UTF-8及不写bytecode设置，API密钥仍不在默认传递列表。
 
-`python(code)`把多行Python直接通过stdin交给独立解释器，可用普通代码组合文件处理与一组独立检查。它与bash共用`Executor._run_process`，复用cwd、环境、输出捕获、超时和进程树取消；不生成临时脚本，不经过shell转义。工具授权与read-only检查仍由AgentLoop原执行链处理。解释器是`THINKFLOW_PYTHON`或PATH中的`python`，每次调用没有跨进程变量状态。
+`tf-python`正文与原生`python(code)`把多行Python直接通过stdin交给独立解释器，可集中执行数据处理和独立检查。它与bash共用`Executor._run_process`，复用cwd、环境、输出捕获、超时和进程树取消；不生成临时脚本，不经过shell转义。产物修改用受版本管理的文件工具。工具授权与read-only检查仍由AgentLoop原执行链处理。解释器是`THINKFLOW_PYTHON`或PATH中的`python`，每次调用没有跨进程变量状态。
 
 工具失败继续进入原有反馈恢复链。`max_consecutive_failures`默认null，可在配置中显式指定数字；它不再以隐藏的3次阈值截停仍可恢复的工具错误。现有任务轮数/时间预算、取消及不确定副作用停止保持原语义。
 

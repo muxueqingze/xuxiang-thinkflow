@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const vm = require('node:vm');
 const { SettingsStore, DEFAULTS, normalizeConfig } = require('../settings.cjs');
 const encrypted = { isEncryptionAvailable: () => true, encryptString: text => Buffer.from(text.split('').reverse().join('')), decryptString: bytes => bytes.toString().split('').reverse().join('') };
 test('only ciphertext persists; blank preserves and explicit clear removes a key', () => {
@@ -25,6 +26,32 @@ test('optional output budget follows provider protocol without injecting a defau
   assert.equal(normalizeConfig({ ...DEFAULTS, max_tokens: 8192 }).max_tokens, 8192);
   assert.throws(() => normalizeConfig({ ...DEFAULTS, provider: 'anthropic' }), /Anthropic/);
   assert.equal(normalizeConfig({ ...DEFAULTS, provider: 'anthropic', max_tokens: 8192 }).max_tokens, 8192);
+});
+
+test('native tools default off and both boolean choices survive configure, save and restart', t => {
+  const source = fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8');
+  const validateParams = vm.runInNewContext(source.slice(source.indexOf('function validateParams('), source.indexOf('function cleanError(')) + '\nvalidateParams');
+  const files = new Map();
+  t.mock.method(fs, 'existsSync', file => files.has(file));
+  t.mock.method(fs, 'mkdirSync', () => {});
+  t.mock.method(fs, 'writeFileSync', (file, data) => files.set(file, data));
+  t.mock.method(fs, 'renameSync', (from, to) => { files.set(to, files.get(from)); files.delete(from); });
+  t.mock.method(fs, 'readFileSync', file => files.get(file));
+  assert.equal(DEFAULTS.enable_native_tools, false);
+  const legacy = { ...DEFAULTS }; delete legacy.enable_native_tools;
+  assert.equal(normalizeConfig(legacy).enable_native_tools, false);
+  const store = new SettingsStore('in-memory-settings', encrypted);
+  for (const enabled of [true, false]) {
+    const input = { ...DEFAULTS, enable_native_tools: enabled };
+    assert.doesNotThrow(() => validateParams('configure', input));
+    const prepared = store.prepare(input);
+    assert.equal(prepared.backend.enable_native_tools, enabled);
+    store.save(prepared);
+    assert.equal(JSON.parse(files.get(store.file)).config.enable_native_tools, enabled);
+    const restarted = new SettingsStore('in-memory-settings', encrypted); restarted.load();
+    assert.equal(restarted.backendConfig().enable_native_tools, enabled);
+  }
+  assert.throws(() => normalizeConfig({ ...DEFAULTS, enable_native_tools: 'false' }), /布尔值/);
 });
 test('encryption failure refuses to persist plaintext', () => {
   const store = new SettingsStore(path.join(os.tmpdir(), 'thinkflow-unused'), { isEncryptionAvailable: () => false });

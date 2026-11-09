@@ -304,6 +304,7 @@ function openSettings() {
   for (const name of ['provider', 'model', 'base_url', 'api_path', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile']) form.elements.namedItem(name).value = state.config[name] ?? '';
   form.elements.namedItem('thinking_mode').value = state.config.thinking_mode || 'disabled';
   form.elements.namedItem('reasoning_effort').value = state.config.reasoning_effort || 'high';
+  form.elements.namedItem('enable_native_tools').checked = state.config.enable_native_tools === true;
   form.elements.namedItem('api_key').value = '';
   form.elements.namedItem('api_key').disabled = false;
   form.elements.namedItem('clear_api_key').checked = false;
@@ -326,6 +327,7 @@ $('settings-form').addEventListener('submit', async event => {
   for (const field of ['max_run_turns', 'max_run_seconds']) values[field] = Number(values[field]);
   values.max_tokens = values.max_tokens.trim() === '' ? null : Number(values.max_tokens);
   values.clear_api_key = event.currentTarget.elements.namedItem('clear_api_key').checked;
+  values.enable_native_tools = event.currentTarget.elements.namedItem('enable_native_tools').checked;
   values.thinking_mode = event.currentTarget.elements.namedItem('thinking_mode').value;
   values.reasoning_effort = event.currentTarget.elements.namedItem('reasoning_effort').value;
   const result = await perform(() => api.request('configure', values), { settings: true });

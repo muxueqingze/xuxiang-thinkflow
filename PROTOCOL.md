@@ -1,7 +1,7 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.4
-> 日期：2026-09-29
+> 版本：1.5
+> 日期：2026-11-10
 
 ---
 
@@ -9,10 +9,10 @@
 
 1. **主路径扫描 thinking 流，正文 parser 只做兼容兜底。** 职责上仍鼓励模型只在 thinking 输出命令；DeepSeek 等模型偶尔漏到正文时，框架负责执行并从显示/消息历史剥离命令块。
 2. **默认只执行 canonical `tf-` 标签。** `<tf-write>` 才是执行协议；普通 `<write>` 更像文档/XML 示例，默认不会被 agent 执行。
-3. **工具语义决定最低反馈要求。** `blocking/confirm` 必须等待结果；模型可用 `need_result` 把 delayed 操作升级为阻塞，不能把信息型工具降为后台操作。
+3. **工具语义决定反馈要求，信息依赖决定反馈时机。** 独立read/bash/python在同次生成中集中声明，批次结束后一起反馈；后续依赖结果的操作等下一轮。显式`need_result`或`confirm`立即反馈，真实失败立即打断。
 4. **流式扫描 + 结构化解析。** 开标签用逐字符 scanner 找不在引号里的 `>`，属性用 quoted-attribute parser，避免 `>`、引号转义和跨 chunk 截断导致误判；不用 LLM 做格式转换，降低延迟和成本。
 
-属性支持双/单引号、匹配属性定界符的反斜线转义，以及XML五个命名实体 `&quot;`、`&apos;`、`&lt;`、`&gt;`、`&amp;`。只解码一次；未知实体和普通Windows路径反斜线原样保留。正文不做属性实体解码。read/bash优先原生接口；文本协议仍支持正确转义后的shell命令。
+属性支持双/单引号、匹配属性定界符的反斜线转义，以及XML五个命名实体 `&quot;`、`&apos;`、`&lt;`、`&gt;`、`&amp;`。只解码一次；未知实体和普通Windows路径反斜线原样保留。正文不做属性实体解码。CLI和桌面默认使用文本协议；`--native-tools`或配置`enable_native_tools=true`启用原生兼容。shell属性按上述规则转义，多行Python直接放入tf-python正文。
 
 ---
 
@@ -65,7 +65,7 @@
 | `need_result` | 否 | `false` | `true` 时触发强制打断，执行后立即把结果返回模型。 |
 | `injected` | 否 | `0` | 0=未注入全局上下文，1=已注入。由解析器维护，模型输出时填 0 或省略。 |
 
-路径规则：相对路径按 agent 的 `cwd` 解析；绝对路径保留。`read` 工具默认最多返回 `max_read_chars` 字符，避免把巨型文件一次性塞回上下文。工具日志注入也会截断超长 write/append/edit 正文，避免长程任务把上下文塞爆。
+路径规则：相对路径按 agent 的 `cwd` 解析；绝对路径保留。`read` 工具默认最多返回 `max_read_chars` 字符，避免把巨型文件一次性塞回上下文。首次命令载荷和执行器实际返回的结果完整反馈；正文已原样存在于本次有效请求时才精确去重。已反馈的本机旧账本按独立预算归档。
 ### 3.1 Tool Flow 分流
 
 ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
@@ -73,7 +73,7 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 | flow | 含义 | 默认工具 |
 |------|------|----------|
 | `delayed` | 可预测副作用，不需要中间观察结果，默认不中断推理 | `write`、`append`、`mkdir`、`touch`、`copy`、`edit` |
-| `blocking` | 结果会影响后续判断，必须返回后再继续 | `read`、`bash`、搜索、联网、skills、custom command tools |
+| `blocking` | 独立调用集中声明，完整批次结果返回后再判断 | `read`、`bash`、`python`、搜索、联网、skills、custom command tools |
 | `confirm` | 必须经反馈边界处理的扩展工具类型 | 由工具注册表声明 |
 
 `flow` 与 `risk` 是两个维度；bash 是 blocking 且 high risk。`security.approval_mode` 提供 `auto`、`approve_all`、`request_all`；桌面 balanced 模式对高风险工具逐次询问，批准只对当前调用生效。CLI 保留原策略，没有桌面授权回调时返回明确的未授权错误。路径约束与命令过滤不等于操作系统沙箱。
@@ -157,7 +157,8 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 ```
 
 - 无论是否带 `need_result`，均先等待之前的 FIFO 写入完成，再执行并返回 stdout/stderr/exit_code。
-- 同一流块中位于这个反馈边界之后的命令记为 skipped，不执行；模型拿到结果后用新 id 重新决定下一步。
+- 普通调用在本批生成结束后统一返回结果；同批参数必须已知，不能依赖尚未返回的信息。
+- 显式`need_result=true`立即形成反馈边界，同一流块中其后的命令记skipped；模型拿到结果后用新id重新决定。
 
 ### 4.7 edit
 
@@ -173,17 +174,29 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 - oldText 必须在文件中唯一存在。
 - 替换失败（oldText 找不到）：视为执行失败，打断。
 
-### 4.8 原生 tool_use
+### 4.8 python
 
-传统 tool_call 通道由 `ToolRegistry` 动态注册。默认提供这些工具：
+```xml
+<tf-python id="N">
+from pathlib import Path
+assert Path("main.py").exists()
+print("checked")
+</tf-python>
+```
 
-- 文件/命令：`read`、`list_files`、`glob`、`grep`、`bash`、`write`、`append`、`edit`、`mkdir`、`touch`、`copy`
+正文是多行Python源码，经stdin交给独立解释器；不经过shell转义、不创建临时脚本。与bash共用cwd、环境、输出、权限、超时和取消。每次调用无持久变量。Python用于数据处理与集中检查，产物修改用受版本管理的文件工具。默认批次反馈，`need_result=true`立即反馈。
+
+### 4.9 原生 tool_use
+
+传统tool_call通道由`ToolRegistry`动态注册。显式启用后，首批开放read/write/edit/bash/python/read_skill/load_tools；其余从同一registry按需load_tools，显式native_tools名单优先。完整工具能力包括：
+
+- 文件/命令：`read`、`list_files`、`glob`、`grep`、`bash`、`python`、`write`、`append`、`edit`、`mkdir`、`touch`、`copy`
 - 联网：`web_search`、`fetch_url`
 - 多模态插口：`image_generate`
 - Skill：`list_skills`、`read_skill`
 - 配置式插头：`interfaces.custom_tools[]` 中声明的本地 command tools
 
-读取和搜索类工具天然需要结果，走模型供应商原生 tool_use/function calling。
+原生模式同一响应可声明多个调用、统一反馈；文本模式的读取使用tf-read，搜索和批处理可使用shell或Python。
 
 ```json
 {"path": "src/agent_loop.py"}
@@ -207,7 +220,7 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 
 ```
 IDLE → 检测到 '<' → 可能是命令开始
-     → 检测到 '<tf-read' / '<tf-write' / '<tf-append' / '<tf-bash' / '<tf-mkdir' / '<tf-touch' / '<tf-copy' / '<tf-edit' → TAG_OPEN
+     → 检测到 '<tf-read' / '<tf-write' / '<tf-append' / '<tf-bash' / '<tf-mkdir' / '<tf-touch' / '<tf-copy' / '<tf-edit' / '<tf-python' → TAG_OPEN
      → 其他 → 回到 IDLE
 
 TAG_OPEN → 读取属性直到 '>' 或 '/>'
@@ -227,7 +240,7 @@ COMMAND_READY → 输出命令对象 → 回到 IDLE
 
 开始标签 + 属性：
 ```python
-TAG_OPEN = r'<tf-(?P<tool>read|write|append|mkdir|touch|copy|bash|edit)\s+(?P<attrs>[^>]*?)(?P<self_close>/?)>'
+TAG_OPEN = r'<tf-(?P<tool>read|write|append|mkdir|touch|copy|bash|edit|python)\s+(?P<attrs>[^>]*?)(?P<self_close>/?)>'
 ```
 
 属性提取：
@@ -242,7 +255,7 @@ ATTR_INJECTED = r'injected="(?P<injected>[01])"'
 
 结束标签：
 ```python
-TAG_CLOSE = r'</tf-(?P<tool>read|write|append|mkdir|touch|copy|bash|edit)>'
+TAG_CLOSE = r'</tf-(?P<tool>read|write|append|mkdir|touch|copy|bash|edit|python)>'
 ```
 
 edit 子标签：
@@ -267,60 +280,16 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 ---
 
-## 六、系统提示词片段
+## 六、执行指引
 
-ThinkFlow 默认注入内置协议骨架，并引导模型按需读取 `thinkflow` skill。自定义 `--system-prompt` 或配置 `system_prompt` 可替换骨架；显式禁用系统提示词则不注入。当前实现见 `src/cli.py:resolve_system_prompt`，模板重点如下：
+当前权威入口为`src/cli.py:resolve_system_prompt`，完整用法在`src/skills/thinkflow/SKILL.md`按需加载。自定义system_prompt替换内置指引；工作区约定仍按原配置追加。
 
-```
-ThinkFlow 的核心思想：可预测副作用成功时无需打断流式推理。write/append/mkdir/touch/copy/edit 可通过 canonical `tf-` 标签排队执行；read/bash、失败、need_result 和 provider 原生 tool_call 形成结果反馈边界。
-
-## 格式规则
-
-在思考过程中，当你需要执行操作时，输出以下格式的命令块：
-
-写入文件：
-<tf-write id="{戳记}" path="{路径}">
-文件完整内容
-</tf-write>
-
-创建目录：
-<tf-mkdir id="{戳记}" path="{路径}" />
-
-追加文件：
-<tf-append id="{戳记}" path="{路径}">
-追加内容
-</tf-append>
-
-创建空文件：
-<tf-touch id="{戳记}" path="{路径}" />
-
-复制文件：
-<tf-copy id="{戳记}" path="{源路径}" dest="{目标路径}" />
-
-读取文件：
-<tf-read id="{戳记}" path="{路径}" />
-
-执行命令：
-<tf-bash id="{戳记}" cmd="{命令}" />
-
-编辑文件：
-<tf-edit id="{戳记}" path="{路径}">
-<old>旧文本</old>
-<new>新文本</new>
-</tf-edit>
-
-## 规则
-
-1. id 是全局唯一戳记，从 {起始戳记} 开始递增。每条命令的 id 不能重复。
-2. 生成继续不代表队列已经执行成功。已落盘以执行回执为准，失败会打断输出。
-3. delayed 命令需要即时结果时添加 need_result="true"；read/bash 无论是否带该属性，都等待并返回结果。
-4. 优先在 thinking 中输出命令块；如果 provider 把命令写进正文，text parser 会兜底执行并从 UI/history 剥离。
-5. 命令块必须格式完整（有开始标签和结束标签），否则不会被识别。
-6. 写入、修改、执行命令后，最终正文必须给简短报告：路径、改动、验证、后续或风险。不能只说“写好了”。
-7. 创建文件前先观察项目结构；源码、测试、脚本、文档、临时产物要归入合适目录，不把文件散放根目录。
-
-当前起始戳记：{起始戳记}
-```
+- 已知且独立的信息需求一起声明，例如同一轮输出三个tf-read，再结束生成。
+- 依据结果确定修改后，连续输出文件操作，并在同次生成末尾安排已经知道要做的检查。FIFO保证先落盘再检查。
+- 信息结果和真实失败完整保留；选择所需文件、搜索匹配和输出字段，避免重复索取相同内容。
+- 检查通过且没有相关新修改时交付。新失败或具体未满足需求才继续，不为假想故障扩张实现与检查。
+- id按运行状态给出的戳记递增；只执行完整canonical命令，代码围栏中的示例不执行。
+- 指引与有效工具配置一致；CLI切换provider同步原生说明，保留工作区上下文和自定义提示。
 
 ---
 
@@ -334,7 +303,7 @@ ThinkFlow 的核心思想：可预测副作用成功时无需打断流式推理�
 
 <write id="001" path="D:/novel/ch01.md" status="success" flow="delayed" risk="low" hash="a1b2c3d4e5f60718" bytes="17831">
 天空灰蒙蒙的，主角站在十字路口。
-...[THINKFLOW CLIPPED 12000 CHARS]...
+（示意正文；首次反馈保留完整载荷）
 </write>
   summary: write 17831 bytes to D:/novel/ch01.md
 
@@ -347,7 +316,8 @@ ThinkFlow 的核心思想：可预测副作用成功时无需打断流式推理�
 [END COMMAND LEDGER]
 ```
 
-- 成功的命令：保留结构化属性、必要正文片段和 summary；超长正文用 `[THINKFLOW CLIPPED ...]` 标记截断。
+- 成功命令：首次完整反馈载荷；当前请求中已有相同完整正文时只返回回执元数据。
+- 信息批次：按声明顺序合并所有未反馈的成功blocking结果，入消息后标记已反馈；快照恢复不重新执行。
 - 失败的命令：保留 status="failed"、summary 和错误信息，模型下一轮必须根据错误调整。
 - need_result 命令：结果详细注入（stdout/stderr/exit_code 或写入详情），并立即进入下一轮。
 ## 八、上下文压缩
@@ -364,6 +334,7 @@ ThinkFlow 的核心思想：可预测副作用成功时无需打断流式推理�
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.5 | 2026-11-10 | 默认流式协议、独立信息调用整批反馈、tf-python、与有效配置同步的指引；保留即时依赖与失败边界。 |
 | 1.4 | 2026-09-29 | 强制信息边界、native去重/失败短路、取消清理、实例事件、运行限额、桌面意图恢复与授权。 |
 | 0.1 | 2026-06-29 | 初版。定义 write/mkdir/bash/edit 四种工具、XML 标签格式、状态机解析规则。 |
 | 0.2 | 2026-06-30 | 补 read 原生 tool_use、cwd 路径规则、正文 fallback、Windows/会话恢复等生产化约束。 |

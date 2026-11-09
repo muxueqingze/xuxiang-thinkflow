@@ -21,12 +21,14 @@ import uuid
 
 from .cli import create_agent, resolve_system_prompt
 from .provider import normalize_max_tokens
+from .model_registry import merge_active_provider
 from .session import SessionStore
 
 
 DEFAULT_CONFIG = {
     "provider": "openai", "base_url": "", "api_path": "", "model": "", "api_key": "",
     "max_tokens": None, "max_run_turns": 40, "max_run_seconds": 1800,
+    "enable_native_tools": False,
     "security_profile": "balanced",
     "thinking_mode": "disabled", "reasoning_effort": "high", "stream_options_include_usage": True,
 }
@@ -149,7 +151,7 @@ class DesktopService:
         self._durable_inputs = copy.deepcopy(self.input_commands)
 
     def _config_for_agent(self):
-        config = dict(self.config)
+        config = merge_active_provider(self.config)
         config["security"] = {"profile": config.pop("security_profile")}
         if config["security"]["profile"] == "balanced":
             config["security"]["approval_mode"] = "request_all"

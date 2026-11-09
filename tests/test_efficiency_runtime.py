@@ -22,6 +22,20 @@ from src.security import SecurityPolicy
 
 
 class FeedbackTests(unittest.TestCase):
+    def test_pending_information_batch_survives_snapshot(self):
+        ctx = ContextManager()
+        for number, body in (('1', 'FULL_FIRST_RESULT'), ('2', 'FULL_SECOND_RESULT')):
+            ctx.record(Command(number, 'read', path=number),
+                       ExecutionResult(True, tool='read', content=body), flow='blocking')
+        restored = ContextManager.from_dict(ctx.to_dict())
+        message = restored.build_auto_result_message()
+        self.assertEqual(message.count('FULL_FIRST_RESULT'), 1)
+        self.assertEqual(message.count('FULL_SECOND_RESULT'), 1)
+        self.assertEqual([r.id for r in restored.pending_auto_results], ['1', '2'])
+        for record in restored.pending_auto_results:
+            restored.mark_injected(record.id)
+        self.assertIsNone(restored.build_auto_result_message())
+
     def test_blocking_output_is_complete_and_present_once(self):
         output = 'UNIQUE-BEGIN\n' + 'x' * 11000 + '\nUNIQUE-END'
         for need in (False, True):
@@ -262,7 +276,7 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([(r.id, r.status) for r in self.agent.context.records], [('1', 'success')])
 
     async def test_dsml_tail_recovers_without_replaying_successful_stream_write(self):
-        tail = '</｜DSML｜ calls>'
+        tail = '</｜｜DSML｜｜ calls>'
         requests = []
         def receive(request):
             requests.append(json.loads(request.content))
@@ -281,6 +295,30 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('DSML', requests[1]['messages'][-1]['content'])
         self.assertEqual([(r.id, r.status) for r in self.agent.context.records], [('1', 'success'), ('finish-file', 'success')])
         self.assertEqual((self.root / 'b.txt').read_text(), 'second')
+
+    async def test_empty_provider_stop_after_read_recovers_instead_of_finishing(self):
+        self.agent.config.provider.enable_native_tools = False
+        (self.root / 'a.txt').write_text('before')
+        requests = []
+        replies = [
+            {'content': '<tf-read id="1" path="a.txt" />'},
+            {'content': '', 'reasoning_content': 'Need to edit the existing file.'},
+            {'content': '<tf-edit id="2" path="a.txt"><old>before</old><new>after</new></tf-edit>Updated.'},
+        ]
+        def receive(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, stream=SlowSSE([
+                {'delta': replies[len(requests) - 1], 'finish_reason': 'stop'}]))
+        await self.agent.client.aclose()
+        self.agent.client = httpx.AsyncClient(base_url='https://fixture.invalid', transport=httpx.MockTransport(receive))
+        await self.agent.run('Read and update the file')
+        self.assertEqual(len(requests), 3)
+        self.assertEqual((self.root / 'a.txt').read_text(), 'after')
+        self.assertEqual([(r.id, r.status) for r in self.agent.context.records], [('1', 'success'), ('2', 'success')])
+        self.assertEqual(self.agent.usage.turns[1].abort_reason, 'tool_failed')
+        self.assertIn('本轮没有执行操作', requests[2]['messages'][-1]['content'])
+        self.assertEqual([e['kind'] for e in self.events if e['type'] == 'provider_protocol_error'],
+                         ['empty_assistant_response'])
 
     async def test_dsml_inside_fence_or_file_is_literal_content(self):
         tail = '</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls>'
@@ -313,6 +351,54 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
         denied = await self.agent._execute_traditional_result('load_tools', {'names': ['grep']}, tool_id='not-enabled')
         self.assertFalse(denied.success)
         self.assertEqual(names(), {'read'})
+
+    async def test_streamed_writes_then_python_check_share_one_generation(self):
+        self.agent.config.provider.enable_native_tools = False
+        code = 'from pathlib import Path\nassert Path("a.txt").read_text() == "first"\nprint("checked")\n'
+        reply = ('<tf-write id="1" path="a.txt">first</tf-write>\n'
+                 '<tf-write id="2" path="b.txt">second</tf-write>\n'
+                 '<tf-python id="3">' + code + '</tf-python>\n')
+        requests = []
+        def receive(request):
+            requests.append(json.loads(request.content))
+            text = reply if len(requests) == 1 else 'Files created and checked.'
+            return httpx.Response(200, stream=SlowSSE([{'delta': {'content': text}, 'finish_reason': 'stop'}]))
+        await self.agent.client.aclose()
+        self.agent.client = httpx.AsyncClient(base_url='https://fixture.invalid', transport=httpx.MockTransport(receive))
+        await self.agent.run('Create both files and check their content')
+        self.assertEqual(len(requests), 2)
+        self.assertTrue(all('tools' not in request for request in requests))
+        self.assertEqual([(r.tool, r.status) for r in self.agent.context.records],
+                         [('write', 'success'), ('write', 'success'), ('python', 'success')])
+        self.assertIn('checked', requests[1]['messages'][-1]['content'])
+        self.assertIn(code.rstrip(), requests[1]['messages'][-1]['content'])
+        self.assertEqual((self.root / 'b.txt').read_text(), 'second')
+
+    async def test_two_reads_are_returned_together_before_edits(self):
+        self.agent.config.provider.enable_native_tools = False
+        (self.root / 'a.txt').write_text('alpha')
+        (self.root / 'b.txt').write_text('beta')
+        requests = []
+        def receive(request):
+            requests.append(json.loads(request.content))
+            if len(requests) == 1:
+                reply = '<tf-read id="1" path="a.txt" /><tf-read id="2" path="b.txt" />'
+            else:
+                feedback = requests[1]['messages'][-1]['content']
+                self.assertEqual(feedback.count('alpha'), 1)
+                self.assertEqual(feedback.count('beta'), 1)
+                reply = ('<tf-edit id="3" path="a.txt"><old>alpha</old><new>ALPHA</new></tf-edit>'
+                         '<tf-edit id="4" path="b.txt"><old>beta</old><new>BETA</new></tf-edit>')
+            return httpx.Response(200, stream=SlowSSE([{'delta': {'content': reply}, 'finish_reason': 'stop'}]))
+        await self.agent.client.aclose()
+        self.agent.client = httpx.AsyncClient(base_url='https://fixture.invalid', transport=httpx.MockTransport(receive))
+        await self.agent.run('Read both files and capitalize their contents')
+        self.assertEqual(len(requests), 2)
+        self.assertEqual([(r.tool, r.status) for r in self.agent.context.records],
+                         [('read', 'success'), ('read', 'success'), ('edit', 'success'), ('edit', 'success')])
+        self.assertTrue(all(r.injected for r in self.agent.context.records[:2]))
+        self.assertEqual((self.root / 'a.txt').read_text(), 'ALPHA')
+        self.assertEqual((self.root / 'b.txt').read_text(), 'BETA')
 
 
 if __name__ == '__main__':
