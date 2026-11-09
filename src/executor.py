@@ -513,15 +513,24 @@ class Executor:
                 exit_code=126,
             )
 
-        # 异步执行子进程
-        proc = await asyncio.create_subprocess_shell(
-            command.cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=self.cwd,
-            env=self.security.command_env(),
-            **({"start_new_session": True} if os.name != "nt" else {}),
-        )
+        return await self._run_process(command.cmd, shell=True, tool="bash")
+
+    async def python(self, code: str) -> ExecutionResult:
+        """Run a Python code block directly, without shell quoting or a script file."""
+        try:
+            self.security.check_bash(code)
+        except PermissionError as error:
+            return ExecutionResult(success=False, tool="python", error=str(error), exit_code=126)
+        executable = os.environ.get("THINKFLOW_PYTHON", "python")
+        return await self._run_process([executable, "-"], shell=False, tool="python", stdin=code)
+
+    async def _run_process(self, command, *, shell: bool, tool: str, stdin: Optional[str] = None) -> ExecutionResult:
+        options = {"stdout": asyncio.subprocess.PIPE, "stderr": asyncio.subprocess.PIPE,
+                   "stdin": asyncio.subprocess.PIPE if stdin is not None else None,
+                   "cwd": self.cwd, "env": self.security.command_env(),
+                   **({"start_new_session": True} if os.name != "nt" else {})}
+        proc = (await asyncio.create_subprocess_shell(command, **options) if shell
+                else await asyncio.create_subprocess_exec(*command, **options))
 
         # A non-positive legacy limit must not silently restore unbounded capture.
         max_chars = min(1_000_000, self.security.max_bash_output_chars if self.security.max_bash_output_chars > 0 else 80000)
@@ -530,6 +539,10 @@ class Executor:
         waiter = asyncio.create_task(proc.wait())
 
         async def exchange():
+            if stdin is not None:
+                proc.stdin.write(stdin.encode("utf-8"))
+                await proc.stdin.drain()
+                proc.stdin.close()
             stdout, stderr, _ = await asyncio.gather(*readers, waiter)
             return stdout, stderr
 
@@ -560,7 +573,7 @@ class Executor:
 
         return ExecutionResult(
             success=(proc.returncode == 0 and not timed_out),
-            tool="bash",
+            tool=tool,
             stdout=stdout,
             stderr=stderr,
             exit_code=proc.returncode,

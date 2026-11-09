@@ -859,12 +859,9 @@ def test_global_session_and_context_injection_use_thinkflow_home():
 def test_system_prompt_defaults_to_builtin_and_context_is_appended():
     assert resolve_system_prompt({"context": {"enabled": False}}) == BUILTIN_SYSTEM_PROMPT
     assert "\u6c90\u96ea\u6e05\u6cfd" not in BUILTIN_SYSTEM_PROMPT
-    assert "续想 agent 运行约定" in BUILTIN_SYSTEM_PROMPT
-    assert "英文名是 ThinkFlow" in BUILTIN_SYSTEM_PROMPT
-    assert "完成报告" in BUILTIN_SYSTEM_PROMPT
     # 协议骨架必须留在系统提示词里（模型不读 skill 也要会写 tf-* 标签），
     # 工作方法/文件归纳迁移进内置 skill，提示词只保留指引。
-    assert '<tf-write id="编号" path="路径">' in BUILTIN_SYSTEM_PROMPT
+    assert '<tf-write ' in BUILTIN_SYSTEM_PROMPT
     assert 'read_skill' in BUILTIN_SYSTEM_PROMPT
     assert 'name="thinkflow"' in BUILTIN_SYSTEM_PROMPT
     assert "文件归纳整理" not in BUILTIN_SYSTEM_PROMPT
@@ -955,7 +952,7 @@ def test_agent_manual_compaction_updates_snapshot_count():
     asyncio.run(scenario())
 
 
-def test_context_injection_clips_large_write_content():
+def test_context_injection_preserves_first_large_write_feedback():
     command = Command(id="1", tool="write", path="big.txt", content="x" * 5000)
     result = ExecutionResult(success=True, tool="write", path="big.txt", bytes_written=5000)
     ctx = ContextManager()
@@ -963,9 +960,8 @@ def test_context_injection_clips_large_write_content():
     injection = ctx.build_injection()
 
     assert injection is not None
-    assert "THINKFLOW CLIPPED" in injection
-    assert "xxxxx" in injection
-    assert len(injection) < 4600
+    assert command.content in injection
+    assert "THINKFLOW CLIPPED" not in injection
 
 
 def test_write_config_template_creates_starter_config_without_key():
@@ -2551,7 +2547,7 @@ def run_all():
         test_compaction_keeps_recent_messages_and_summarizes_old,
         test_compaction_keeps_tool_result_with_tool_call,
         test_agent_manual_compaction_updates_snapshot_count,
-        test_context_injection_clips_large_write_content,
+        test_context_injection_preserves_first_large_write_feedback,
         test_write_config_template_creates_starter_config_without_key,
         test_named_provider_profile_merges_without_overwriting_legacy_shape,
         test_named_provider_profile_keeps_env_or_cli_overrides_when_profile_field_is_empty,

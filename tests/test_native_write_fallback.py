@@ -65,7 +65,8 @@ class NativeWriteFallbackTests(unittest.IsolatedAsyncioTestCase):
         agent = await self.make()
         defaults = self.names(agent.build_request_body("fixture"))
         self.assertTrue({"read", "bash"} <= defaults)
-        self.assertTrue(WRITES <= defaults)
+        self.assertTrue({'write', 'edit'} <= defaults)
+        self.assertFalse((WRITES - {'write', 'edit'}) & defaults)
         agent.native_write_fallback = True
         agent.config.provider.disabled_native_tools = ["copy"]
         fallback = self.names(agent.build_request_body("fixture"))
@@ -80,7 +81,8 @@ class NativeWriteFallbackTests(unittest.IsolatedAsyncioTestCase):
         anthropic = await self.make(format="anthropic")
         anthropic.config.provider.max_tokens = 8192
         names = {tool["name"] for tool in anthropic.build_request_body("fixture")["tools"]}
-        self.assertTrue(WRITES <= names)
+        self.assertTrue({'write', 'edit'} <= names)
+        self.assertFalse((WRITES - {'write', 'edit'}) & names)
         anthropic.native_write_fallback = True
         names = {tool["name"] for tool in anthropic.build_request_body("fixture")["tools"]}
         self.assertTrue(WRITES <= names)
@@ -127,7 +129,8 @@ class NativeWriteFallbackTests(unittest.IsolatedAsyncioTestCase):
         restored.client = httpx.AsyncClient(base_url="http://127.0.0.1:1", transport=httpx.MockTransport(fresh))
         await restored.run("new fixture")
         self.assertFalse(restored.native_write_fallback)
-        self.assertTrue(WRITES <= self.names(requests[0]))
+        self.assertTrue({'write', 'edit'} <= self.names(requests[0]))
+        self.assertFalse((WRITES - {'write', 'edit'}) & self.names(requests[0]))
 
     async def test_explicit_allow_does_not_expand_after_parse_error(self):
         agent = await self.make(native_tools=["read"])

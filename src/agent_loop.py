@@ -16,6 +16,7 @@ import hashlib
 import re
 import sys
 import time
+import uuid
 from collections import deque
 from dataclasses import dataclass, field, replace
 from typing import Optional
@@ -33,6 +34,7 @@ from .text_filter import MarkdownFenceCommandGate, SafeTextStreamFilter
 from .interfaces import ExternalInterfaces, InterfaceConfig
 from .skills import SkillConfig, SkillManager
 from .delivery import verify_delivery
+from .feedback import project_read_results, with_observation
 from .tool_registry import (
     BUILTIN_TOOL_SPECS,
     TOOL_FLOW_BLOCKING,
@@ -59,6 +61,7 @@ TOOL_SCHEMAS = [spec.without_handler() for spec in BUILTIN_TOOL_SPECS]
 
 # 执行层 id 去重窗口容量（快照恢复时同样只保留最近这么多）。
 MAX_EXECUTED_IDS = 4096
+CORE_NATIVE_TOOLS = frozenset({"read", "write", "edit", "bash", "python", "read_skill", "load_tools"})
 
 
 def _as_int(value, default: int) -> int:
@@ -89,10 +92,10 @@ class AgentConfig:
     max_delivery_fix_attempts: int = 3
     max_run_turns: Optional[int] = 40  # None disables the turn budget.
     max_run_seconds: Optional[float] = 1800.0  # None disables the wall-clock budget.
-    max_consecutive_failures: int = 3
+    max_consecutive_failures: Optional[int] = None
 
     def __post_init__(self):
-        for name in ("max_run_turns", "max_auto_continues", "max_run_seconds"):
+        for name in ("max_run_turns", "max_auto_continues", "max_run_seconds", "max_consecutive_failures"):
             value = getattr(self, name)
             if value is None:
                 continue
@@ -255,6 +258,7 @@ class AgentLoop:
         self.skill_manager = SkillManager(config.cwd, config.skills)
         self.task_plan = {'explanation': '', 'steps': []}
         self.native_write_fallback = False
+        self.additional_native_tools: set[str] = set()
         self.tool_registry = self._build_tool_registry()
         if event_sink is None:
             renderer.set_tool_kind_map(self.tool_registry.kind_map())
@@ -278,6 +282,7 @@ class AgentLoop:
         self._text_tool_hint_tail = ""
 
         # HTTP 客户端
+        self.session_id = uuid.uuid4().hex
         self.client = self._new_http_client()
 
         self.messages: list[dict] = []
@@ -392,6 +397,9 @@ class AgentLoop:
             ))
             return self._format_tool_result(result)
 
+        async def python_tool(tool_input: dict) -> str:
+            return self._format_tool_result(await self.executor.python(**tool_input))
+
         async def append_tool(tool_input: dict) -> str:
             result = await self.executor.execute(Command(
                 id=f"tool_{self._turn_count}_append",
@@ -443,6 +451,7 @@ class AgentLoop:
             "glob": glob_tool,
             "grep": grep_tool,
             "bash": bash_tool,
+            "python": python_tool,
             "write": write_tool,
             "append": append_tool,
             "edit": edit_tool,
@@ -452,8 +461,8 @@ class AgentLoop:
         }
         for spec in BUILTIN_TOOL_SPECS:
             if spec.name == 'bash':
-                shell_contract = ('当前平台使用Windows cmd.exe；不支持Bash heredoc (<<)、tail或单引号引用。'
-                                  '多行Python验证请先写.py文件再python执行；不要用管道隐藏测试退出码。'
+                shell_contract = ('当前平台使用Windows cmd.exe；用&&依次执行命令，分号不是命令分隔符。不支持Bash heredoc (<<)、tail或单引号引用。'
+                                  '多行Python直接调用python工具传code；已有脚本可在此运行，保留真实退出码。'
                                   if os.name == 'nt' else '当前执行器使用/bin/sh。')
                 spec = replace(spec, description=spec.description + shell_contract)
             registry.register(spec, handlers[spec.name])
@@ -543,7 +552,31 @@ class AgentLoop:
             description='保存多步骤任务的计划与验收条件。完成项必须引用成功工具回执id；仅代表模型标记，用户仍可核验。简单任务不必调用。',
             parameters=PLAN_SCHEMA,
         ), self._update_plan_tool)
+        optional = sorted(f'{schema["name"]}: {schema["description"]}' for schema in registry.schemas()
+                          if schema['name'] not in CORE_NATIVE_TOOLS
+                          and schema['name'] not in self.config.provider.disabled_native_tools
+                          and (not self.config.provider.native_tools
+                               or schema['name'] in self.config.provider.native_tools))
+        registry.register(ToolSpec(
+            name='load_tools', kind=TOOL_KIND_INPUT,
+            description='按需开放更多原生工具，下一次请求即可调用；已开放能力在本会话保留。工具目录：\n' + '\n'.join(optional),
+            parameters={'type': 'object', 'properties': {
+                'names': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1},
+            }, 'required': ['names']},
+        ), self._load_tools)
         return registry
+
+    async def _load_tools(self, tool_input):
+        names = set(tool_input['names'])
+        provider = self.config.provider
+        available = {schema['name'] for schema in self.tool_registry.schemas()} - set(provider.disabled_native_tools)
+        if provider.native_tools:
+            available &= set(provider.native_tools)
+        unavailable = names - available
+        if unavailable:
+            raise ValueError('工具不存在或未在当前配置开放：' + ', '.join(sorted(unavailable)))
+        self.additional_native_tools.update(names)
+        return '已开放：' + ', '.join(sorted(names)) + '。下一轮可直接调用，无需重复加载。'
 
     async def _update_plan_tool(self, tool_input):
         plan = validate_plan(tool_input, records=self.context.records, previous=self.task_plan)
@@ -568,16 +601,19 @@ class AgentLoop:
     def _build_headers(self) -> dict:
         """构建请求头。"""
         p = self.config.provider
+        common = {"content-type": "application/json", "User-Agent": "ThinkFlow/0.8.0"}
+        if urlparse(p.base_url).hostname == 'opencode.ai':
+            common['x-opencode-session'] = self.session_id
         if p.format == "anthropic":
             return {
+                **common,
                 **({"x-api-key": p.api_key} if p.api_key else {}),
                 "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
             }
         else:
             return {
+                **common,
                 **({"Authorization": f"Bearer {p.api_key}"} if p.api_key else {}),
-                "content-type": "application/json",
             }
 
     def _new_http_client(self) -> httpx.AsyncClient:
@@ -613,8 +649,6 @@ class AgentLoop:
             'platform': 'Windows' if os.name == 'nt' else sys.platform,
             'cwd': self.executor.cwd, 'shell': shell,
         }, ensure_ascii=False)
-        if os.name == 'nt':
-            content += '\nWindows命令工具使用cmd.exe，不是Bash/PowerShell。不要用反斜线转义空格或单引号。优先原生bash传cmd字符串，Python验证可写成脚本后直接运行，避免嵌套多层引号。'
         if self.task_plan['steps']:
             content += '\n[CURRENT TASK PLAN]\n' + json.dumps(self.task_plan, ensure_ascii=False)
         if self.native_write_fallback:
@@ -622,7 +656,16 @@ class AgentLoop:
         return {"role": "user", "content": content}
 
     def _messages_with_runtime_status(self) -> list[dict]:
-        return [*self.messages, self.build_runtime_status_message()]
+        complete_reads = {record.id: record.output_chars for record in self.context.records
+                          if record.tool == 'read' and record.status == 'success' and not record.truncated}
+        request_messages = project_read_results(self.messages, complete_reads)
+        replaced = [(original, projected) for original, projected in zip(self.messages, request_messages)
+                    if original is not projected]
+        if replaced:
+            self.events.emit('context_projection', read_results=len(replaced),
+                             saved_chars=sum(len(original['content']) - len(projected['content'])
+                                             for original, projected in replaced))
+        return with_observation(request_messages, self.build_runtime_status_message()['content'])
 
     def build_request_body(self, system: str) -> dict:
         """Build the provider request body."""
@@ -689,7 +732,7 @@ class AgentLoop:
             return "/chat/completions"
         return "/v1/chat/completions"
 
-    def _enabled_native_tool_names(self) -> set[str] | None:
+    def _enabled_native_tool_names(self) -> set[str]:
         p = self.config.provider
         if not p.enable_native_tools:
             return set()
@@ -698,23 +741,18 @@ class AgentLoop:
         deny = {name for name in p.disabled_native_tools if name}
         if allow:
             return allow - deny
-        # Prefer streamed file operations through the prompt. Keep native
-        # recovery available from the first request instead of hiding capability.
-        if deny:
-            return {
-                schema["name"]
-                for schema in self.tool_registry.schemas()
-                if schema["name"] not in deny
-            }
-        return None
+        names = set(CORE_NATIVE_TOOLS) | self.additional_native_tools
+        if self.native_write_fallback:
+            names.update({"write", "append", "edit", "mkdir", "touch", "copy"})
+        names &= {schema["name"] for schema in self.tool_registry.schemas()}
+        names -= deny
+        return names
 
     def _openai_provider_tools(self) -> list[dict]:
         names = self._enabled_native_tool_names()
         if names == set():
             return []
         tools = self.tool_registry.openai_tools()
-        if names is None:
-            return tools
         return [
             tool for tool in tools
             if tool.get("function", {}).get("name") in names
@@ -725,8 +763,6 @@ class AgentLoop:
         if names == set():
             return []
         tools = self.tool_registry.anthropic_tools()
-        if names is None:
-            return tools
         return [tool for tool in tools if tool.get("name") in names]
 
     async def run(self, user_input: str):
@@ -745,7 +781,6 @@ class AgentLoop:
         deadline = (None if self.config.max_run_seconds is None
                     else time.monotonic() + max(0.01, self.config.max_run_seconds))
         try:
-            self._append_pending_injection()
             self.messages.append({"role": "user", "content": user_input})
             while self.config.max_run_turns is None or turns < max(1, self.config.max_run_turns):
                 remaining = None if deadline is None else deadline - time.monotonic()
@@ -761,7 +796,8 @@ class AgentLoop:
                 if self.stopped_reason == 'unconfirmed_side_effect':
                     break
                 failures = failures + 1 if self._last_turn_failed else 0
-                if failures >= max(1, self.config.max_consecutive_failures):
+                if (self.config.max_consecutive_failures is not None
+                        and failures >= max(1, self.config.max_consecutive_failures)):
                     self.stopped_reason = "max_consecutive_failures"
                     break
                 if not should_continue:
@@ -789,9 +825,16 @@ class AgentLoop:
 
     def _append_pending_injection(self):
         """把未注入的 ThinkFlow 工具日志补进消息历史。"""
-        injection = self.context.build_injection()
+        retained = [message['content'] for message in self.messages
+                    if isinstance(message.get('content'), str)]
+        # DeepSeek includes reasoning in context only when tools are supplied.
+        # Other adapters must keep the ledger payload unless text already has it.
+        if (self.config.provider.format == 'openai' and is_deepseek(self.config.provider)
+                and self._openai_provider_tools()):
+            retained.extend(message.get('reasoning_content', '') for message in self.messages)
+        injection = self.context.build_injection(retained_text='\n'.join(retained))
         if injection:
-            self.messages.append({"role": "user", "content": injection})
+            self.messages = with_observation(self.messages, injection)
 
     def compact(self, *, force: bool = False) -> CompactionStats:
         """Run deterministic compaction and keep stats for status output."""
@@ -804,7 +847,8 @@ class AgentLoop:
             self.messages = compacted
             self.compaction_count += 1
             self.last_compaction = stats
-        self.context.compact_history()
+        protected = {ref for step in self.task_plan['steps'] for ref in step['evidence']}
+        self.context.compact_history(protected_ids=protected)
         return stats
 
     def message_stats(self) -> dict:
@@ -833,12 +877,10 @@ class AgentLoop:
         commands_this_turn = 0
         tools_this_turn = 0
 
-        # 0. 注入上一轮未注入的命令
-        injection = self.context.build_injection()
-        if injection:
-            self.messages.append({"role": "user", "content": injection})
-
         compact_stats = self.compact(force=False)
+        # Deduplicate against the history that will actually reach the provider.
+        # Pending receipt payloads survive compact_history until this injection.
+        self._append_pending_injection()
         record_start_index = len(self.context.records)
         if compact_stats.changed:
             turn_usage.abort_reason = "context_compacted"
@@ -886,13 +928,6 @@ class AgentLoop:
                     commands = self.parser.feed(event.thinking_text)
                     new_errors = self._consume_new_parser_errors(self.parser, parser_error_count)
                     parser_error_count += len(new_errors)
-                    if new_errors:
-                        parser_error_message = new_errors[-1].message
-                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="thinking", phase="feed"))
-                        self.view.flush_text()
-                        abort_reason = AbortReason.TOOL_FAILED
-                        break
-
                     if self.config.verbose:
                         self.view.render_thinking_snapshot(event.thinking_text)
                     dispatched, dispatch_abort = await self._dispatch_text_commands(
@@ -903,24 +938,24 @@ class AgentLoop:
                     if dispatch_abort != AbortReason.NONE:
                         self.view.flush_text()
                         abort_reason = dispatch_abort
+                    if new_errors:
+                        parser_error_message = new_errors[-1].message
+                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="thinking", phase="feed"))
+                        self.view.flush_text()
+                        abort_reason = AbortReason.TOOL_FAILED
 
                     if abort_reason != AbortReason.NONE:
                         break
 
                 # text delta → 安全过滤后流式渲染，命令块仍由 text_parser 执行
                 elif event.type == EventType.TEXT_DELTA:
+                    assistant_text += event.text
                     self.note_text_tool_stream(event.text)
                     # 喂给 text_parser 提取命令
                     text_for_commands = self.text_command_gate.feed(event.text)
                     text_cmds = self.text_parser.feed(text_for_commands)
                     new_errors = self._consume_new_parser_errors(self.text_parser, text_parser_error_count)
                     text_parser_error_count += len(new_errors)
-                    if new_errors:
-                        parser_error_message = new_errors[-1].message
-                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
-                        self.view.flush_text()
-                        abort_reason = AbortReason.TOOL_FAILED
-                        break
                     dispatched, dispatch_abort = await self._dispatch_text_commands(
                         text_cmds,
                         command_queue,
@@ -929,12 +964,16 @@ class AgentLoop:
                     if dispatch_abort != AbortReason.NONE:
                         self.view.flush_text()
                         abort_reason = dispatch_abort
+                    if new_errors:
+                        parser_error_message = new_errors[-1].message
+                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
+                        self.view.flush_text()
+                        abort_reason = AbortReason.TOOL_FAILED
                     if abort_reason != AbortReason.NONE:
                         break
                     visible_text = self.text_filter.feed(event.text)
                     if visible_text:
                         self.view.render_text_chunk(visible_text)
-                    assistant_text += event.text
 
                 # tool_use → 收集（不立即 break，继续读完流拿参数）
                 elif event.type == EventType.TOOL_USE_START:
@@ -978,12 +1017,6 @@ class AgentLoop:
                         text_cmds = self.text_parser.feed(tail_for_commands)
                         new_errors = self._consume_new_parser_errors(self.text_parser, text_parser_error_count)
                         text_parser_error_count += len(new_errors)
-                        if new_errors:
-                            parser_error_message = new_errors[-1].message
-                            self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
-                            self.view.flush_text()
-                            abort_reason = AbortReason.TOOL_FAILED
-                            break
                         dispatched, dispatch_abort = await self._dispatch_text_commands(
                             text_cmds,
                             command_queue,
@@ -992,6 +1025,11 @@ class AgentLoop:
                         if dispatch_abort != AbortReason.NONE:
                             self.view.flush_text()
                             abort_reason = dispatch_abort
+                        if new_errors:
+                            parser_error_message = new_errors[-1].message
+                            self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
+                            self.view.flush_text()
+                            abort_reason = AbortReason.TOOL_FAILED
                     # A native call start is not proof of complete arguments.
                     # Discard the unfinished native batch on length; text effects
                     # already executed still have their own durable receipts.
@@ -1088,6 +1126,14 @@ class AgentLoop:
 
         # 3. 记录 assistant 输出
         clean_text = self.view.strip_command_blocks(assistant_text) if assistant_text else ''
+        if abort_reason == AbortReason.END_TURN and is_deepseek(self.config.provider):
+            gate = MarkdownFenceCommandGate()
+            plain_text = gate.feed(clean_text) + gate.flush()
+            if re.search(r'</｜DSML｜\s*(?:parameter|invoke|calls)>\s*$', plain_text):
+                parser_error_message = ('供应商把原生工具调用的DSML控制标记返回成了正文，该调用没有执行。'
+                                        '请用已提供的原生工具继续未完成操作；已成功的tf写入按账本保留，不要重放。')
+                self.events.emit('provider_protocol_error', kind='deepseek_tool_markup_tail')
+                abort_reason = AbortReason.TOOL_FAILED
         if abort_reason != AbortReason.TOOL_USE and (clean_text or assistant_reasoning):
             message = {"role": "assistant", "content": clean_text}
             if self.config.provider.format == 'openai' and (assistant_reasoning or is_deepseek(self.config.provider)):
@@ -1799,7 +1845,7 @@ class AgentLoop:
         return self._native_result_text(result)
 
     def _native_result_text(self, result: ExecutionResult) -> str:
-        if result.tool in TOOLS or result.tool in ("list_files", "glob", "grep") or not result.success:
+        if result.tool in TOOLS or result.tool in ("list_files", "glob", "grep", "python") or not result.success:
             return self._format_tool_result(result)
         return result.content
 
@@ -1837,6 +1883,11 @@ class AgentLoop:
                 input_error = input_error or f"Invalid tool arguments: {key} must be a string"
         command = Command(id=tool_id or f"native_{self._turn_count}_{len(self.context.records)}",
                           tool=tool_name, need_result=True, **fields)
+        if tool_name == "python":
+            code = tool_input.get("code")
+            command.cmd = code if isinstance(code, str) else None
+            if not isinstance(code, str):
+                input_error = input_error or "Invalid tool arguments: code must be a string"
         fingerprint = "native:" + hashlib.sha256(json.dumps(
             {"tool": tool_name, "input": tool_input, "input_error": input_error},
             sort_keys=True, separators=(",", ":"), ensure_ascii=False,
@@ -1868,6 +1919,8 @@ class AgentLoop:
                 result = ExecutionResult(success=False, tool=tool_name, error=error)
             elif tool_name in TOOLS:
                 result = await self.executor.execute(command)
+            elif tool_name == "python":
+                result = await self.executor.python(**tool_input)
             elif tool_name in ("list_files", "glob", "grep"):
                 result = await getattr(self.executor, tool_name)(**tool_input)
             else:
@@ -1906,13 +1959,13 @@ class AgentLoop:
         return ""
 
     def _format_tool_result(self, result: ExecutionResult) -> str:
-        if result.tool == "bash":
+        if result.tool in ("bash", "python"):
             parts = [f"exit_code: {result.exit_code}"]
             if result.stdout:
                 parts.append(f"stdout:\n{result.stdout}")
             if result.stderr:
                 parts.append(f"stderr:\n{result.stderr}")
-            if not result.success:
+            if not result.success and result.error not in (result.stdout, result.stderr):
                 parts.append(f"error: {result.error or 'bash failed'}")
             if result.truncated:
                 parts.append("[THINKFLOW TRUNCATED] 输出已截断。")
@@ -1936,9 +1989,11 @@ class AgentLoop:
         """导出可恢复会话状态。"""
         return {
             "version": 1,
+            "session_id": self.session_id,
             "messages": self.messages,
             "task_plan": self.task_plan,
             "native_write_fallback": self.native_write_fallback,
+            "additional_native_tools": sorted(self.additional_native_tools),
             "context": self.context.to_dict(),
             # 按 deque 顺序导出，恢复时直接截尾保最近，避免排序猜测丢错端。
             "executed_ids": list(self._executed_ids_order),
@@ -1951,9 +2006,12 @@ class AgentLoop:
 
     def load_snapshot(self, data: dict):
         """恢复会话状态。"""
+        self.session_id = data.get('session_id', self.session_id)
+        self.client.headers.update(self._build_headers())
         self.messages = list(data.get("messages", []))
         self.task_plan = validate_plan(data.get('task_plan', {'explanation': '', 'steps': []}))
         self.native_write_fallback = data.get('native_write_fallback') is True
+        self.additional_native_tools = set(data.get('additional_native_tools', []))
         self.context = ContextManager.from_dict(data.get("context", {}))
         restored = [
             str(item) for item in data.get("executed_ids", []) if item

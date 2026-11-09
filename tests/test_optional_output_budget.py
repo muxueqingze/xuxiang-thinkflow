@@ -176,7 +176,7 @@ class OptionalOutputBudgetTests(unittest.IsolatedAsyncioTestCase):
         DesktopService._validate_config(config)
         self.assertEqual(config["max_tokens"], 8192)
 
-    async def test_none_run_budgets_pass_old_turn_limit_and_keep_failure_guard(self):
+    async def test_none_run_budgets_allow_recovery_and_keep_explicit_failure_budget(self):
         owner = create_agent({"max_run_turns": None, "max_run_seconds": None, "max_auto_continues": None},
                              "", cwd=self.temp.name, event_sink=lambda event: None)
         self.resources.append(owner)
@@ -187,11 +187,17 @@ class OptionalOutputBudgetTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(owner.stopped_reason, "completed")
 
         async def failed():
-            owner._last_turn_failed = True
-            return True
+            owner._last_turn_failed = owner._run_one_turn.await_count <= 4
+            return owner._last_turn_failed
 
         owner._run_one_turn = AsyncMock(side_effect=failed)
         await owner.run("fail")
+        self.assertEqual(owner._run_one_turn.await_count, 5)
+        self.assertEqual(owner.stopped_reason, "completed")
+
+        owner.config.max_consecutive_failures = 3
+        owner._run_one_turn.reset_mock()
+        await owner.run("fail with explicit budget")
         self.assertEqual(owner._run_one_turn.await_count, 3)
         self.assertEqual(owner.stopped_reason, "max_consecutive_failures")
 

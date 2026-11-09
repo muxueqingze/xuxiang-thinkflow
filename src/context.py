@@ -42,6 +42,8 @@ class CommandRecord:
     stderr: str = ""
     exit_code: Optional[int] = None
     evidence_ref: str = ""
+    truncated: bool = False
+    output_chars: int = 0
 
     @staticmethod
     def _clip_text(text: str, max_chars: int = 4000) -> str:
@@ -57,7 +59,7 @@ class CommandRecord:
             + text[-tail:]
         )
 
-    def to_injection_string(self, max_content_chars: int = 4000) -> str:
+    def to_injection_string(self, max_content_chars: int = 4000, *, include_payload: bool = True) -> str:
         """Build text injected into the model context."""
         lines = []
 
@@ -81,12 +83,14 @@ class CommandRecord:
 
         if self.tool in ("write", "append", "copy"):
             attrs.append(f'bytes="{self.bytes_written}"')
-        if self.tool == "bash":
+        if self.tool in ("bash", "python"):
             attrs.append(f'exit_code="{self.exit_code}"')
 
         attr_str = " ".join(attrs)
 
-        if self.tool in ("write", "append"):
+        if not include_payload:
+            lines.append(f'<{self.tool} {attr_str} />')
+        elif self.tool in ("write", "append"):
             lines.append(f'<{self.tool} {attr_str}>')
             lines.append(self._clip_text(self.content or "", max_content_chars))
             lines.append(f'</{self.tool}>')
@@ -114,11 +118,13 @@ class CommandRecord:
             if self.stderr:
                 lines.append(self._clip_text(self.stderr, max_content_chars))
 
-        if self.output_summary:
+        if self.output_summary and self.status == "success" and not (self.stdout or self.stderr):
             lines.append(f'  summary: {self.output_summary}')
 
-        if self.status == "failed" and self.error:
+        if self.error and self.error not in (self.stdout, self.stderr):
             lines.append(f'  ERROR: {self.error}')
+        if self.truncated:
+            lines.append('[THINKFLOW TRUNCATED] 执行器输出已截断。')
 
         return "\n".join(lines)
 
@@ -153,9 +159,9 @@ class ContextManager:
             path=command.path,
             dest=command.dest,
             cmd=command.cmd,
-            content=CommandRecord._clip_text(command.content, 8000) if command.content else command.content,
-            old_text=CommandRecord._clip_text(command.old_text, 8000) if command.old_text else command.old_text,
-            new_text=CommandRecord._clip_text(command.new_text, 8000) if command.new_text else command.new_text,
+            content=command.content,
+            old_text=command.old_text,
+            new_text=command.new_text,
             need_result=command.need_result,
             flow=flow,
             risk=risk,
@@ -170,6 +176,8 @@ class ContextManager:
             stdout=result.stdout or result.content,
             stderr=result.stderr,
             exit_code=result.exit_code,
+            truncated=result.truncated,
+            output_chars=len(result.stdout or result.content),
         )
         self.records.append(rec)
         self.next_receipt_ref += 1
@@ -223,7 +231,7 @@ class ContextManager:
                 rec.injected = 1
                 return
 
-    def build_injection(self) -> Optional[str]:
+    def build_injection(self, *, retained_text: str = "") -> Optional[str]:
         """
         构建注入文本。把所有 injected=0 的命令构建为注入块。
         注入后标记为 injected=1。
@@ -234,10 +242,15 @@ class ContextManager:
 
         lines = []
         lines.append("[THINKFLOW COMMAND LEDGER — 上一轮可审计工具记录]")
-        lines.append("以下是上一轮执行过的结构化命令记录。hash 用于对账；summary 用于快速恢复上下文。\n")
 
         for rec in pending:
-            lines.append(rec.to_injection_string())
+            # Compare the complete payload before compact_history clips receipts.
+            # Text-only and restored histories receive missing payloads once.
+            payloads = ([rec.old_text, rec.new_text] if rec.tool == "edit"
+                        else [rec.content] if rec.tool in ("write", "append") else [])
+            duplicate = (rec.status == "success" and bool(payloads)
+                         and any(payloads) and all(not p or p in retained_text for p in payloads))
+            lines.append(rec.to_injection_string(max_content_chars=0, include_payload=not duplicate))
             lines.append("")  # 空行分隔
             rec.injected = 1
 
@@ -253,7 +266,7 @@ class ContextManager:
         return (
             f"[THINKFLOW ERROR — 命令执行失败，思考被打断]\n"
             f"以下命令执行失败：\n\n"
-            f'{rec.to_injection_string()}\n\n'
+            f'{rec.to_injection_string(max_content_chars=0)}\n\n'
             f"请根据错误信息调整你的后续操作。"
         )
 
@@ -265,14 +278,8 @@ class ContextManager:
         lines = [
             f"[THINKFLOW RESULT — 你请求了命令执行结果，思考被打断]",
             f"以下命令的执行结果：\n",
-            rec.to_injection_string(),
+            rec.to_injection_string(max_content_chars=0),
         ]
-
-        # bash 的详细输出
-        if rec.tool in ("bash", "read") and rec.stdout:
-            lines.append(f"\n--- stdout ---\n{rec.stdout}")
-        if rec.tool in ("bash", "read") and rec.stderr:
-            lines.append(f"\n--- stderr ---\n{rec.stderr}")
         return "\n".join(lines)
 
     def build_auto_result_message(self) -> Optional[str]:
@@ -284,12 +291,8 @@ class ContextManager:
             "[THINKFLOW RESULT - blocking tool output returned automatically]",
             "The previous turn executed an information-bearing command. Continue the original task using this result; do not stop after reading it.",
             "",
-            rec.to_injection_string(),
+            rec.to_injection_string(max_content_chars=0),
         ]
-        if rec.tool in ("bash", "read") and rec.stdout:
-            lines.append(f"\n--- stdout ---\n{rec.stdout}")
-        if rec.tool in ("bash", "read") and rec.stderr:
-            lines.append(f"\n--- stderr ---\n{rec.stderr}")
         return "\n".join(lines)
 
     def build_system_prompt_suffix(self) -> str:
@@ -306,14 +309,15 @@ class ContextManager:
         self._last_need_result = None
         self._pending_auto_result = None
 
-    def compact_history(self, *, keep_records: int = 4096, payload_budget: int = 2_000_000):
+    def compact_history(self, *, keep_records: int = 4096, payload_budget: int = 2_000_000, protected_ids=()):
         """Bound retained receipts after feedback; never discard pending results.
 
         Hashes and summaries survive payload clipping. Desktop also keeps its
         separate intent journal; this is not a full file-version archive.
         """
         cutoff = max(0, len(self.records) - keep_records)
-        retained = [record for i, record in enumerate(self.records) if i >= cutoff or not record.injected]
+        retained = [record for i, record in enumerate(self.records)
+                    if i >= cutoff or not record.injected or record.id in protected_ids]
         self.archived_records += len(self.records) - len(retained)
         self.records = retained
         for record in reversed(self.records):
@@ -404,8 +408,8 @@ def _result_summary(command: Command, result: ExecutionResult) -> str:
         return f"copied {command.path} -> {command.dest}; {result.bytes_written} bytes"
     if command.tool in ("mkdir", "touch"):
         return f"{command.tool} {command.path}"
-    if command.tool == "bash":
-        return f"bash exit_code={result.exit_code} stdout={_clip_inline(result.stdout, 120)} stderr={_clip_inline(result.stderr, 120)}"
+    if command.tool in ("bash", "python"):
+        return f"{command.tool} exit_code={result.exit_code} stdout={_clip_inline(result.stdout, 120)} stderr={_clip_inline(result.stderr, 120)}"
     return f"{command.tool} ok"
 
 

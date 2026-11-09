@@ -237,6 +237,18 @@ BUILTIN_TOOL_SPECS = [
         },
     ),
     ToolSpec(
+        name="python",
+        description="直接执行多行Python代码，返回stdout/stderr/exit_code。适合批量文件处理、数据变换和集中检查；一段代码可完成多个已知步骤，无须shell转义、heredoc或临时脚本。每次调用是新的Python进程，工作目录与bash相同。",
+        kind=TOOL_KIND_EXEC,
+        flow=TOOL_FLOW_BLOCKING,
+        risk=TOOL_RISK_HIGH,
+        parameters={
+            "type": "object",
+            "properties": {"code": {"type": "string", "description": "多行Python源代码；print需要反馈的结果"}},
+            "required": ["code"],
+        },
+    ),
+    ToolSpec(
         name="write",
         description="覆盖写入文件。输出式写文件优先用 tf-write 流式协议；此工具用于兼容传统 tool_call。",
         kind=TOOL_KIND_OUTPUT,

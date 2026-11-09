@@ -63,7 +63,8 @@ class BenchmarkRecoveryTests(unittest.IsolatedAsyncioTestCase):
         await self.agent.run('Create a file')
         self.assertEqual(first_has_no_effect, [True])
         self.assertIn('write', {t['function']['name'] for t in self.requests[1]['tools']})
-        self.assertIn('PROTOCOL', self.requests[1]['messages'][-2]['content'])
+        results = [m for m in self.requests[1]['messages'] if m.get('role') == 'tool']
+        self.assertIn('PROTOCOL', results[-1]['content'])
         self.assertEqual((self.root / 'a.txt').read_text(), 'recovered')
         self.assertEqual(self.agent.stopped_reason, 'completed')
         self.assertEqual([r.status for r in self.agent.context.records], ['failed', 'success'])
