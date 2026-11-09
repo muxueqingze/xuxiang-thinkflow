@@ -184,6 +184,8 @@ class OpenAIProvider:
         if tools and self.config.enable_native_tools:
             body["tools"] = tools
             body["tool_choice"] = "auto"
+        elif is_deepseek(self.config):
+            body["tool_choice"] = "none"
 
         return await self.client.send(
             self.client.build_request(

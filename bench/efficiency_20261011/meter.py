@@ -179,6 +179,7 @@ class Meter:
                               'messages_sha256': digest(body.get('messages')), 'system_sha256': digest(body.get('system') if meter.protocol == 'anthropic'
                                  else [m for m in body.get('messages', []) if m.get('role') in ('system', 'developer')]),
                               'message_count': len(body.get('messages', [])), 'tool_count': len(body.get('tools', [])),
+                              'tool_choice': body.get('tool_choice'),
                               'stream': bool(body.get('stream')), 'finished': False}
                     meter.requests.append(record)
                     meter.active += 1

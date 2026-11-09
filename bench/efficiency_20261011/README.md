@@ -2,6 +2,8 @@
 
 2026-11-10 worker增加每轮response_structure：只记录两个输出通道的字符数、标签名/id及原生函数名，定位响应与执行链是否一致，不保存推理正文。真实Go空正文stop已通过完全相同messages hash的单请求回放确认；回放用量另计，不混入完整任务成绩。
 
+meter记录实际tool_choice。Pi观察器以最后一轮状态判断结束，已恢复的中间API错误仍保留在events，避免粘滞last_error把最终stop误记成失败。修复前原始result不重写，独立审查依据真实message_end/turn_end与交付文本给出派生结论；缺失usage仍为未知。
+
 执行路线诊断可传`--thinkflow-native-tools enabled/disabled`，将现有enable_native_tools配置交给ThinkFlow worker；默认default，沿用被测源码自己的应用默认值。Pi/Claude保持自身工具入口。配置写入manifest与harness，preflight记录有效值。此开关同时影响工具通道和DeepSeek历史reasoning规则，不能把其结果单独归因于一个机制。
 
 2026-11-09末轮恢复修正：当前源码的连续失败预算默认null，显式数字配置仍可停止；worker记录实际effective_consecutive_failure_limit。旧2a4f4b8基线及go-lazy-tools之前源码的默认值是3，三题旧基线均未触发，该区别在正式报告披露。它不是输出、轮数或时长额度，也不能用失败截停后的低token冒充完整交付。

@@ -26,10 +26,9 @@ export default function (pi) {
     record({type: 'tool_completed', id: event.toolCallId, tool: event.toolName, success: !event.isError, flow: 'blocking'});
   });
   pi.on('turn_end', (event) => {
-    if (event.message.stopReason === 'error' || event.message.stopReason === 'aborted') {
-      last_error = event.message.errorMessage || event.message.stopReason;
-    }
-    record({type: 'stream_finished', turn: event.turnIndex});
+    const reason = event.message.stopReason;
+    last_error = reason === 'error' || reason === 'aborted' ? event.message.errorMessage || reason : null;
+    record({type: 'stream_finished', turn: event.turnIndex, reason, error: last_error});
   });
   pi.on('agent_end', () => { stopped_reason = last_error ? 'error' : 'completed'; save(); });
 }

@@ -322,7 +322,8 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_dsml_inside_fence_or_file_is_literal_content(self):
         tail = '</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls>'
-        reply = '<tf-write id="1" path="protocol.txt">' + tail + '</tf-write>\n```xml\n' + tail + '\n```'
+        reply = ('<tf-write id="1" path="protocol.txt">' + tail + '</tf-write>\n```xml\n' + tail
+                 + '\n```\nInline `<｜DSML｜ calls>` is an example.')
         requests = []
         def receive(request):
             requests.append(request)
@@ -331,8 +332,31 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
         self.agent.client = httpx.AsyncClient(base_url='https://fixture.invalid', transport=httpx.MockTransport(receive))
         await self.agent.run('Write a protocol example')
         self.assertEqual(len(requests), 1)
-        self.assertEqual((self.root / 'protocol.txt').read_text(), tail)
+        self.assertEqual((self.root / 'protocol.txt').read_text(encoding='utf8'), tail)
         self.assertFalse(any(e['type'] == 'provider_protocol_error' for e in self.events))
+
+    async def test_unclosed_dsml_opening_is_not_a_successful_read_batch(self):
+        self.agent.config.provider.enable_native_tools = False
+        (self.root / 'checkout.py').write_text('before')
+        (self.root / 'reporting.py').write_text('report')
+        malformed = ('<｜DSML｜ calls>\n<｜DSML｜ invoke name="read id="4" path="checkout.py" />\n'
+                     '<read id="5" path="reporting.py" />\n<read id="6" path="public_tests.py" />')
+        replies = [malformed,
+                   '<tf-read id="4" path="checkout.py" /><tf-read id="5" path="reporting.py" />',
+                   '<tf-edit id="6" path="checkout.py"><old>before</old><new>after</new></tf-edit>Done.']
+        requests = []
+        def receive(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, stream=SlowSSE([
+                {'delta': {'content': replies[len(requests) - 1]}, 'finish_reason': 'stop'}]))
+        await self.agent.client.aclose()
+        self.agent.client = httpx.AsyncClient(base_url='https://fixture.invalid', transport=httpx.MockTransport(receive))
+        await self.agent.run('Read and update the implementation')
+        self.assertEqual(len(requests), 3)
+        self.assertIn('DSML', requests[1]['messages'][-1]['content'])
+        self.assertEqual([(r.id, r.tool) for r in self.agent.context.records], [('4', 'read'), ('5', 'read'), ('6', 'edit')])
+        self.assertEqual((self.root / 'checkout.py').read_text(), 'after')
+        self.assertEqual(self.agent.usage.turns[0].abort_reason, 'tool_failed')
 
     async def test_optional_tools_load_once_execute_and_survive_snapshot(self):
         names = lambda: {t['function']['name'] for t in self.agent.build_request_body('')['tools']}
@@ -368,6 +392,7 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
         await self.agent.run('Create both files and check their content')
         self.assertEqual(len(requests), 2)
         self.assertTrue(all('tools' not in request for request in requests))
+        self.assertTrue(all(request['tool_choice'] == 'none' for request in requests))
         self.assertEqual([(r.tool, r.status) for r in self.agent.context.records],
                          [('write', 'success'), ('write', 'success'), ('python', 'success')])
         self.assertIn('checked', requests[1]['messages'][-1]['content'])

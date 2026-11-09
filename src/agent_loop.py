@@ -716,6 +716,8 @@ class AgentLoop:
             if tools:
                 body["tools"] = tools
                 body["tool_choice"] = "auto"
+            elif is_deepseek(p):
+                body["tool_choice"] = "none"
             return body
 
     def get_request_path(self) -> str:
@@ -1135,13 +1137,13 @@ class AgentLoop:
                 self.events.emit('provider_protocol_error', kind='empty_assistant_response')
                 abort_reason = AbortReason.TOOL_FAILED
                 turn_usage.abort_reason = abort_reason
-            elif re.search(r'</｜+DSML｜+\s*(?:parameter|invoke|calls)>\s*$', plain_text):
+            elif re.search(r'(?m)^\s*</?｜+DSML｜+\s*(?:parameter|invoke|calls)\b', plain_text):
                 protocol_hint = ('请使用当前提供的原生工具或tf-*继续未完成操作；'
                                  if self._openai_provider_tools() else
                                  '当前使用tf-*文本协议：文件操作用tf-write/tf-edit，Python代码用tf-python，shell用tf-bash；')
                 parser_error_message = ('供应商把原生工具调用的DSML控制标记返回成了正文，该调用没有执行。'
                                         + protocol_hint + '已成功的tf写入按账本保留，不要重放。')
-                self.events.emit('provider_protocol_error', kind='deepseek_tool_markup_tail')
+                self.events.emit('provider_protocol_error', kind='deepseek_tool_markup')
                 abort_reason = AbortReason.TOOL_FAILED
                 turn_usage.abort_reason = abort_reason
         if abort_reason != AbortReason.TOOL_USE and (clean_text or assistant_reasoning):

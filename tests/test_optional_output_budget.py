@@ -93,6 +93,20 @@ class OptionalOutputBudgetTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(body["max_tokens"], 8192)
                 self.assertEqual(body["thinking"]["budget_tokens"], 1024)
 
+    async def test_deepseek_text_mode_explicitly_selects_message_output(self):
+        tools = [{"type": "function", "function": {"name": "read", "parameters": {"type": "object"}}}]
+        for model, enabled, choice in (("deepseek-flash", False, "none"),
+                                       ("deepseek-flash", True, "auto"),
+                                       ("offline", False, None)):
+            config = self.config(enable_native_tools=enabled)
+            config.model = model
+            owner = await self.capture(OpenAIProvider(config))
+            response = await owner.stream_create([{"role": "user", "content": "test"}], "system", tools)
+            await response.aclose()
+            body = self.requests[-1]
+            self.assertEqual(body.get("tool_choice"), choice)
+            self.assertEqual("tools" in body, enabled)
+
     async def test_anthropic_requires_budget_before_any_http_request(self):
         for kwargs in ({}, {"max_tokens": None}, {"max_tokens": 0}):
             for entry in ("provider", "agent"):
