@@ -1,0 +1,10 @@
+{
+  "recycled": [
+    "src/__pycache__/cli.cpython-312.pyc",
+    "src/__pycache__/agent_loop.cpython-312.pyc",
+    "src/__pycache__/context.cpython-312.pyc",
+    "src/__pycache__/executor.cpython-312.pyc",
+    "src/__pycache__/parser.cpython-312.pyc"
+  ],
+  "ownership": "Created during this phase at 2026-11-09 23:35; older cache files retained."
+}

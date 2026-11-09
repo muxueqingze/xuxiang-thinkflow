@@ -14,6 +14,10 @@ Xuxiang ThinkFlow is an experimental streaming tool-call agent harness. It explo
 
 Tools such as `read`, `grep`, `web`, and `bash` can return new information or trigger high-risk side effects, so ThinkFlow still handles them through blocking, confirmation, and feedback paths. Predictable side-effect tools such as `write`, `append`, `mkdir`, `touch`, `copy`, and `edit` can be emitted as structured `tf-*` commands during the model stream. A local parser, FIFO queue, executor, and command ledger execute them without stopping the model unless a failure or explicit `need_result` requires feedback.
 
+In the 2026-11-10 Go DS Flash comparison (three tasks, two repetitions), both harnesses completed all six deliveries. ThinkFlow used 34 requests and 178,804 tokens; Pi used 48 requests and at least 459,820 tokens: at least 61.11% fewer total tokens and 29.17% fewer request attempts. One Pi request has unknown usage and remains included as an attempt.
+
+The 2026-11-10 source defaults to the streaming protocol. Independent reads and checks are declared together and returned in one feedback batch. `tf-python` runs multiline code through stdin, using the existing execution and cancellation path. `--native-tools` or the desktop setting enables native compatibility and extensions; explicit configuration is preserved. See the [current comparison](docs/efficiency-results-20261110.md) and [diagnosis](docs/efficiency-direction-20261109.md).
+
 ## Core Idea
 
 Traditional agent harnesses often use this loop:
@@ -38,7 +42,7 @@ model stream
 -> failure / need_result: interrupt and feed back
 ```
 
-This does not remove feedback. It distinguishes feedback types: information tools produce new reasoning input; predictable side-effect tools usually produce execution receipts.
+Information tools produce new reasoning input; predictable side-effect tools usually produce execution receipts. Declare independent reads in one generation, then decide from the complete batch. Once changes are known, emit file operations and their checks in the same generation. The existing FIFO preserves order. Read only relevant information, keep first results and real errors, and avoid repeated checks after success.
 
 ## Installation
 
@@ -179,7 +183,9 @@ Interactive slash commands include:
 
 ## Benchmark
 
-The latest [production configuration benchmark](bench/harness_benchmark_20260929/reports-production/README.md) omits client output budgets and disables automatic history compaction and experiment run/request/continuation limits. ThinkFlow (91e4911), Pi 0.87.1 and OpenCode 1.18.33 used official DeepSeek Flash high on the same six tasks twice. Each completed 12/12 valid samples. Total tokens were 3,845,627, 1,397,532 and 1,732,556; mean times were 105.38, 54.62 and 59.90 seconds. **ThinkFlow still has no overall efficiency advantage.** Claude Code was not used.
+See the [2026-11-10 streaming/batch comparison](docs/efficiency-results-20261110.md) for the current source. The [2026-11-09 native-mode results](docs/efficiency-results-20261109.md) and the older six-task report below remain separate historical comparisons.
+
+The 2026-09-29 [production configuration benchmark](bench/harness_benchmark_20260929/reports-production/README.md) omits client output budgets and disables automatic history compaction and experiment run/request/continuation limits. ThinkFlow (91e4911), Pi 0.87.1 and OpenCode 1.18.33 used official DeepSeek Flash high on the same six tasks twice. Each completed 12/12 valid samples. Total tokens were 3,845,627, 1,397,532 and 1,732,556; mean times were 105.38, 54.62 and 59.90 seconds. **That earlier ThinkFlow version had no overall efficiency advantage on those six tasks.** Claude Code was not used.
 
 One of the original 36 attempts was interrupted by a Windows observer logging error. Its record and 47,031 tokens remain preserved; one separate recovery used identical frozen conditions. All 37 actual attempts consumed 397 requests and 7,022,746 tokens. This is not a claim that all first attempts completed normally. Every request omitted output budget fields, 17 responses exceeded the previous 8K setting, and no length stops occurred. Saved test execution evidence was reviewed for all valid samples; it does not prove sufficient coverage.
 
@@ -207,7 +213,7 @@ Full model transcripts, `node_modules`, local sessions and build artifacts remai
 - Command ledger, session snapshots, and `/resume`.
 - OpenAI-compatible and Anthropic-compatible adapters.
 - Native tool registry for read, grep, glob, bash, write, append, edit, web, skills, and more.
-- **Bundled `thinkflow` skill ships with the package**: the full harness guide (protocol, tool flows, ledger, working methods) is pulled on demand as a skill, while the system prompt keeps only the protocol skeleton plus a `read_skill("thinkflow")` hint; a user skill with the same name overrides the bundled one.
+- **Bundled `thinkflow` skill ships with the package**: the full harness guide (protocol, tool flows, ledger, working methods) is pulled on demand as a skill, while the system prompt contains the execution contract; native mode provides on-demand `read_skill("thinkflow")`; a user skill with the same name overrides the bundled one.
 - Automatic context compaction.
 - Provider profiles and model discovery.
 - Windows-friendly CLI, tests, and CI.

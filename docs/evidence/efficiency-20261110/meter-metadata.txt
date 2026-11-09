@@ -1,0 +1,9 @@
+{"meter": 1, "protocol": "anthropic", "http": 200, "input": 46, "output": 8}
+{"meter": 1, "protocol": "openai", "http": 429, "input": null, "output": null}
+{"meter": 1, "protocol": "anthropic", "http": 200, "input": 20, "output": 10}
+{"meter": 2, "protocol": "anthropic", "http": 200, "input": 20, "output": 10}
+{"meter": 1, "protocol": "openai", "http": 200, "input": 22, "output": 17}
+----------------------------------------------------------------------
+Ran 12 tests in 11.666s
+
+OK

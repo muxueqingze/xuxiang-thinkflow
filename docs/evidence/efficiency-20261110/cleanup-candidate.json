@@ -1,0 +1,18 @@
+[
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/frame_decoder-pi-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/frame_decoder-pi-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/frame_decoder-thinkflow-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/frame_decoder-thinkflow-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/pricing_refactor-pi-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/pricing_refactor-pi-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/pricing_refactor-thinkflow-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/pricing_refactor-thinkflow-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/receipt_package-pi-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/receipt_package-pi-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/receipt_package-thinkflow-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/receipt_package-thinkflow-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/frame_decoder-thinkflow-r1/workspace/__pycache__",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/pricing_refactor-pi-r1/workspace/__pycache__",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/pricing_refactor-pi-r2/workspace/__pycache__",
+  "bench/efficiency_20261011/artifacts/go-stream-batch-final-20261110/receipt_package-pi-r1/workspace/receipt_tools/__pycache__"
+]

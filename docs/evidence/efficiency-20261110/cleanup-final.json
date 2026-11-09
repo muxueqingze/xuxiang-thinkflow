@@ -1,0 +1,9 @@
+[
+  "bench/efficiency_20261011/artifacts/go-stream-final-20261110/frame_decoder-thinkflow-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-final-20261110/frame_decoder-thinkflow-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-final-20261110/pricing_refactor-thinkflow-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-final-20261110/pricing_refactor-thinkflow-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-final-20261110/receipt_package-thinkflow-r1/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-final-20261110/receipt_package-thinkflow-r2/profile",
+  "bench/efficiency_20261011/artifacts/go-stream-final-20261110/frame_decoder-thinkflow-r2/workspace/__pycache__"
+]

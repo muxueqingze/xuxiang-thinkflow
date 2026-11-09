@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "cases": [
+    "error -> toolUse -> stop preserves error event and completes",
+    "terminal error remains failed"
+  ],
+  "cleanup_path": "<system-temp>/thinkflow-pi-recovery-20261110-SwvvxU",
+  "recycled": true
+}

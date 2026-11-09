@@ -10,7 +10,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 续想 ThinkFlow 是一个实验性流式工具调用 agent harness。它验证一个核心判断：并不是所有工具调用都应该成为模型回合边界。
 
-2026-11-09源码加入按需工具、Python代码执行和精确正文去重；Go DS Flash固定三题均完成，缓存输入较旧版合计减少15.99%、总token减少19.97%，Pi仍更省。实测与全部探索见[结果报告](docs/efficiency-results-20261109.md)，接手见[当前接力](docs/efficiency-handoff.md)，按任务定位见[代码地图](docs/代码地图.md)。
+2026-11-10源码恢复流式主执行路线，新增tf-python和独立信息调用整批反馈。Go DS Flash三题各两次，双方均完整交付：ThinkFlow 34请求/178,804token，Pi 48请求/至少459,820token；总token至少减少61.11%，请求减少29.17%。最新实测见[结果报告](docs/efficiency-results-20261110.md)，原因与选型见[方向评估](docs/efficiency-direction-20261109.md)，按任务定位见[代码地图](docs/代码地图.md)。
 
 对于 `read`、`grep`、`web`、`bash` 这类会带来新信息或高风险副作用的工具，续想仍然使用阻塞、确认、反馈路径。对于 `write`、`append`、`mkdir`、`touch`、`copy`、`edit` 这类可预测副作用工具，续想允许模型在连续 streaming 中写出结构化 `tf-*` 命令，由本地状态机、FIFO 队列、执行器和 ledger 接管执行。成功执行只是回执，不必打断模型正在进行的推理。
 
@@ -38,7 +38,9 @@ model stream
 -> failure / need_result: interrupt and feed back
 ```
 
-这不是取消反馈，而是区分反馈类型：信息型工具的结果是新的推理输入；可预测副作用工具的成功结果通常只是执行确认。
+信息型工具的结果是新的推理输入；可预测副作用工具的成功结果通常只是执行确认。已知需要读几个独立文件时，把read集中在同一次生成里，全部结果一次反馈；修改方案确定后，连续写入并在同次生成末尾执行所需检查。
+
+默认走tf-*文本协议；`--native-tools`或桌面设置可开启原生兼容与扩展工具，`--no-native-tools`可覆盖已有配置。`tf-python`直接通过stdin执行多行代码，适合数据处理和集中检查。首次结果、实际错误和必要reasoning保留；最小信息量体现在选取相关内容、精确去重和避免重复检查。
 
 ## v0.8：完整任务工作流
 
@@ -217,7 +219,9 @@ thinkflow --config config.json --sandbox balanced
 
 ## Benchmark
 
-最新见[无额外输出/上下文预算的生产配置实测](bench/harness_benchmark_20260929/reports-production/README.md)：ThinkFlow（91e4911）、Pi 0.87.1、OpenCode 1.18.33，官方DeepSeek Flash high，同六题各两次。三个harness的有效样本均12/12正常交付，总token分别3,845,627、1,397,532、1,732,556，平均105.38、54.62、59.90秒。**ThinkFlow目前仍没有整体效率优势。**
+当前流式与批次版本见[2026-11-10对照](docs/efficiency-results-20261110.md)；此前[11-09原生版本](docs/efficiency-results-20261109.md)和下面的六题报告保留为历史结果，各组独立比较。
+
+2026-09-29的[无额外输出/上下文预算生产配置实测](bench/harness_benchmark_20260929/reports-production/README.md)：ThinkFlow（91e4911）、Pi 0.87.1、OpenCode 1.18.33，官方DeepSeek Flash high，同六题各两次。三个harness的有效样本均12/12正常交付，总token分别3,845,627、1,397,532、1,732,556，平均105.38、54.62、59.90秒。**该旧版在六题中没有整体效率优势。**
 
 原36次有1次ThinkFlow被观察器日志编码故障中断，已保留原始记录并在同冻结条件下单独补测一次。含事故实际37次尝试、397请求、7,022,746 token，不是36次首次全部正常交付。输出预算字段逐请求确认缺失，17次输出超过旧8K、length截断0次；自动上下文压缩及实验总时限/请求数/续写预算关闭。有效样本的实际测试成功与公共测试证据均已复核，成功执行不保证覆盖质量。
 
