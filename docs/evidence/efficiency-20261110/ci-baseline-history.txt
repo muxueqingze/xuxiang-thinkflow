@@ -1,0 +1,28 @@
+Run: https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42663147346
+Cause: checkout depth=1 excludes required baseline 2a4f4b8.
+Fix: checkout fetch-depth=0. No source runtime or benchmark outputs changed.
+
+ERROR: test_both_thinkflow_source_trees_build_uncapped_high_requests_without_model_call (test_efficiency_benchmark.EfficiencyBenchmarkTests.test_both_thinkflow_source_trees_build_uncapped_high_requests_without_model_call)
+2026-11-09T17:19:13.7630304Z ----------------------------------------------------------------------
+2026-11-09T17:19:13.7631165Z Traceback (most recent call last):
+2026-11-09T17:19:13.7638368Z   File "<repo>\tests\test_efficiency_benchmark.py", line 220, in test_both_thinkflow_source_trees_build_uncapped_high_requests_without_model_call
+2026-11-09T17:19:13.7639258Z     baseline, _ = prepare_baseline()
+2026-11-09T17:19:13.7639665Z                   ^^^^^^^^^^^^^^^^^^
+2026-11-09T17:19:13.7640351Z   File "<repo>\bench\efficiency_20261011\run.py", line 48, in prepare_baseline
+2026-11-09T17:19:13.7641078Z     commit = subprocess.check_output(['git', 'rev-parse', BASELINE_REF], cwd=ROOT, text=True).strip()
+2026-11-09T17:19:13.7641716Z              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-09T17:19:13.7642292Z   File "<ci-python>\Lib\subprocess.py", line 466, in check_output
+2026-11-09T17:19:13.7642894Z     return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+2026-11-09T17:19:13.7643664Z            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-11-09T17:19:13.7644211Z   File "<ci-python>\Lib\subprocess.py", line 571, in run
+2026-11-09T17:19:13.7644835Z     raise CalledProcessError(retcode, process.args,
+2026-11-09T17:19:13.7645430Z subprocess.CalledProcessError: Command '['git', 'rev-parse', '2a4f4b8']' returned non-zero exit status 128.
+2026-11-09T17:19:13.7645816Z
+2026-11-09T17:19:13.7646055Z ----------------------------------------------------------------------
+2026-11-09T17:19:13.7646464Z Ran 244 tests in 66.844s
+2026-11-09T17:19:13.7646669Z
+2026-11-09T17:19:13.7646777Z FAILED (errors=1, skipped=1)
+2026-11-09T17:19:13.7647203Z {"finished": true, "error": false, "tools": 0}
+2026-11-09T17:19:13.7647595Z {"finished": true, "error": false, "tools": 0}
+2026-11-09T17:19:13.9303866Z ##[error]Process completed with exit code 1.
+2026-11-09T17:19:13.9586377Z

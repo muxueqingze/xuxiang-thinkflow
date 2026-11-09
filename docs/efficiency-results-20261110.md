@@ -62,4 +62,6 @@ Pi receipt-r2的第5次请求ConnectError，没有HTTP状态或usage；另47次�
 
 完整节点检查：parser19、core82、242项unittest通过，见[完整日志](evidence/efficiency-20261109/protocol-recovery-full.txt)。最后协议修正后仅复验直接相关的[23项runtime](evidence/efficiency-20261110/protocol-runtime.txt)、[14项provider wire](evidence/efficiency-20261110/provider-wire.txt)、[12项meter](evidence/efficiency-20261110/meter-metadata.txt)，均通过。桌面14项及配置往返独立通过；Pi观察器的真实事件回放见[记录](evidence/efficiency-20261110/pi-observer-recovery.json)。
 
+首次GitHub检查的唯一失败是浅克隆缺少历史基线2a4f4b8；CI checkout已改为拉取完整历史，让已有基线检查取得真实输入。没有跳过该检查或改变运行核心，最终状态见PR检查。
+
 原始工作区、meter、events、harness和manifest在本机bench/efficiency_20261011/artifacts/保留。隔离profile与生成bytecode回收，清单随证据保存；没有新增依赖、PATH或Codex认证修改。源码与文档更新到既有GitHub PR；便携包仍为原构建，本次没有发布npm或Release。
