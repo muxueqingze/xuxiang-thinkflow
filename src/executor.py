@@ -20,6 +20,7 @@ from .parser import Command
 from .security import SecurityPolicy
 from .output_capture import OutputCapture
 from .output_store import OutputStore
+from .file_observations import ReadObservation, read_file_range
 from .changes import (
     ChangeStore, MAX_GUARDED_FILE_BYTES, atomic_write_bytes, content_revision,
     read_optional_bytes, reject_symbolic_path,
@@ -45,6 +46,7 @@ class ExecutionResult:
     change_id: str = ""
     output_refs: dict[str, str] = field(default_factory=dict)
     output_sizes: dict[str, int] = field(default_factory=dict)
+    read_note: str = ""
 
     @property
     def status_str(self) -> str:
@@ -92,6 +94,7 @@ class Executor:
         self._path_locks: dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._io_lock = threading.RLock()
         self._read_revisions: dict[str, str] = {}
+        self._read_observations: dict[str, ReadObservation] = {}
         # Explicit legacy opt-out for trusted direct callers only. Agent defaults
         # stay strict; no read/list/grep fallback silently authorizes overwriting.
         self.require_read_revision = require_read_revision
@@ -195,28 +198,53 @@ class Executor:
             finally:
                 raise
 
-    async def read(self, path: str) -> ExecutionResult:
+    async def read(self, path: str, offset: int | None = None, limit: int | None = None) -> ExecutionResult:
         """读取文件内容，供传统 read tool 使用。"""
         try:
+            for name, value in (("offset", offset), ("limit", limit)):
+                if value is not None and (type(value) is not int or value < 1):
+                    raise ValueError(f"{name} must be a positive integer (lines, starting at 1)")
             resolved = self._resolve_path(path, "read")
-            data, complete = await self._file_io(self._read_preview, resolved, self.max_read_chars)
-            raw_content = codecs.getincrementaldecoder("utf-8")().decode(data, final=complete)
+            ranged = offset is not None or limit is not None
+            if ranged:
+                reject_symbolic_path(resolved)
+                if not os.path.isfile(resolved):
+                    raise FileNotFoundError("file not found or not a regular file")
+                view = await self._file_io(read_file_range, resolved, offset or 1, limit, self.max_read_chars)
+                raw_content = view.content
+                observed_revision = view.revision
+                start = view.start
+                full = view.start == 0 and view.end == view.total_chars
+                truncated = view.truncated
+                read_note = view.read_note
+            else:
+                data, complete = await self._file_io(self._read_preview, resolved, self.max_read_chars)
+                raw_content = codecs.getincrementaldecoder("utf-8")().decode(data, final=complete)
+                observed_revision = content_revision(data) if complete else ""
+                start = 0
+                full = complete
+                truncated = not complete
+                read_note = ""
             content = raw_content
             if not self.security.allow_sensitive_paths:
                 content = self.security.redact_text(content)
             content = self.redact_output(content)
-            truncated = not complete
+            unredacted = content == raw_content and "\x00" not in content
             if self.max_read_chars > 0 and len(content) > self.max_read_chars:
                 content = content[:self.max_read_chars]
                 truncated = True
+                full = False
             revision = ""
-            if not truncated and complete and content == raw_content and "\x00" not in content:
-                revision = content_revision(data)
-                self.grant_read_revision(resolved, revision)
+            if observed_revision and unredacted:
+                self._observe_read(resolved, observed_revision, start, start + len(content), full)
+                if full:
+                    revision = observed_revision
             else:
-                # A later partial/redacted view cannot refresh an old full view.
+                # A redacted or unhashed view cannot refresh an older baseline.
                 with self._io_lock:
-                    self._read_revisions.pop(self._revision_key(resolved), None)
+                    key = self._revision_key(resolved)
+                    self._read_revisions.pop(key, None)
+                    self._read_observations.pop(key, None)
             return ExecutionResult(
                 success=True,
                 tool="read",
@@ -225,6 +253,7 @@ class Executor:
                 bytes_written=len(content.encode("utf-8")),
                 truncated=truncated,
                 revision=revision,
+                read_note=read_note,
             )
         except Exception as e:
             return ExecutionResult(
@@ -233,6 +262,20 @@ class Executor:
                 path=path,
                 error=f"读取失败: {e}",
             )
+
+    def _observe_read(self, path: str, revision: str, start: int, end: int, full: bool) -> None:
+        with self._io_lock:
+            key = self._revision_key(path)
+            if self._read_revisions.get(key) != revision:
+                self._read_revisions.pop(key, None)
+            if full:
+                self._read_revisions[key] = revision
+                self._read_observations.pop(key, None)
+            elif key not in self._read_revisions:
+                observed = self._read_observations.get(key)
+                if observed is None or observed.revision != revision:
+                    observed = self._read_observations[key] = ReadObservation(revision)
+                observed.include(start, end)
 
     @staticmethod
     def _read_preview(path: str, max_chars: int) -> tuple[bytes, bool]:
@@ -249,7 +292,7 @@ class Executor:
     async def _read_command(self, command: Command) -> ExecutionResult:
         if command.path is None:
             return ExecutionResult(success=False, tool="read", error="缺少 path")
-        return await self.read(command.path)
+        return await self.read(command.path, command.offset, command.limit)
 
     async def list_files(
         self,
@@ -397,15 +440,25 @@ class Executor:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
 
-    def _check_revision(self, path: str, before: bytes | None) -> None:
+    def _check_revision(self, path: str, before: bytes | None, *, exact_edit: bool = False) -> ReadObservation | None:
         current = content_revision(before)
-        known = self._read_revisions.get(self._revision_key(path))
+        key = self._revision_key(path)
+        known = self._read_revisions.get(key)
         if not self.require_read_revision:
             return
         if known is not None and known != current:
             raise FileRevisionConflict("revision_conflict: file changed since the model's full read; read again")
+        if known is not None:
+            return
+        observed = self._read_observations.get(key)
+        if observed is not None:
+            if observed.revision != current:
+                raise FileRevisionConflict("revision_conflict: file changed since the model's range read; read again")
+            if exact_edit:
+                return observed
         if before is not None and known is None:
-            raise FileRevisionConflict("read_required: existing file needs a complete unredacted read before modification")
+            requirement = "the target range" if exact_edit else "the complete file"
+            raise FileRevisionConflict(f"read_required: read {requirement} without redaction before modification")
 
     async def _write(self, command: Command) -> ExecutionResult:
         return await self._file_command(command)
@@ -455,7 +508,7 @@ class Executor:
                     before = after = None
                 else:
                     before = read_optional_bytes(path)
-                    self._check_revision(path, before)
+                    observed = self._check_revision(path, before, exact_edit=command.tool == "edit")
                     if command.tool == "write":
                         after = command.content.encode("utf-8")
                     elif command.tool == "append":
@@ -471,9 +524,13 @@ class Executor:
                         if before is None:
                             raise FileNotFoundError("文件不存在")
                         content = before.decode("utf-8")
-                        count = content.count(command.old_text)
-                        if not command.old_text or count != 1:
-                            raise ValueError(f"oldText 必须唯一且非空，当前出现 {count} 次")
+                        edit_start = content.find(command.old_text)
+                        if (not command.old_text or edit_start < 0
+                                or content.find(command.old_text, edit_start + 1) >= 0):
+                            raise ValueError("oldText 必须唯一且非空（包括重叠匹配）")
+                        edit_end = edit_start + len(command.old_text)
+                        if observed is not None and not observed.covers(edit_start, edit_end):
+                            raise FileRevisionConflict("read_required: old_text extends beyond the observed range; read that range first")
                         after = content.replace(command.old_text, command.new_text, 1).encode("utf-8")
                     else:
                         raise ValueError("unsupported file mutation")
@@ -502,9 +559,16 @@ class Executor:
                         atomic_write_bytes(path, after)
                     if content_revision(read_optional_bytes(path)) != content_revision(after):
                         raise FileRevisionConflict("revision_conflict: file changed during write")
-                    self._read_revisions[self._revision_key(path)] = content_revision(after)
                 if receipt:
                     self.change_store.complete(receipt)
+                if command.tool != "mkdir":
+                    revision = content_revision(after)
+                    if observed is not None:
+                        observed.after_edit(edit_start, edit_end, len(command.new_text), revision)
+                    else:
+                        key = self._revision_key(path)
+                        self._read_revisions[key] = revision
+                        self._read_observations.pop(key, None)
                 size = len(command.content.encode("utf-8")) if command.tool == "append" else len(after or b"")
                 return ExecutionResult(True, tool=command.tool, path=path, bytes_written=size,
                                        revision=content_revision(after) if command.tool != "mkdir" else "",

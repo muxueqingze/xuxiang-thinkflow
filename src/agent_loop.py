@@ -324,6 +324,7 @@ class AgentLoop:
         self._command_fingerprints.clear()
         with self.executor._io_lock:
             self.executor._read_revisions.clear()
+            self.executor._read_observations.clear()
         self.usage = SessionUsage(label=self.usage.label)
         self._turn_count = self._auto_continue_count = self._delivery_fix_count = 0
         self.compaction_count = 0
@@ -386,7 +387,8 @@ class AgentLoop:
         registry = ToolRegistry()
 
         async def read_tool(tool_input: dict) -> str:
-            result = await self.executor.read(str(tool_input.get("path", "")))
+            result = await self.executor.read(str(tool_input.get("path", "")),
+                                              offset=tool_input.get('offset'), limit=tool_input.get('limit'))
             return self._format_tool_result(result)
 
         async def pwd_tool(tool_input: dict) -> str:
@@ -615,7 +617,8 @@ class AgentLoop:
     async def _execute_builtin(self, command: Command) -> ExecutionResult:
         if command.tool == 'recall':
             result = await self.tool_registry.execute('recall', {
-                'ref': command.ref, 'offset': command.offset, 'limit': command.limit,
+                'ref': command.ref, 'offset': command.offset if command.offset is not None else 0,
+                'limit': command.limit if command.limit is not None else 8000,
                 **({'query': command.query} if command.query is not None else {}),
             })
             return ExecutionResult(success=result.success, tool='recall',
@@ -1772,7 +1775,8 @@ class AgentLoop:
                                    stdout=previous.stdout, content=previous.stdout, stderr=previous.stderr,
                                    bytes_written=previous.bytes_written, exit_code=previous.exit_code,
                                    status=previous.status, truncated=previous.truncated or previous.payload_clipped,
-                                   output_refs=dict(previous.output_refs), output_sizes=dict(previous.output_sizes))
+                                   output_refs=dict(previous.output_refs), output_sizes=dict(previous.output_sizes),
+                                   read_note=previous.read_note)
         result = ExecutionResult(success=False, tool=command.tool,
                                  error=f"Command id={command.id} conflicts with an earlier or unresolved command; use a new id.")
         self.context.record(command, result, flow=self.tool_registry.flow(command.tool),
@@ -1975,6 +1979,12 @@ class AgentLoop:
         if tool_name == 'recall':
             command.offset = tool_input.get('offset', 0)
             command.limit = tool_input.get('limit', 8000)
+        elif tool_name == 'read':
+            command.offset = tool_input.get('offset')
+            command.limit = tool_input.get('limit')
+            for key in ('offset', 'limit'):
+                if key in tool_input and (type(tool_input[key]) is not int or tool_input[key] < 1):
+                    input_error = input_error or f"Invalid tool arguments: read {key} must be a positive integer"
         if tool_name == "python":
             code = tool_input.get("code")
             command.cmd = code if isinstance(code, str) else None
@@ -2071,6 +2081,8 @@ class AgentLoop:
             return "\n".join(part for part in (result.error or f"{result.tool} failed", notice) if part)
         if result.tool in ("read", "recall", "list_files", "glob", "grep"):
             text = result.content
+            if result.read_note:
+                text += "\n" + result.read_note
             if result.truncated:
                 text += "\n\n[THINKFLOW TRUNCATED] 结果已截断。"
             if notice:

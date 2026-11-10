@@ -1,6 +1,6 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.8
+> 版本：1.9
 > 日期：2026-11-11
 
 ---
@@ -63,13 +63,13 @@
 | `dest` | copy 必需 | — | 复制目标路径。 |
 | `cmd` | bash 必需 | — | Shell 命令。 |
 | `ref` | recall 必需 | — | 原文引用，如`request:1`或`receipt:3:stdout`。 |
-| `offset` | recall 可选 | `0` | 非负字符偏移。 |
-| `limit` | recall 可选 | `8000` | 回取字符数，范围1至200000。 |
+| `offset` | read/recall 可选 | read省略；recall为`0` | read为从1开始的行号；recall为非负字符偏移。 |
+| `limit` | read/recall 可选 | read省略；recall为`8000` | read为正整数行数；recall为字符数，范围1至200000。 |
 | `query` | recall 可选 | — | 从offset起搜索非空字面关键词，返回首个匹配行的有界片段。 |
 | `need_result` | 否 | `false` | `true` 时触发强制打断，执行后立即把结果返回模型。 |
 | `injected` | 否 | `0` | 0=未注入全局上下文，1=已注入。由解析器维护，模型输出时填 0 或省略。 |
 
-路径规则：相对路径按 agent 的 `cwd` 解析；绝对路径保留。`read` 工具默认最多返回 `max_read_chars` 字符，避免把巨型文件一次性塞回上下文。首次命令载荷和执行器实际返回的结果完整反馈；正文已原样存在于本次有效请求时才精确去重。已反馈的本机旧账本按独立预算归档。
+路径规则：相对路径按 agent 的 `cwd` 解析；绝对路径保留。`read` 省略offset和limit时保持预算内全文读取，默认最多返回 `max_read_chars` 字符；例如`<tf-read id="N" path="src/main.py" offset="40" limit="20" />`读取第40至59行。范围结果正文原样返回，范围与续读位置另作metadata后缀；按LF计行并保留CRLF。单行超出预算时明确提示行内截断，可用Python抽取所需片段，避免按同一offset循环。首次命令载荷和执行器实际返回的结果完整反馈；正文已原样存在于本次有效请求时才精确去重，当前读取范围说明仍保留。已反馈的本机旧账本按独立预算归档。
 ### 3.1 Tool Flow 分流
 
 ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
@@ -175,8 +175,11 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 </tf-edit>
 ```
 
-- oldText 必须在文件中唯一存在。
+- oldText必须非空、在当前文件中唯一存在，并完全位于同一SHA256版本的已读范围内；可先read目标行，无须为局部edit重读全文。同版本片段合并覆盖，成功edit后更新版本与覆盖位置，支持继续编辑已知内容。
+- 局部观察不会升级成全文授权；write、append及覆盖已有copy目标仍要求完整读取。完整已知文件及自身完整写入保持原连续操作行为；外部修改后重新读取。
 - 替换失败（oldText 找不到）：视为执行失败，打断。
+
+范围读取与版本语义见[实现记录](docs/read-ranges-20261111.md)。
 
 ### 4.8 python
 
@@ -215,7 +218,7 @@ print("checked")
 原生模式同一响应可声明多个调用、统一反馈；文本模式的读取使用tf-read，搜索和批处理可使用shell或Python。
 
 ```json
-{"path": "src/agent_loop.py"}
+{"path": "src/agent_loop.py", "offset": 40, "limit": 20}
 ```
 
 - read/list_files/glob/grep/web_search/fetch_url/list_skills/read_skill 属于输入式工具，需要结果才能继续。`read` 同时支持 `<tf-read ... />` 文本协议；其它搜索、联网和 skill 工具仍按传统 tool_use 返回。
@@ -355,6 +358,7 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.9 | 2026-11-11 | read行范围与续读metadata；同SHA观察范围内的唯一exact edit，连续修改维护覆盖，局部不授予全文操作。 |
 | 1.8 | 2026-11-11 | 完整工具输出留存、尾部预览、短回执原文引用、recall字面query；恢复/fork与无自动保存生命周期。 |
 | 1.7 | 2026-11-10 | 原始要求独立留存、当前输入完整保留、结构化增量摘录与按范围recall；不增加摘要模型调用。 |
 | 1.6 | 2026-11-10 | 工具协议由AgentLoop默认注入；工程指引可替换/关闭；工作区规则独立，桌面三模式与实际提示预览。 |

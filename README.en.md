@@ -48,6 +48,8 @@ Current source keeps original user requests separate from the compacted view. Th
 
 Tool output is also retained with its session. Long process output keeps a bounded tail preview and a complete text reference, including output received before cancellation or timeout. `recall` supports literal keyword lookup; restored sessions and forks retain their own backing files. A one-use output recovery probe improved from reaching the eight-request limit to completing in three requests. See the [implementation and live evidence](docs/output-recall-20261111.md). Short results stay unchanged; this capability is not included in npm 0.8.0.
 
+`read` now accepts line ranges. A function or configuration section can be edited exactly after reading that section; consecutive edits update its version and observed positions. Independent reads stay batched, and whole-file replacement keeps the complete-read contract. See [range reads and continuous editing](docs/read-ranges-20261111.md) for implementation and validation. This is also a source-only update.
+
 ## Installation
 
 The **0.8.0 CLI preview** uses the npm `next` channel:

@@ -45,7 +45,7 @@ description: 续想 ThinkFlow harness 按需参考——tf-* 流式命令协议�
 </tf-append>
 ```
 
-编辑文件（精确替换，old 必须在文件中唯一）：
+编辑文件（精确替换，old须在当前文件中唯一且位于同版本已读范围）：
 ```xml
 <tf-edit id="编号" path="路径">
 <old>旧文本</old>
@@ -61,6 +61,10 @@ description: 续想 ThinkFlow harness 按需参考——tf-* 流式命令协议�
 <tf-bash id="编号" cmd="命令" />
 <tf-read id="编号" path="路径" />
 ```
+
+读取已知段落可加`offset="40" limit="20"`：offset是从1开始的行号，limit是正整数行数；省略两者保持预算内全文读取。正文原样返回，另附实际行范围和续读位置；超长单行会提示行内截断，可用Python抽取所需段落。recall的offset与limit则按字符计算。
+
+局部edit前只需读取覆盖唯一old文本的当前版本片段。同SHA片段合并覆盖，成功edit后维护新版本及覆盖位置，可连续修改已知内容；局部信息不授予全文操作。覆盖write、append及copy覆盖已有目标仍须完整读取；完整已知文件及自身完整写入保持原行为。
 
 压缩后可按摘要中的request引用回取旧要求：`<tf-recall id="编号" ref="request:1" offset="0" limit="8000" />`。范围按字符计算，独立回取与读取同批声明。
 

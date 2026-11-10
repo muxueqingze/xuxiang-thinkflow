@@ -19,6 +19,7 @@ def main():
     suite = unittest.TestSuite()
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_conversation_context.py"))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_output_recall.py"))
+    suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_read_ranges.py"))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_optional_output_budget.py"))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_efficiency_runtime.py"))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_prompt_layers.py"))

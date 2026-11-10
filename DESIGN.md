@@ -1,6 +1,6 @@
 # 续想 ThinkFlow · v0.8 架构
 
-更新于2026-11-11。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.8 与源码为准。
+更新于2026-11-11。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.9 与源码为准。
 
 ## 核心判断
 
@@ -54,6 +54,7 @@ CLI / Electron desktop
 | `context.py / feedback.py / compaction.py` | 可审计回执、observation 合并、去重与确定性摘录；先压缩再按最终历史判断重复 |
 | `conversation.py` | 原始用户要求、request引用、字符范围回取与结构化摘要状态；与provider消息分离 |
 | `output_capture.py / output_store.py / recall.py` | 流式保存完整输出与尾部预览、不可变原文、共用字符范围及字面搜索；实际SessionStore绑定归档根 |
+| `file_observations.py` | 分块范围读取、整文件SHA256与字符覆盖；精确编辑后维护同版本观察位置 |
 | `events.py` | 实例级事件与可选终端视图，不修改全局renderer来服务桌面 |
 | `session.py` | 原子快照、fsync、历史保留 |
 | `desktop_service.py` | 私有NDJSON RPC、工作区会话、分支、授权、恢复、导出 |
@@ -81,7 +82,9 @@ v0.7 在桌面层增加最近工作区、会话标题/置顶/归档与本机草�
 
 服务投影带进程stream_id、递增seq和稳定消息id；UI拒绝旧投影、遇事件断档取快照。依然单运行实例，切换会话/工作区受运行状态约束。
 
-文件工具有SHA256读版本前置条件；完整未脱敏读取或冻结附件才能授予基线，自身写入后更新。ChangeStore将意图及文本快照存于会话专属用户数据目录，diff/回退主动读取；UI回退也进入执行意图日志。工具结果unknown立即停止当前模型循环，不能走普通失败自动修复。最终版本检查与文件替换之间仍有外部进程竞争窗口，这不是操作系统事务或绝对CAS。
+文件工具复用SHA256读版本：完整未脱敏读取或冻结附件授予全文基线；read可按1基行号offset与行数limit读取片段，省略两者保留原预算内全文快路径。显式范围读取分块计算整文件SHA及总行数，只保留选中正文，范围与续读位置作为metadata后缀。exact edit要求old_text全文件唯一且完全位于同SHA已观察范围；同版本片段合并，成功编辑后更新版本及覆盖位置。局部观察不升级为全文授权，write/append及copy覆盖目标仍需全文基线；完整已知文件保持原连续操作行为。实现与定向回归见[范围读取记录](docs/read-ranges-20261111.md)。
+
+ChangeStore继续将意图及文本快照存于会话专属用户数据目录，diff/回退主动读取；UI回退也进入执行意图日志。工具结果unknown立即停止当前模型循环，不能走普通失败自动修复。最终版本检查与文件替换之间仍有外部进程竞争窗口，这不是操作系统事务或绝对CAS。
 
 update_plan将步骤、验收条件和工具回执引用存入agent快照。完成标记需要真实成功回执，但不会把回执等同语义验收。DeepSeek请求保留必要reasoning_content，界面只发活动信号，不广播内部推理正文。
 

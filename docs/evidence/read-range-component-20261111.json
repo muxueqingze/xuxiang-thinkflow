@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-11",
+  "kind": "same 3000-line component fixture as harness-reference-20261110; no model requests",
+  "file_characters": 128993,
+  "offset": 2498,
+  "limit": 6,
+  "raw_returned_characters": 252,
+  "formatted_returned_characters": 311,
+  "metadata": "[Lines 2498-2503 of 3000] [More content: read offset=2504]",
+  "target_present": true,
+  "edit_without_full_read_succeeded": true,
+  "only_intended_text_changed": true,
+  "full_read_granted": false,
+  "model_requests": 0,
+  "temporary_workspace_removed": true
+}

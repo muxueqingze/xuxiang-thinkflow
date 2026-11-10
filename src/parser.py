@@ -44,8 +44,8 @@ class Command:
     injected: int = 0
     raw: str = ""                      # 原始命令块文本
     ref: Optional[str] = None
-    offset: int = 0
-    limit: int = 8000
+    offset: Optional[int] = None
+    limit: Optional[int] = None
     query: Optional[str] = None
 
 
@@ -412,11 +412,16 @@ class StreamingParser:
                     kind="missing_ref", raw=raw[:100],
                 ))
                 return None
-            for name, default, minimum, maximum, requirement in (
-                ("offset", "0", 0, None, "非负整数"),
-                ("limit", "8000", 1, 200000, "1..200000之间的整数"),
-            ):
+        if tool in ("read", "recall"):
+            ranges = (("offset", "0", 0, None, "非负整数"),
+                      ("limit", "8000", 1, 200000, "1..200000之间的整数")) if tool == "recall" else (
+                ("offset", None, 1, None, "从1开始的整数行号"),
+                ("limit", None, 1, None, "正整数行数"),
+            )
+            for name, default, minimum, maximum, requirement in ranges:
                 value = attrs.get(name, default)
+                if value is None:
+                    continue
                 try:
                     if not value.isascii() or not value.isdecimal():
                         raise ValueError
@@ -425,7 +430,7 @@ class StreamingParser:
                         raise ValueError
                 except ValueError:
                     self.errors.append(ParseError(
-                        message=f"<recall id={cmd_id}> {name} 必须是{requirement}",
+                        message=f"<{tool} id={cmd_id}> {name} 必须是{requirement}",
                         kind=f"invalid_{name}", raw=raw[:100],
                     ))
                     return None

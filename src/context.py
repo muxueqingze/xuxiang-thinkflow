@@ -45,12 +45,13 @@ class CommandRecord:
     truncated: bool = False
     output_chars: int = 0
     ref: Optional[str] = None
-    offset: int = 0
-    limit: int = 8000
+    offset: Optional[int] = None
+    limit: Optional[int] = None
     query: Optional[str] = None
     output_refs: dict[str, str] = field(default_factory=dict)
     output_sizes: dict[str, int] = field(default_factory=dict)
     payload_clipped: bool = False
+    read_note: str = ""
 
     @staticmethod
     def _clip_text(text: str, max_chars: int = 4000) -> str:
@@ -78,6 +79,11 @@ class CommandRecord:
             attrs.append(f'path="{self.path}"')
         if self.dest:
             attrs.append(f'dest="{self.dest}"')
+        if self.tool == 'read':
+            for name in ('offset', 'limit'):
+                value = getattr(self, name)
+                if value is not None:
+                    attrs.append(f'{name}="{value}"')
         if self.tool == 'recall':
             attrs.extend([f'ref="{self.ref}"', f'offset="{self.offset}"', f'limit="{self.limit}"'])
             if self.query is not None:
@@ -133,6 +139,8 @@ class CommandRecord:
             if self.stderr:
                 lines.append(self._clip_text(self.stderr, max_content_chars))
 
+        if self.read_note:
+            lines.append(self.read_note)
         if self.output_summary and self.status == "success" and not (self.stdout or self.stderr):
             lines.append(f'  summary: {self.output_summary}')
 
@@ -148,6 +156,8 @@ class CommandRecord:
 
     @classmethod
     def from_dict(cls, data: dict) -> "CommandRecord":
+        if data.get('tool') == 'read' and data.get('offset') == 0 and data.get('limit') == 8000:
+            data = {**data, 'offset': None, 'limit': None}
         return cls(**data)
 
 
@@ -216,9 +226,10 @@ class ContextManager:
             truncated=result.truncated,
             output_chars=result.output_sizes.get("stdout", len(result.stdout or result.content)),
             ref=command.ref,
-            offset=command.offset,
-            limit=command.limit,
+            offset=0 if command.tool == 'recall' and command.offset is None else command.offset,
+            limit=8000 if command.tool == 'recall' and command.limit is None else command.limit,
             query=command.query,
+            read_note=result.read_note,
             output_refs=dict(result.output_refs),
             output_sizes=dict(result.output_sizes),
         )
@@ -462,9 +473,12 @@ def _command_hash(command: Command) -> str:
         command.new_text or "",
     ]
     if command.tool == 'recall':
-        parts.extend([command.ref or '', str(command.offset), str(command.limit)])
+        parts.extend([command.ref or '', str(command.offset if command.offset is not None else 0),
+                      str(command.limit if command.limit is not None else 8000)])
         if command.query is not None:
             parts.append(command.query)
+    elif command.tool == 'read' and (command.offset is not None or command.limit is not None):
+        parts.extend([str(command.offset), str(command.limit)])
     payload = "\0".join(parts).encode("utf-8", errors="replace")
     return hashlib.sha256(payload).hexdigest()[:16]
 

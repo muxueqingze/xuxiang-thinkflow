@@ -169,10 +169,14 @@ class ToolRegistry:
 BUILTIN_TOOL_SPECS = [
     ToolSpec(
         name="read",
-        description="读取文件内容。",
+        description="读取文件；offset为从1开始的行号，limit为行数，省略两者读取全文。",
         parameters={
             "type": "object",
-            "properties": {"path": {"type": "string", "description": "文件路径"}},
+            "properties": {
+                "path": {"type": "string", "description": "文件路径"},
+                "offset": {"type": "integer", "minimum": 1, "description": "起始行号，从1开始"},
+                "limit": {"type": "integer", "minimum": 1, "description": "读取行数"},
+            },
             "required": ["path"],
         },
     ),
@@ -295,7 +299,7 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="edit",
-        description="精确替换文件中的唯一文本片段。",
+        description="精确替换当前版本已读取范围内的唯一文本片段。",
         kind=TOOL_KIND_OUTPUT,
         flow=TOOL_FLOW_DELAYED,
         risk=TOOL_RISK_MEDIUM,

@@ -21,3 +21,7 @@
 - 使用项目现有unittest加载方式定向运行取消子进程、超时子进程、同流写入后真实shell检查三项：全部通过，2.478秒。启用`-B`及PYTHONDONTWRITEBYTECODE；三个本轮临时目录均已消失，子进程终止断言通过。未运行全套、外部模型或远程CI重跑。
 
 运行逻辑保持原样；修改两个测试夹具、本文档与接力索引。远程CI结果以集成提交之后的实际运行为准。
+
+## 2026-11-11：Windows目录别名断言
+
+`b7ac69c`的[失败运行](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42867612372)中269项测试仅一处失败：输出原文的实际目录使用`runneradmin`，测试期望路径使用Windows短名`RUNNER~1`，二者指向同一目录。`38fc9a1`将字符串路径相等改为`Path.samefile`比较目录实体，运行逻辑不变。该提交的[push](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42870619195)及[PR](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42870634186)均通过。
