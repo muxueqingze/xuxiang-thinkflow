@@ -72,15 +72,15 @@ v0.7 已通过源码与 Windows 独立包的本地 SSE 流程、11组交互和�
 
 ## 安装
 
-当前源码版本 **0.8.0**，尚未发布到 npm。registry 中的 0.5.1 仍可通过下面的命令安装：
+**0.8.0 CLI 预览版**使用 npm 的`next`通道；安装时明确指定通道：
 
 ```bash
-npm install -g xuxiang-agent
+npm install -g xuxiang-agent@next
 thinkflow --help
 xuxiang --help
 ```
 
-历史 GitHub Release 保留旧版 tarball。0.8.0 请从当前源码安装或使用本地 Windows 桌面包。
+固定版本安装可用`npm install -g xuxiang-agent@0.8.0`；`latest`通道继续提供0.5.1。[发布说明](docs/npm-release-0.8.0.md)记录本包内容，Windows桌面包另行构建。
 
 要求：
 
@@ -93,7 +93,7 @@ xuxiang --help
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g xuxiang-agent
+npm install -g xuxiang-agent@next
 ```
 
 开发安装：

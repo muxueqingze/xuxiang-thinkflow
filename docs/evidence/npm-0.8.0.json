@@ -1,0 +1,29 @@
+{
+  "version": "0.8.0",
+  "package": "xuxiang-agent",
+  "channel": "next",
+  "status": "validated_for_publication",
+  "runtime_source_commit": "0187f617f3be9aeca3255c4efa86cb6a556d82c6",
+  "artifact": "artifacts/npm-0.8.0/xuxiang-agent-0.8.0.tgz",
+  "bytes": 234822,
+  "sha1": "ed5b47847bf6b92c44a0eba2d6088af2b191971c",
+  "integrity": "sha512-TgZbaY9U7sAjM5JcYs4MAx42QUPDlvdsPA0WnbjhW1ld9B0lBLKLSGpPX1ho18/idMCPb5BUDk9+kj1LwpLyqw==",
+  "files": 73,
+  "validation": {
+    "platform": "Windows",
+    "postinstall_exit_code": 0,
+    "python_environment": "isolated venv reusing installed dependencies",
+    "thinkflow_version": "0.8.0",
+    "xuxiang_help": true,
+    "packaged_custom_prompt": true,
+    "artifact_import": true,
+    "model_network_calls": 0,
+    "mock_requests": 2,
+    "tools": [
+      "write",
+      "python"
+    ],
+    "unicode_roundtrip": true
+  },
+  "independent_package_review": "73 entries inspected; required runtime/skill/prompt files present; no credentials, sessions, raw benchmarks or dependency caches"
+}

@@ -46,15 +46,15 @@ Information tools produce new reasoning input; predictable side-effect tools usu
 
 ## Installation
 
-The public npm version is 0.5.1; source version 0.8.0 has not been published yet:
+The **0.8.0 CLI preview** uses the npm `next` channel:
 
 ```bash
-npm install -g xuxiang-agent
+npm install -g xuxiang-agent@next
 thinkflow --help
 xuxiang --help
 ```
 
-The GitHub Release tarball remains available for archival installs and reproducibility.
+For an exact version, use `npm install -g xuxiang-agent@0.8.0`. The `latest` channel remains at 0.5.1. See the [release notes](docs/npm-release-0.8.0.md) for package contents; Windows desktop builds are distributed separately.
 
 Requirements:
 
@@ -67,7 +67,7 @@ If multiple Python versions are installed:
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g xuxiang-agent
+npm install -g xuxiang-agent@next
 ```
 
 Development install:

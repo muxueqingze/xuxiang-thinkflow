@@ -24,7 +24,8 @@
     "PROTOCOL.md",
     "DESIGN.md",
     "config.example.json",
-    "docs/*.md"
+    "docs/*.md",
+    "docs/prompts/"
   ],
   "scripts": {
     "postinstall": "node scripts/npm-postinstall.js",
@@ -42,5 +43,13 @@
     "tool-use",
     "thinkflow",
     "xuxiang"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muxueqingze/xuxiang-thinkflow.git"
+  },
+  "homepage": "https://github.com/muxueqingze/xuxiang-thinkflow#readme",
+  "bugs": {
+    "url": "https://github.com/muxueqingze/xuxiang-thinkflow/issues"
+  }
 }
