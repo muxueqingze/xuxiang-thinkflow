@@ -79,7 +79,7 @@ class FakeAgent:
         self.closed = False
         self.compactions = 0
 
-    async def run(self, prompt):
+    async def run(self, prompt, *, user_request=None):
         self.messages.append({"role": "user", "content": prompt})
         if self.runner:
             await self.runner(self, prompt)

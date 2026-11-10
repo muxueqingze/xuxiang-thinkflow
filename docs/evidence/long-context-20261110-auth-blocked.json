@@ -1,0 +1,262 @@
+{
+  "kind": "seeded-context functional probe; not a full long-task benchmark",
+  "date": "2026-11-10",
+  "limits": {
+    "max_run_turns": 12,
+    "max_run_seconds": 300
+  },
+  "runs": [
+    {
+      "variant": "old_compaction",
+      "scenario": "current_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 9877,
+      "request_attempts": 1,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305283.305752,
+        "elapsed": 0.004000186920166016,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "reasoning_tokens": 0,
+            "text_tokens": 0,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 0,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "",
+            "delayed_successes": null,
+            "usage_reported": false
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "reasoning_tokens": 0,
+          "text_tokens": 0,
+          "cached_tokens": 0,
+          "effective_input": 0,
+          "total_tokens": 0,
+          "api_calls": 1,
+          "total_commands": 0,
+          "estimated_saved_api_calls": 0,
+          "estimated_avoided_prompt_tokens": 0
+        }
+      },
+      "stopped_reason": "error",
+      "last_error": "HTTP 401: {\"error\":{\"type\":\"authentication_error\",\"code\":\"api_key_expired\",\"message\":\"This API key has expired. Create a new API key in OpenCode Console and replace it in your client or secret store. Signing in again will not renew this key.\"}}",
+      "checks": {
+        "unicode_merge_and_order": "NotImplementedError: ",
+        "round_each_row_half_up": "NotImplementedError: ",
+        "aggregation": "NotImplementedError: ",
+        "negative_quantity": "NotImplementedError: ",
+        "negative_price": "NotImplementedError: ",
+        "zero_quantity": "NotImplementedError: ",
+        "input_unchanged": true,
+        "empty_input": "NotImplementedError: "
+      },
+      "passed": false,
+      "tools": [],
+      "implementation": "def summarize(rows):\n    raise NotImplementedError\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [],
+      "temporary_workspace_removed": true
+    },
+    {
+      "variant": "current",
+      "scenario": "current_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 17208,
+      "request_attempts": 1,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305285.7694366,
+        "elapsed": 0.004006147384643555,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "reasoning_tokens": 0,
+            "text_tokens": 0,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 0,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "",
+            "delayed_successes": null,
+            "usage_reported": false
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "reasoning_tokens": 0,
+          "text_tokens": 0,
+          "cached_tokens": 0,
+          "effective_input": 0,
+          "total_tokens": 0,
+          "api_calls": 1,
+          "total_commands": 0,
+          "estimated_saved_api_calls": 0,
+          "estimated_avoided_prompt_tokens": 0
+        }
+      },
+      "stopped_reason": "error",
+      "last_error": "HTTP 401: {\"error\":{\"type\":\"authentication_error\",\"code\":\"api_key_expired\",\"message\":\"This API key has expired. Create a new API key in OpenCode Console and replace it in your client or secret store. Signing in again will not renew this key.\"}}",
+      "checks": {
+        "unicode_merge_and_order": "NotImplementedError: ",
+        "round_each_row_half_up": "NotImplementedError: ",
+        "aggregation": "NotImplementedError: ",
+        "negative_quantity": "NotImplementedError: ",
+        "negative_price": "NotImplementedError: ",
+        "zero_quantity": "NotImplementedError: ",
+        "input_unchanged": true,
+        "empty_input": "NotImplementedError: "
+      },
+      "passed": false,
+      "tools": [],
+      "implementation": "def summarize(rows):\n    raise NotImplementedError\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [],
+      "temporary_workspace_removed": true
+    },
+    {
+      "variant": "old_compaction",
+      "scenario": "archived_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 10029,
+      "request_attempts": 1,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305287.2863417,
+        "elapsed": 0.0030002593994140625,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "reasoning_tokens": 0,
+            "text_tokens": 0,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 0,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "",
+            "delayed_successes": null,
+            "usage_reported": false
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "reasoning_tokens": 0,
+          "text_tokens": 0,
+          "cached_tokens": 0,
+          "effective_input": 0,
+          "total_tokens": 0,
+          "api_calls": 1,
+          "total_commands": 0,
+          "estimated_saved_api_calls": 0,
+          "estimated_avoided_prompt_tokens": 0
+        }
+      },
+      "stopped_reason": "error",
+      "last_error": "HTTP 401: {\"error\":{\"type\":\"authentication_error\",\"code\":\"api_key_expired\",\"message\":\"This API key has expired. Create a new API key in OpenCode Console and replace it in your client or secret store. Signing in again will not renew this key.\"}}",
+      "checks": {
+        "unicode_merge_and_order": "NotImplementedError: ",
+        "round_each_row_half_up": "NotImplementedError: ",
+        "aggregation": "NotImplementedError: ",
+        "negative_quantity": "NotImplementedError: ",
+        "negative_price": "NotImplementedError: ",
+        "zero_quantity": "NotImplementedError: ",
+        "input_unchanged": true,
+        "empty_input": "NotImplementedError: "
+      },
+      "passed": false,
+      "tools": [],
+      "implementation": "def summarize(rows):\n    raise NotImplementedError\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [],
+      "temporary_workspace_removed": true
+    },
+    {
+      "variant": "current",
+      "scenario": "archived_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 10257,
+      "request_attempts": 1,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305290.1449995,
+        "elapsed": 0.006999492645263672,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "reasoning_tokens": 0,
+            "text_tokens": 0,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 0,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "",
+            "delayed_successes": null,
+            "usage_reported": false
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "reasoning_tokens": 0,
+          "text_tokens": 0,
+          "cached_tokens": 0,
+          "effective_input": 0,
+          "total_tokens": 0,
+          "api_calls": 1,
+          "total_commands": 0,
+          "estimated_saved_api_calls": 0,
+          "estimated_avoided_prompt_tokens": 0
+        }
+      },
+      "stopped_reason": "error",
+      "last_error": "HTTP 401: {\"error\":{\"type\":\"authentication_error\",\"code\":\"api_key_expired\",\"message\":\"This API key has expired. Create a new API key in OpenCode Console and replace it in your client or secret store. Signing in again will not renew this key.\"}}",
+      "checks": {
+        "unicode_merge_and_order": "NotImplementedError: ",
+        "round_each_row_half_up": "NotImplementedError: ",
+        "aggregation": "NotImplementedError: ",
+        "negative_quantity": "NotImplementedError: ",
+        "negative_price": "NotImplementedError: ",
+        "zero_quantity": "NotImplementedError: ",
+        "input_unchanged": true,
+        "empty_input": "NotImplementedError: "
+      },
+      "passed": false,
+      "tools": [],
+      "implementation": "def summarize(rows):\n    raise NotImplementedError\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [],
+      "temporary_workspace_removed": true
+    }
+  ]
+}

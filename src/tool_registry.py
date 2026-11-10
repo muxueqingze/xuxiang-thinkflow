@@ -177,6 +177,19 @@ BUILTIN_TOOL_SPECS = [
         },
     ),
     ToolSpec(
+        name="recall",
+        description="按引用读取已保存原文的字符区间。",
+        parameters={
+            "type": "object",
+            "properties": {
+                "ref": {"type": "string", "minLength": 1, "description": "原文引用，如request:1"},
+                "offset": {"type": "integer", "minimum": 0, "default": 0},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 200000, "default": 8000},
+            },
+            "required": ["ref"],
+        },
+    ),
+    ToolSpec(
         name="pwd",
         description="显示当前工作目录。用于确认相对路径会从哪里解析。",
         parameters={

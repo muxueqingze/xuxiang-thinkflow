@@ -1,6 +1,6 @@
 # 续想 ThinkFlow · v0.8 架构
 
-更新于2026-11-10。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.6 与源码为准。
+更新于2026-11-10。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.7 与源码为准。
 
 ## 核心判断
 
@@ -39,6 +39,7 @@ CLI / Electron desktop
 - 重复 id 不能伪造成功；相同命令返回原回执，内容冲突报错。去重窗口仍有限，不提供分布式 exactly-once 保证。
 - parser仅在完整命令的语义校验成功后登记id；拒绝的命令没有副作用，可用原id修正重发，不因无效输入制造第二次重复编号错误。
 - 压缩切点保持工具调用与结果配对，覆盖OpenAI的tool消息与Anthropic的user/tool_result块；近期保留的结果不会与调用分离。
+- 原始要求在run入口单独记录，不能从provider的user角色推断；当前执行输入完整保留一次。压缩新增历史时沿用结构化摘要条目，旧要求按request引用回取，状态随会话快照和分支保存。见[长程上下文](docs/long-context-20261110.md)。
 - 模型的自然结束只是本轮结束；不等同于所有需求均被验收。应用默认达到40轮或1800秒停止；连续失败阈值默认null，显式数字配置才生效。
 
 ## 模块职责
@@ -51,6 +52,7 @@ CLI / Electron desktop
 | `executor.py / security.py` | 文件动作、shell与原生Python代码块；共用进程输出、取消及权限策略 |
 | `tool_registry.py / interfaces.py` | 工具schema、分流/风险、自定义接口 |
 | `context.py / feedback.py / compaction.py` | 可审计回执、observation 合并、去重与确定性摘录；先压缩再按最终历史判断重复 |
+| `conversation.py` | 原始用户要求、request引用、字符范围回取与结构化摘要状态；与provider消息分离 |
 | `events.py` | 实例级事件与可选终端视图，不修改全局renderer来服务桌面 |
 | `session.py` | 原子快照、fsync、历史保留 |
 | `desktop_service.py` | 私有NDJSON RPC、工作区会话、分支、授权、恢复、导出 |

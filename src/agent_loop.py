@@ -25,6 +25,7 @@ from urllib.parse import urlparse
 from .parser import StreamingParser, Command, TOOLS
 from .executor import Executor, ExecutionResult
 from .context import ContextManager, _command_hash
+from .conversation import ConversationContext
 from .streaming import EventType, StreamEvent
 from .provider import ProviderConfig, is_deepseek, openai_thinking_options, output_budget_options
 from .prompts import build_protocol_prompt
@@ -62,7 +63,7 @@ TOOL_SCHEMAS = [spec.without_handler() for spec in BUILTIN_TOOL_SPECS]
 
 # 执行层 id 去重窗口容量（快照恢复时同样只保留最近这么多）。
 MAX_EXECUTED_IDS = 4096
-CORE_NATIVE_TOOLS = frozenset({"read", "write", "edit", "bash", "python", "read_skill", "load_tools"})
+CORE_NATIVE_TOOLS = frozenset({"read", "write", "edit", "bash", "python", "read_skill", "load_tools", "recall"})
 
 
 def _as_int(value, default: int) -> int:
@@ -258,6 +259,7 @@ class AgentLoop:
         self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd)
         self.skill_manager = SkillManager(config.cwd, config.skills)
         self.task_plan = {'explanation': '', 'steps': []}
+        self.conversation = ConversationContext()
         self.native_write_fallback = False
         self.additional_native_tools: set[str] = set()
         self.tool_registry = self._build_tool_registry()
@@ -447,6 +449,7 @@ class AgentLoop:
 
         handlers = {
             "read": read_tool,
+            "recall": self._recall_tool,
             "pwd": pwd_tool,
             "list_files": list_files_tool,
             "glob": glob_tool,
@@ -567,6 +570,19 @@ class AgentLoop:
         ), self._load_tools)
         return registry
 
+    async def _recall_tool(self, tool_input: dict) -> str:
+        return self.conversation.recall(tool_input['ref'], tool_input.get('offset', 0),
+                                        tool_input.get('limit', 8000))
+
+    async def _execute_builtin(self, command: Command) -> ExecutionResult:
+        if command.tool == 'recall':
+            result = await self.tool_registry.execute('recall', {
+                'ref': command.ref, 'offset': command.offset, 'limit': command.limit,
+            })
+            return ExecutionResult(success=result.success, tool='recall',
+                                   content=str(result) if result.success else '', error=result.error)
+        return await self.executor.execute(command)
+
     async def _load_tools(self, tool_input):
         names = set(tool_input['names'])
         provider = self.config.provider
@@ -640,7 +656,9 @@ class AgentLoop:
         Runtime state must not be appended to the system prompt, because changing
         the first message every turn prevents provider-side prompt cache hits.
         """
-        protocol = build_protocol_prompt(self._enabled_native_tool_names())
+        names = self._enabled_native_tool_names()
+        recall_available = bool(self.conversation.summary and self.conversation.requests) or 'recall' in names
+        protocol = build_protocol_prompt(names, recall_available=recall_available)
         return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
     def build_runtime_status_message(self) -> dict:
@@ -746,7 +764,10 @@ class AgentLoop:
         registered = {schema["name"] for schema in self.tool_registry.schemas()}
         if allow:
             return (allow - deny) & registered
-        names = set(CORE_NATIVE_TOOLS) | self.additional_native_tools
+        names = set(CORE_NATIVE_TOOLS)
+        if not (self.conversation.summary and self.conversation.requests):
+            names.discard('recall')
+        names.update(self.additional_native_tools)
         if self.native_write_fallback:
             names.update({"write", "append", "edit", "mkdir", "touch", "copy"})
         names &= registered
@@ -770,7 +791,7 @@ class AgentLoop:
         tools = self.tool_registry.anthropic_tools()
         return [tool for tool in tools if tool.get("name") in names]
 
-    async def run(self, user_input: str):
+    async def run(self, user_input: str, *, user_request: Optional[str] = None):
         """主入口。"""
         if self._run_active:
             raise RuntimeError("This agent already has an active run")
@@ -786,6 +807,9 @@ class AgentLoop:
         deadline = (None if self.config.max_run_seconds is None
                     else time.monotonic() + max(0.01, self.config.max_run_seconds))
         try:
+            self.conversation.record_request(len(self.messages),
+                                             user_input if user_request is None else user_request,
+                                             user_input)
             self.messages.append({"role": "user", "content": user_input})
             while self.config.max_run_turns is None or turns < max(1, self.config.max_run_turns):
                 remaining = None if deadline is None else deadline - time.monotonic()
@@ -847,6 +871,7 @@ class AgentLoop:
             self.messages,
             self.config.compaction,
             force=force,
+            history=self.conversation,
         )
         if stats.changed:
             self.messages = compacted
@@ -1635,7 +1660,7 @@ class AgentLoop:
                               error="Stream ended without a finish reason or completion marker; response is incomplete.")
 
     import re as _re
-    _CMD_TAG_RE = _re.compile(r'<(?:tf-)?(?:read|write|append|mkdir|touch|copy|bash|edit)[/ >]')
+    _CMD_TAG_RE = _re.compile(r'<(?:tf-)?(?:' + '|'.join(TOOLS) + r')[/ >]')
 
     @staticmethod
     def _strip_cmd_tags(text: str) -> str:
@@ -1650,7 +1675,7 @@ class AgentLoop:
     def _command_detail(command: Command) -> str:
         if command.tool == "copy" and command.path and command.dest:
             return f"{command.path} -> {command.dest}"
-        return command.path or command.dest or command.cmd or ""
+        return command.path or command.dest or command.cmd or command.ref or ""
 
     def _tool_event(self, kind: str, command: Command, channel: str, result=None, tool_input=None):
         payload = {
@@ -1739,7 +1764,7 @@ class AgentLoop:
                 result = ExecutionResult(success=False, tool=command.tool, path=command.path or "",
                                          error=approval_error, exit_code=126 if command.tool == "bash" else None)
             else:
-                result = await self.executor.execute(command)
+                result = await self._execute_builtin(command)
         except asyncio.CancelledError:
             result = ExecutionResult(success=False, tool=command.tool, path=command.path or "",
                                      status="cancelled", error="Execution cancelled; inspect any operation already in progress.")
@@ -1898,13 +1923,16 @@ class AgentLoop:
         if actual_flow == TOOL_FLOW_DELAYED:
             actual_flow = TOOL_FLOW_BLOCKING
         fields = {}
-        for key in ("path", "dest", "cmd", "content", "old_text", "new_text"):
+        for key in ("path", "dest", "cmd", "content", "old_text", "new_text", "ref"):
             value = tool_input.get(key)
             fields[key] = value if isinstance(value, str) else None
             if tool_name in TOOLS and value is not None and not isinstance(value, str):
                 input_error = input_error or f"Invalid tool arguments: {key} must be a string"
         command = Command(id=tool_id or f"native_{self._turn_count}_{len(self.context.records)}",
                           tool=tool_name, need_result=True, **fields)
+        if tool_name == 'recall':
+            command.offset = tool_input.get('offset', 0)
+            command.limit = tool_input.get('limit', 8000)
         if tool_name == "python":
             code = tool_input.get("code")
             command.cmd = code if isinstance(code, str) else None
@@ -1940,7 +1968,7 @@ class AgentLoop:
             if error:
                 result = ExecutionResult(success=False, tool=tool_name, error=error)
             elif tool_name in TOOLS:
-                result = await self.executor.execute(command)
+                result = await self._execute_builtin(command)
             elif tool_name in ("list_files", "glob", "grep"):
                 result = await getattr(self.executor, tool_name)(**tool_input)
             else:
@@ -1992,7 +2020,7 @@ class AgentLoop:
             return "\n".join(parts)
         if not result.success:
             return result.error or f"{result.tool} failed"
-        if result.tool in ("read", "list_files", "glob", "grep"):
+        if result.tool in ("read", "recall", "list_files", "glob", "grep"):
             text = result.content
             if result.truncated:
                 text += "\n\n[THINKFLOW TRUNCATED] 结果已截断。"
@@ -2011,6 +2039,7 @@ class AgentLoop:
             "version": 1,
             "session_id": self.session_id,
             "messages": self.messages,
+            "conversation": self.conversation.to_dict(),
             "task_plan": self.task_plan,
             "native_write_fallback": self.native_write_fallback,
             "additional_native_tools": sorted(self.additional_native_tools),
@@ -2029,6 +2058,7 @@ class AgentLoop:
         self.session_id = data.get('session_id', self.session_id)
         self.client.headers.update(self._build_headers())
         self.messages = list(data.get("messages", []))
+        self.conversation = ConversationContext.from_dict(data.get('conversation', {}))
         self.task_plan = validate_plan(data.get('task_plan', {'explanation': '', 'steps': []}))
         self.native_write_fallback = data.get('native_write_fallback') is True
         self.additional_native_tools = set(data.get('additional_native_tools', []))

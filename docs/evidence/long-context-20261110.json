@@ -1,0 +1,866 @@
+{
+  "kind": "seeded-context functional probe; not a full long-task benchmark",
+  "date": "2026-11-10",
+  "limits": {
+    "max_run_turns": 12,
+    "max_run_seconds": 300
+  },
+  "runs": [
+    {
+      "variant": "old_compaction",
+      "scenario": "current_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 9877,
+      "request_attempts": 6,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305671.471656,
+        "elapsed": 23.627195596694946,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 2056,
+            "completion_tokens": 80,
+            "reasoning_tokens": 45,
+            "text_tokens": 35,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 2136,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 2,
+            "prompt_tokens": 2292,
+            "completion_tokens": 45,
+            "reasoning_tokens": 12,
+            "text_tokens": 33,
+            "cached_tokens": 1920,
+            "cache_miss_tokens": 0,
+            "total_tokens": 2337,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 3,
+            "prompt_tokens": 2506,
+            "completion_tokens": 925,
+            "reasoning_tokens": 638,
+            "text_tokens": 287,
+            "cached_tokens": 2176,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3431,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "need_result",
+            "delayed_successes": 1,
+            "usage_reported": true
+          },
+          {
+            "turn": 4,
+            "prompt_tokens": 2928,
+            "completion_tokens": 394,
+            "reasoning_tokens": 270,
+            "text_tokens": 124,
+            "cached_tokens": 2432,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3322,
+            "commands_executed": 1,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 5,
+            "prompt_tokens": 3189,
+            "completion_tokens": 191,
+            "reasoning_tokens": 133,
+            "text_tokens": 58,
+            "cached_tokens": 2816,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3380,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "tool_failed",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 6,
+            "prompt_tokens": 3363,
+            "completion_tokens": 321,
+            "reasoning_tokens": 116,
+            "text_tokens": 205,
+            "cached_tokens": 3072,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3684,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 16334,
+          "completion_tokens": 1956,
+          "reasoning_tokens": 1214,
+          "text_tokens": 742,
+          "cached_tokens": 12416,
+          "effective_input": 3918,
+          "total_tokens": 18290,
+          "api_calls": 6,
+          "total_commands": 7,
+          "estimated_saved_api_calls": 1,
+          "estimated_avoided_prompt_tokens": 2722
+        }
+      },
+      "stopped_reason": "completed",
+      "last_error": "",
+      "checks": {
+        "unicode_merge_and_order": "AssertionError: (['Café', 'CAFÉ', 'Straße', 'STRASSE'], ['café', 'strasse'])",
+        "round_each_row_half_up": "AssertionError: ({'sku': 'Café', 'units': 1, 'total': '0.01'}, {'sku': 'café', 'units': 2, 'total': '0.02'})",
+        "aggregation": "AssertionError: ({'sku': 'STRASSE', 'units': 2, 'total': '2.00'}, {'sku': 'strasse', 'units': 3, 'total': '3.00'})",
+        "negative_quantity": "AssertionError: negative value accepted",
+        "negative_price": "AssertionError: negative value accepted",
+        "zero_quantity": "AssertionError: ([{'sku': 'x', 'units': 0, 'total': '0.00'}], [])",
+        "input_unchanged": true,
+        "empty_input": true
+      },
+      "passed": false,
+      "tools": [
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "write",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "python",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        }
+      ],
+      "implementation": "from decimal import Decimal, ROUND_HALF_UP\n\n_CENTS = Decimal(\"0.01\")\n\n\ndef summarize(rows):\n    \"\"\"Aggregate invoice rows by SKU.\n\n    Rows carry ``sku``, ``quantity`` and a decimal ``unit_price`` string.\n    The result lists one entry per SKU in first-appearance order with the\n    summed ``units`` and the summed line total formatted as \"0.00\".\n    \"\"\"\n    totals = {}\n    units = {}\n    order = []\n    for row in rows:\n        sku = row[\"sku\"]\n        quantity = row[\"quantity\"]\n        if sku not in totals:\n            order.append(sku)\n            totals[sku] = Decimal(\"0\")\n            units[sku] = 0\n        totals[sku] += Decimal(str(row[\"unit_price\"])) * quantity\n        units[sku] += quantity\n    return [\n        {\n            \"sku\": sku,\n            \"units\": units[sku],\n            \"total\": str(totals[sku].quantize(_CENTS, rounding=ROUND_HALF_UP)),\n        }\n        for sku in order\n    ]\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [
+        "deepseek_tool_markup"
+      ],
+      "temporary_workspace_removed": true,
+      "artifact_recheck": {
+        "checks": {
+          "unicode_merge_and_order": "AssertionError: (['STRASSE', 'Café', 'Straße', 'CAFÉ'], ['café', 'strasse'])",
+          "round_each_row_half_up": "AssertionError: ([{'sku': 'x', 'units': 2, 'total': '0.01'}], [{'sku': 'x', 'units': 2, 'total': '0.02'}])",
+          "aggregation": true,
+          "negative_quantity": "AssertionError: negative value accepted",
+          "negative_price": "AssertionError: negative value accepted",
+          "zero_quantity": "AssertionError: ([{'sku': 'x', 'units': 0, 'total': '0.00'}], [])",
+          "input_unchanged": true,
+          "fresh_result_dicts": true,
+          "empty_input": true
+        },
+        "passed": false,
+        "temporary_workspace_removed": true
+      }
+    },
+    {
+      "variant": "current",
+      "scenario": "current_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 17208,
+      "request_attempts": 5,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305700.319959,
+        "elapsed": 37.286073446273804,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "reasoning_tokens": 0,
+            "text_tokens": 0,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 0,
+            "commands_executed": 1,
+            "tool_calls_traditional": 0,
+            "abort_reason": "need_result",
+            "delayed_successes": 0,
+            "usage_reported": false
+          },
+          {
+            "turn": 2,
+            "prompt_tokens": 3637,
+            "completion_tokens": 40,
+            "reasoning_tokens": 7,
+            "text_tokens": 33,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3677,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 3,
+            "prompt_tokens": 3851,
+            "completion_tokens": 1835,
+            "reasoning_tokens": 938,
+            "text_tokens": 897,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 5686,
+            "commands_executed": 3,
+            "tool_calls_traditional": 0,
+            "abort_reason": "tool_failed",
+            "delayed_successes": 1,
+            "usage_reported": true
+          },
+          {
+            "turn": 4,
+            "prompt_tokens": 5228,
+            "completion_tokens": 1239,
+            "reasoning_tokens": 322,
+            "text_tokens": 917,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 6467,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "need_result",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 5,
+            "prompt_tokens": 6408,
+            "completion_tokens": 514,
+            "reasoning_tokens": 107,
+            "text_tokens": 407,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 6922,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 19124,
+          "completion_tokens": 3628,
+          "reasoning_tokens": 1374,
+          "text_tokens": 2254,
+          "cached_tokens": 0,
+          "effective_input": 19124,
+          "total_tokens": 22752,
+          "api_calls": 5,
+          "total_commands": 8,
+          "estimated_saved_api_calls": 1,
+          "estimated_avoided_prompt_tokens": 3824
+        }
+      },
+      "stopped_reason": "completed",
+      "last_error": "",
+      "checks": {
+        "unicode_merge_and_order": true,
+        "round_each_row_half_up": true,
+        "aggregation": true,
+        "negative_quantity": true,
+        "negative_price": true,
+        "zero_quantity": true,
+        "input_unchanged": true,
+        "empty_input": true
+      },
+      "passed": true,
+      "tools": [
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "write",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "python",
+          "status": "failed",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "python",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        }
+      ],
+      "implementation": "\"\"\"Summarize invoice rows per SKU.\n\nRules:\n- SKUs are canonicalized with Unicode NFC then casefold; equal canonical\n  SKUs are merged and the output is sorted by canonical SKU.\n- Each row subtotal is quantized to cents with ROUND_HALF_UP before summing.\n- Negative quantity or negative unit price raises ValueError.\n- Zero-quantity rows contribute nothing; the input is never mutated.\n\"\"\"\n\nimport unicodedata\nfrom decimal import Decimal, ROUND_HALF_UP\n\n_CENT = Decimal(\"0.01\")\n\n\ndef _canonical_sku(sku):\n    return unicodedata.normalize(\"NFC\", sku).casefold()\n\n\ndef summarize(rows):\n    totals = {}\n    units = {}\n\n    for row in rows:\n        quantity = row[\"quantity\"]\n        unit_price = Decimal(row[\"unit_price\"])\n\n        if quantity < 0:\n            raise ValueError(\"negative quantity: %r\" % (quantity,))\n        if unit_price < 0:\n            raise ValueError(\"negative unit_price: %r\" % (row[\"unit_price\"],))\n\n        if quantity == 0:\n            continue\n\n        key = _canonical_sku(row[\"sku\"])\n        subtotal = (Decimal(quantity) * unit_price).quantize(\n            _CENT, rounding=ROUND_HALF_UP\n        )\n        totals[key] = totals.get(key, Decimal(\"0.00\")) + subtotal\n        units[key] = units.get(key, 0) + quantity\n\n    return [\n        {\n            \"sku\": key,\n            \"units\": units[key],\n            \"total\": str(totals[key].quantize(_CENT, rounding=ROUND_HALF_UP)),\n        }\n        for key in sorted(totals)\n    ]\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [],
+      "temporary_workspace_removed": true,
+      "artifact_recheck": {
+        "checks": {
+          "unicode_merge_and_order": true,
+          "round_each_row_half_up": true,
+          "aggregation": true,
+          "negative_quantity": true,
+          "negative_price": true,
+          "zero_quantity": true,
+          "input_unchanged": true,
+          "fresh_result_dicts": true,
+          "empty_input": true
+        },
+        "passed": true,
+        "temporary_workspace_removed": true
+      }
+    },
+    {
+      "variant": "old_compaction",
+      "scenario": "archived_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 10029,
+      "request_attempts": 5,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305745.079001,
+        "elapsed": 24.301636695861816,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 2088,
+            "completion_tokens": 54,
+            "reasoning_tokens": 19,
+            "text_tokens": 35,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 2142,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 2,
+            "prompt_tokens": 2324,
+            "completion_tokens": 46,
+            "reasoning_tokens": 13,
+            "text_tokens": 33,
+            "cached_tokens": 1920,
+            "cache_miss_tokens": 0,
+            "total_tokens": 2370,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 3,
+            "prompt_tokens": 2538,
+            "completion_tokens": 1446,
+            "reasoning_tokens": 1132,
+            "text_tokens": 314,
+            "cached_tokens": 2176,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3984,
+            "commands_executed": 3,
+            "tool_calls_traditional": 0,
+            "abort_reason": "tool_failed",
+            "delayed_successes": 1,
+            "usage_reported": true
+          },
+          {
+            "turn": 4,
+            "prompt_tokens": 3019,
+            "completion_tokens": 532,
+            "reasoning_tokens": 287,
+            "text_tokens": 245,
+            "cached_tokens": 2432,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3551,
+            "commands_executed": 1,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 5,
+            "prompt_tokens": 3386,
+            "completion_tokens": 497,
+            "reasoning_tokens": 208,
+            "text_tokens": 289,
+            "cached_tokens": 2944,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3883,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 13355,
+          "completion_tokens": 2575,
+          "reasoning_tokens": 1659,
+          "text_tokens": 916,
+          "cached_tokens": 9472,
+          "effective_input": 3883,
+          "total_tokens": 15930,
+          "api_calls": 5,
+          "total_commands": 8,
+          "estimated_saved_api_calls": 1,
+          "estimated_avoided_prompt_tokens": 2671
+        }
+      },
+      "stopped_reason": "completed",
+      "last_error": "",
+      "checks": {
+        "unicode_merge_and_order": "AssertionError: (['Café', 'CAFÉ', 'Straße', 'STRASSE'], ['café', 'strasse'])",
+        "round_each_row_half_up": "AssertionError: ({'sku': 'Café', 'units': 1, 'total': '0.01'}, {'sku': 'café', 'units': 2, 'total': '0.02'})",
+        "aggregation": "AssertionError: ({'sku': 'STRASSE', 'units': 2, 'total': '2.00'}, {'sku': 'strasse', 'units': 3, 'total': '3.00'})",
+        "negative_quantity": "AssertionError: negative value accepted",
+        "negative_price": "AssertionError: negative value accepted",
+        "zero_quantity": true,
+        "input_unchanged": true,
+        "empty_input": true
+      },
+      "passed": false,
+      "tools": [
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "write",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "failed",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "python",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        }
+      ],
+      "implementation": "from decimal import Decimal, ROUND_HALF_UP\n\n_CENT = Decimal(\"0.01\")\n\n\ndef summarize(rows):\n    groups = {}\n    for row in rows:\n        sku = row[\"sku\"]\n        quantity = row[\"quantity\"]\n        price = Decimal(str(row[\"unit_price\"]))\n        group = groups.get(sku)\n        if group is None:\n            group = groups[sku] = {\"units\": 0, \"total\": Decimal(\"0\")}\n        group[\"units\"] += quantity\n        group[\"total\"] += quantity * price\n\n    summary = []\n    for sku, group in groups.items():\n        if group[\"units\"] == 0:\n            continue\n        total = group[\"total\"].quantize(_CENT, rounding=ROUND_HALF_UP)\n        summary.append({\"sku\": sku, \"units\": group[\"units\"], \"total\": str(total)})\n    return summary\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [],
+      "temporary_workspace_removed": true,
+      "artifact_recheck": {
+        "checks": {
+          "unicode_merge_and_order": "AssertionError: (['STRASSE', 'Café', 'Straße', 'CAFÉ'], ['café', 'strasse'])",
+          "round_each_row_half_up": "AssertionError: ([{'sku': 'x', 'units': 2, 'total': '0.01'}], [{'sku': 'x', 'units': 2, 'total': '0.02'}])",
+          "aggregation": true,
+          "negative_quantity": "AssertionError: negative value accepted",
+          "negative_price": "AssertionError: negative value accepted",
+          "zero_quantity": true,
+          "input_unchanged": true,
+          "fresh_result_dicts": true,
+          "empty_input": true
+        },
+        "passed": false,
+        "temporary_workspace_removed": true
+      }
+    },
+    {
+      "variant": "current",
+      "scenario": "archived_request",
+      "baseline_compaction_commit": "ee48f51",
+      "model": "deepseek-v4.1-flash",
+      "thinking": "enabled/high",
+      "seed_before_chars": 42582,
+      "resumed_context_chars": 10257,
+      "request_attempts": 7,
+      "usage": {
+        "label": "thinkflow",
+        "start_time": 1794305776.8938997,
+        "elapsed": 49.68633842468262,
+        "turns": [
+          {
+            "turn": 1,
+            "prompt_tokens": 2170,
+            "completion_tokens": 60,
+            "reasoning_tokens": 16,
+            "text_tokens": 44,
+            "cached_tokens": 0,
+            "cache_miss_tokens": 0,
+            "total_tokens": 2230,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 2,
+            "prompt_tokens": 3811,
+            "completion_tokens": 44,
+            "reasoning_tokens": 11,
+            "text_tokens": 33,
+            "cached_tokens": 2048,
+            "cache_miss_tokens": 0,
+            "total_tokens": 3855,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 3,
+            "prompt_tokens": 4024,
+            "completion_tokens": 1275,
+            "reasoning_tokens": 589,
+            "text_tokens": 686,
+            "cached_tokens": 3712,
+            "cache_miss_tokens": 0,
+            "total_tokens": 5299,
+            "commands_executed": 3,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 1,
+            "usage_reported": true
+          },
+          {
+            "turn": 4,
+            "prompt_tokens": 5073,
+            "completion_tokens": 1687,
+            "reasoning_tokens": 1088,
+            "text_tokens": 599,
+            "cached_tokens": 3840,
+            "cache_miss_tokens": 0,
+            "total_tokens": 6760,
+            "commands_executed": 3,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 1,
+            "usage_reported": true
+          },
+          {
+            "turn": 5,
+            "prompt_tokens": 6035,
+            "completion_tokens": 396,
+            "reasoning_tokens": 361,
+            "text_tokens": 35,
+            "cached_tokens": 4992,
+            "cache_miss_tokens": 0,
+            "total_tokens": 6431,
+            "commands_executed": 2,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 6,
+            "prompt_tokens": 6488,
+            "completion_tokens": 611,
+            "reasoning_tokens": 240,
+            "text_tokens": 371,
+            "cached_tokens": 5888,
+            "cache_miss_tokens": 0,
+            "total_tokens": 7099,
+            "commands_executed": 1,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          },
+          {
+            "turn": 7,
+            "prompt_tokens": 7053,
+            "completion_tokens": 769,
+            "reasoning_tokens": 329,
+            "text_tokens": 440,
+            "cached_tokens": 6400,
+            "cache_miss_tokens": 0,
+            "total_tokens": 7822,
+            "commands_executed": 0,
+            "tool_calls_traditional": 0,
+            "abort_reason": "end_turn",
+            "delayed_successes": 0,
+            "usage_reported": true
+          }
+        ],
+        "totals": {
+          "prompt_tokens": 34654,
+          "completion_tokens": 4842,
+          "reasoning_tokens": 2634,
+          "text_tokens": 2208,
+          "cached_tokens": 26880,
+          "effective_input": 7774,
+          "total_tokens": 39496,
+          "api_calls": 7,
+          "total_commands": 13,
+          "estimated_saved_api_calls": 2,
+          "estimated_avoided_prompt_tokens": 9901
+        }
+      },
+      "stopped_reason": "completed",
+      "last_error": "",
+      "checks": {
+        "unicode_merge_and_order": true,
+        "round_each_row_half_up": true,
+        "aggregation": true,
+        "negative_quantity": true,
+        "negative_price": true,
+        "zero_quantity": true,
+        "input_unchanged": true,
+        "empty_input": true
+      },
+      "passed": true,
+      "tools": [
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "recall",
+          "status": "success",
+          "ref": "request:1",
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "write",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "python",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "edit",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "python",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "read",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "bash",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        },
+        {
+          "tool": "python",
+          "status": "success",
+          "ref": null,
+          "offset": 0,
+          "limit": 8000
+        }
+      ],
+      "implementation": "import unicodedata\nfrom decimal import Decimal, ROUND_HALF_UP\n\nCENTS = Decimal(\"0.01\")\n\n\ndef _canonical_sku(sku):\n    return unicodedata.normalize(\"NFC\", sku).casefold()\n\n\ndef summarize(rows):\n    groups = {}\n    for row in rows:\n        sku = _canonical_sku(row[\"sku\"])\n        quantity = row[\"quantity\"]\n        unit_price = Decimal(row[\"unit_price\"])\n        if quantity < 0 or unit_price < 0:\n            raise ValueError(\"negative quantity or unit_price\")\n        if quantity == 0:\n            continue\n        subtotal = (Decimal(quantity) * unit_price).quantize(\n            CENTS, rounding=ROUND_HALF_UP\n        )\n        group = groups.get(sku)\n        if group is None:\n            groups[sku] = [quantity, subtotal]\n        else:\n            group[0] += quantity\n            group[1] += subtotal\n\n    result = []\n    for sku in sorted(groups):\n        units, total = groups[sku]\n        if units == 0:\n            continue\n        total = total.quantize(CENTS, rounding=ROUND_HALF_UP)\n        text = format(total, \".2f\")\n        if text == \"-0.00\":\n            text = \"0.00\"\n        result.append({\"sku\": sku, \"units\": units, \"total\": text})\n    return result\n",
+      "public_checks_unchanged": true,
+      "protocol_errors": [],
+      "temporary_workspace_removed": true,
+      "artifact_recheck": {
+        "checks": {
+          "unicode_merge_and_order": true,
+          "round_each_row_half_up": true,
+          "aggregation": true,
+          "negative_quantity": true,
+          "negative_price": true,
+          "zero_quantity": true,
+          "input_unchanged": true,
+          "fresh_result_dicts": true,
+          "empty_input": true
+        },
+        "passed": true,
+        "temporary_workspace_removed": true
+      }
+    }
+  ],
+  "artifact_recheck_method": "Offline verification of retained implementations: separate rounding/aggregation from Unicode; reverse SKU order; check fresh result dictionaries. Original live checks and usage are unchanged. No model calls."
+}

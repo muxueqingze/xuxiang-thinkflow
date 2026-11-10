@@ -13,7 +13,7 @@ from typing import Optional
 
 
 # 支持的工具类型。append/touch/copy 属于可预测的确定性流式工具。
-TOOLS = ("read", "write", "append", "mkdir", "touch", "copy", "bash", "edit", "python")
+TOOLS = ("read", "write", "append", "mkdir", "touch", "copy", "bash", "edit", "python", "recall")
 
 # 最大缓冲区大小（防止格式错误导致无限增长）
 MAX_BUFFER_SIZE = 2 * 1024 * 1024  # 2MB
@@ -43,12 +43,16 @@ class Command:
     need_result: bool = False
     injected: int = 0
     raw: str = ""                      # 原始命令块文本
+    ref: Optional[str] = None
+    offset: int = 0
+    limit: int = 8000
 
 
 PARSER_ERROR_KINDS = frozenset({
     "buffer_overflow", "incomplete_tag", "unclosed_block", "missing_id",
     "invalid_id", "duplicate_id", "invalid_injected", "missing_path",
     "missing_dest", "missing_cmd", "missing_edit_sections", "missing_edit_body",
+    "missing_ref", "invalid_offset", "invalid_limit",
 })
 
 
@@ -394,6 +398,33 @@ class StreamingParser:
             raw=raw,
         )
 
+        if tool == "recall":
+            command.ref = attrs.get("ref")
+            if not command.ref or not command.ref.strip():
+                self.errors.append(ParseError(
+                    message=f"<recall id={cmd_id}> 缺少 ref 属性",
+                    kind="missing_ref", raw=raw[:100],
+                ))
+                return None
+            for name, default, minimum, maximum, requirement in (
+                ("offset", "0", 0, None, "非负整数"),
+                ("limit", "8000", 1, 200000, "1..200000之间的整数"),
+            ):
+                value = attrs.get(name, default)
+                try:
+                    if not value.isascii() or not value.isdecimal():
+                        raise ValueError
+                    number = int(value)
+                    if number < minimum or (maximum is not None and number > maximum):
+                        raise ValueError
+                except ValueError:
+                    self.errors.append(ParseError(
+                        message=f"<recall id={cmd_id}> {name} 必须是{requirement}",
+                        kind=f"invalid_{name}", raw=raw[:100],
+                    ))
+                    return None
+                setattr(command, name, number)
+
         # 按工具处理正文
         if tool in ("write", "append"):
             command.content = _unescape_command_tags(content or "")
@@ -422,7 +453,7 @@ class StreamingParser:
                 ))
                 return None
 
-        # mkdir / touch / copy / bash 自闭合，无正文
+        # mkdir / touch / copy / bash / recall 自闭合，无正文
 
         # Only accepted commands own an ID. A malformed command has no effect
         # and may be corrected using the same ID on the next response.

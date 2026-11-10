@@ -40,7 +40,7 @@ BUILTIN_SYSTEM_PROMPT = """你在续想 ThinkFlow 中完成工程任务。先了
 最终简短说明实际改动、产物位置和验证结果。"""
 
 
-def build_protocol_prompt(native_tools: set[str]) -> str:
+def build_protocol_prompt(native_tools: set[str], *, recall_available: bool = False) -> str:
     """Describe the actual runtime interface, independently of user guidance."""
     parts = [STREAM_PROTOCOL_PROMPT]
     if native_tools:
@@ -49,4 +49,6 @@ def build_protocol_prompt(native_tools: set[str]) -> str:
         parts.append("扩展工具通过load_tools(names)按需开放，在会话中保留；只调用实际开放的工具。")
     if "read_skill" in native_tools:
         parts.append('完整用法可按需read_skill(name="thinkflow")读取，无需启动时重复读取。')
+    if recall_available:
+        parts.append('原文可用<tf-recall id="10" ref="request:1" offset="0" limit="8000" />按字符区间回取；offset从0开始，limit为字符数，默认8000、最多200000。')
     return "\n\n".join(parts)

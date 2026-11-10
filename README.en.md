@@ -1,4 +1,4 @@
-> Source version 0.8.0 adds durable backend input admission and queues, exact receipt lookup, file browsing and revision-bound attachments, recorded diffs and guarded restoration, task plans with execution evidence, and verified DeepSeek Flash thinking/tool compatibility. Predictable writes continue during the model stream; unknown side effects stop automatic continuation. This source version has not been published to npm; the existing registry release is 0.5.1. See [desktop guide](docs/desktop.md), [handoff and evidence](docs/v0.8-handoff.md), [architecture](DESIGN.md) and [roadmap](docs/harness-roadmap.md).
+> Version 0.8.0 adds durable backend input admission and queues, exact receipt lookup, file browsing and revision-bound attachments, recorded diffs and guarded restoration, task plans with execution evidence, and verified DeepSeek Flash thinking/tool compatibility. The CLI preview is published on npm's `next` channel; `latest` remains 0.5.1. See [desktop guide](docs/desktop.md), [handoff and evidence](docs/v0.8-handoff.md), [architecture](DESIGN.md) and [roadmap](docs/harness-roadmap.md).
 
 # Xuxiang ThinkFlow
 
@@ -43,6 +43,8 @@ model stream
 ```
 
 Information tools produce new reasoning input; predictable side-effect tools usually produce execution receipts. Declare independent reads in one generation, then decide from the complete batch. Once changes are known, emit file operations and their checks in the same generation. The existing FIFO preserves order. Read only relevant information, keep first results and real errors, and avoid repeated checks after success.
+
+Current source keeps original user requests separate from the compacted view. The current input stays verbatim; earlier requests can be retrieved by reference and character range with `recall`. Repeated compaction retains structured entries instead of clipping the previous summary again, without a summarization API call. Recall instructions are added only when available. In two DS Flash recovery probes, both new artifacts passed all nine independent checks; the old compactor's artifacts passed four and five. See the [implementation and evidence](docs/long-context-20261110.md) for quality results and raw usage. This change is not included in npm 0.8.0.
 
 ## Installation
 

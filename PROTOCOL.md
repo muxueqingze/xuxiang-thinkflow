@@ -1,6 +1,6 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.6
+> 版本：1.7
 > 日期：2026-11-10
 
 ---
@@ -62,6 +62,9 @@
 | `path` | read/write/append/mkdir/touch/copy/edit 必需 | — | 文件/目录路径。 |
 | `dest` | copy 必需 | — | 复制目标路径。 |
 | `cmd` | bash 必需 | — | Shell 命令。 |
+| `ref` | recall 必需 | — | 会话内原始用户要求引用，如`request:1`。 |
+| `offset` | recall 可选 | `0` | 非负字符偏移。 |
+| `limit` | recall 可选 | `8000` | 回取字符数，范围1至200000。 |
 | `need_result` | 否 | `false` | `true` 时触发强制打断，执行后立即把结果返回模型。 |
 | `injected` | 否 | `0` | 0=未注入全局上下文，1=已注入。由解析器维护，模型输出时填 0 或省略。 |
 
@@ -73,7 +76,7 @@ ThinkFlow 不把所有工具都旁路化。工具按执行语义分流：
 | flow | 含义 | 默认工具 |
 |------|------|----------|
 | `delayed` | 可预测副作用，不需要中间观察结果，默认不中断推理 | `write`、`append`、`mkdir`、`touch`、`copy`、`edit` |
-| `blocking` | 独立调用集中声明，完整批次结果返回后再判断 | `read`、`bash`、`python`、搜索、联网、skills、custom command tools |
+| `blocking` | 独立调用集中声明，完整批次结果返回后再判断 | `read`、`recall`、`bash`、`python`、搜索、联网、skills、custom command tools |
 | `confirm` | 必须经反馈边界处理的扩展工具类型 | 由工具注册表声明 |
 
 `flow` 与 `risk` 是两个维度；bash 是 blocking 且 high risk。`security.approval_mode` 提供 `auto`、`approve_all`、`request_all`；桌面 balanced 模式对高风险工具逐次询问，批准只对当前调用生效。CLI 保留原策略，没有桌面授权回调时返回明确的未授权错误。路径约束与命令过滤不等于操作系统沙箱。
@@ -186,11 +189,20 @@ print("checked")
 
 正文是多行Python源码，经stdin交给独立解释器；不经过shell转义、不创建临时脚本。与bash共用cwd、输出捕获、权限、超时和取消；Python子进程固定UTF-8模式及标准输入输出编码，与代码通道和结果解码一致，shell仍沿用项目环境。每次调用无持久变量。Python用于数据处理与集中检查，产物修改用受版本管理的文件工具。默认批次反馈，`need_result=true`立即反馈。
 
-### 4.9 原生 tool_use
+### 4.9 recall
+
+```xml
+<tf-recall id="N" ref="request:1" offset="0" limit="8000" />
+```
+
+只读回取本会话记录的原始用户要求，范围按字符计算；结果包含总长度和下一偏移。request编号按实际用户输入顺序递增，provider的工具观察不占编号。附件展开内容与用户原文分开保存，recall返回用户原文。独立回取可与read同批声明，结果沿用信息批次反馈。只有压缩后才默认注入recall说明与原生schema；显式工具名单或load_tools也可开放原生接口。
+
+### 4.10 原生 tool_use
 
 传统tool_call通道由`ToolRegistry`动态注册。显式启用后，首批开放read/write/edit/bash/python/read_skill/load_tools；其余从同一registry按需load_tools，显式native_tools名单优先。完整工具能力包括：
 
 - 文件/命令：`read`、`list_files`、`glob`、`grep`、`bash`、`python`、`write`、`append`、`edit`、`mkdir`、`touch`、`copy`
+- 原始要求：`recall`，压缩后默认开放
 - 联网：`web_search`、`fetch_url`
 - 多模态插口：`image_generate`
 - Skill：`list_skills`、`read_skill`
@@ -220,7 +232,7 @@ print("checked")
 
 ```
 IDLE → 检测到 '<' → 可能是命令开始
-     → 检测到 '<tf-read' / '<tf-write' / '<tf-append' / '<tf-bash' / '<tf-mkdir' / '<tf-touch' / '<tf-copy' / '<tf-edit' / '<tf-python' → TAG_OPEN
+     → 检测到 '<tf-read' / '<tf-recall' / '<tf-write' / '<tf-append' / '<tf-bash' / '<tf-mkdir' / '<tf-touch' / '<tf-copy' / '<tf-edit' / '<tf-python' → TAG_OPEN
      → 其他 → 回到 IDLE
 
 TAG_OPEN → 读取属性直到 '>' 或 '/>'
@@ -240,7 +252,7 @@ COMMAND_READY → 输出命令对象 → 回到 IDLE
 
 开始标签 + 属性：
 ```python
-TAG_OPEN = r'<tf-(?P<tool>read|write|append|mkdir|touch|copy|bash|edit|python)\s+(?P<attrs>[^>]*?)(?P<self_close>/?)>'
+TAG_OPEN = r'<tf-(?P<tool>read|recall|write|append|mkdir|touch|copy|bash|edit|python)\s+(?P<attrs>[^>]*?)(?P<self_close>/?)>'
 ```
 
 属性提取：
@@ -255,7 +267,7 @@ ATTR_INJECTED = r'injected="(?P<injected>[01])"'
 
 结束标签：
 ```python
-TAG_CLOSE = r'</tf-(?P<tool>read|write|append|mkdir|touch|copy|bash|edit|python)>'
+TAG_CLOSE = r'</tf-(?P<tool>read|recall|write|append|mkdir|touch|copy|bash|edit|python)>'
 ```
 
 edit 子标签：
@@ -327,11 +339,11 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 - need_result 命令：结果详细注入（stdout/stderr/exit_code 或写入详情），并立即进入下一轮。
 ## 八、上下文压缩
 
-长程会话默认启用确定性 auto-compact。压缩不调用模型，不引入不可检查的语义改写；框架只把较旧的 `messages` 汇总成一条普通 user 消息，并保留最近消息原文。
+长程会话默认启用确定性auto-compact，无需模型摘要调用。真实用户要求在run入口独立记录，当前执行输入完整保留一次，最近消息保留原文；旧消息转换为有预算的摘要条目，连续压缩只摘录新增历史，不把上次渲染的摘要再当成普通消息裁剪。
 
-压缩消息以 `[THINKFLOW COMPACTED CONTEXT]` 开头，包含被压缩消息数量、角色、tool_call id、内容片段等。为了保持 OpenAI-compatible tool message 合法性，压缩边界不会把 `tool` result 单独留下。
+压缩消息以`[THINKFLOW COMPACTED CONTEXT]`开头，包含累计压缩数量、角色、tool_call id、内容片段与可回取的request范围。原文、引用和摘要状态随snapshot恢复与fork保存；旧快照不从provider消息猜造原始要求。压缩边界保持OpenAI和Anthropic工具调用与结果配对。
 
-摘录会丢失细节。已反馈的账本最多保留4096条，正文/输出保留总预算约200万字符；被裁剪处有明确标记，hash与摘要保留，未反馈结果不丢弃。桌面展示最近120条消息和500条回执，单条长消息显示末尾32000字符，完整展示对话可导出。它不是文件版本仓库。
+摘要遗漏的用户要求可用recall按范围回取；工具输出的持久原文归档属于后续能力。已反馈的账本最多保留4096条，正文/输出保留总预算约200万字符；被裁剪处有明确标记，hash与摘要保留，未反馈结果不丢弃。桌面展示最近120条消息和500条回执，单条长消息显示末尾32000字符，完整展示对话可导出。实现与质量证据见[长程上下文记录](docs/long-context-20261110.md)。
 
 ---
 
@@ -339,6 +351,7 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.7 | 2026-11-10 | 原始要求独立留存、当前输入完整保留、结构化增量摘录与按范围recall；不增加摘要模型调用。 |
 | 1.6 | 2026-11-10 | 工具协议由AgentLoop默认注入；工程指引可替换/关闭；工作区规则独立，桌面三模式与实际提示预览。 |
 | 1.5 | 2026-11-10 | 默认流式协议、独立信息调用整批反馈、tf-python、与有效配置同步的指引；保留即时依赖与失败边界。 |
 | 1.4 | 2026-09-29 | 强制信息边界、native去重/失败短路、取消清理、实例事件、运行限额、桌面意图恢复与授权。 |

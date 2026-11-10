@@ -758,7 +758,7 @@ class DesktopService:
                     from .workspace import WorkspaceView
                     view = WorkspaceView(self.cwd, executor=getattr(self.agent, "executor", None))
                     await asyncio.to_thread(view.grant_attachment_baselines, command["attachments"])
-            await self.agent.run(prompt)
+            await self.agent.run(prompt, user_request=command['prompt'] if command_id else prompt)
             self.last_error = self.agent.last_error
             self.status = "error" if self.last_error else "idle"
         except asyncio.CancelledError:

@@ -1,34 +1,27 @@
 # ThinkFlow 执行效率 · 当前接力
 
-更新：2026-11-10。分支`codex/thinkflow-efficient-execution`。工程质量节点已收口：保留四处确定的harness修复；新增扩展指引未证明稳定收益，默认恢复5fdffac精简正文，扩展方法留作可选示例/skill。历史工程对照继续固定在`40dfa30`：双方各6份完整交付，ThinkFlow34请求/178804token，Pi48请求/至少459820token，总token至少减少61.11%，请求减少29.17%。
+更新：2026-11-10。当前节点完成原始要求留存、增量摘录与按范围recall。目标是长任务压缩后仍按原要求交付；不增加摘要模型调用，默认工程指引保持精简。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
 
-## 当前实现
+## 当前成果
 
-- 扩展工程原则包括先找再写、单一权威、契约内实现、有效断言、实际产物与短接力，保留为[可选示例](prompts/engineering-guidance.md)和skill；默认保持精简，协议仍核心注入。具体来源及全部试跑见[工程改进记录](engineering-quality-20261110.md)。
-- 只有完整合法命令占用id；专用Python使用UTF-8而shell环境保持；压缩保留两种API工具调用/结果整组；孤立tf结束标记进入原协议恢复链，成功操作不重放。
-- `src/prompts.py`分别维护执行协议与推荐工程指引；AgentLoop请求入口默认注入协议，用户自定义或关闭指引均保留协议。原生协议按已注册且实际开放的工具生成。
-- CLI的system_prompt/--system-prompt替换推荐指引，--no-system-prompt关闭工程/用户指引；工作区规则独立由context.enabled控制。桌面提供推荐／自定义／关闭，沿用原配置字段，--print-system-prompt显示实际合成结果。
-- 默认tf-*连续执行；独立read/bash/python集中声明、整批反馈；显式need_result/confirm、真实失败、取消和unknown保持原边界。
-- tf-python复用stdin执行器；首次结果完整保留，精确正文去重，必要reasoning不删改。没有新增验收门禁、batch语言或并行调度器。
-- CLI/桌面保留原生开关，配置保存与provider切换指引一致；DeepSeek文本模式显式tool_choice=none。
-- 空正文stop及DSML控制开闭标记进入原错误反馈，文件正文/围栏/inline例子不误执行；Pi观察器按最后一轮状态结束，同时保留历史错误事件。
+- `src/conversation.py`独立记录真实用户要求及request引用；当前执行输入完整保留一次，桌面附件展开与用户原文分开保存。原文与摘要状态随snapshot、fork和配置切换保存。
+- `src/compaction.py`沿用结构化摘要条目，只摘录新增历史；两种provider的工具调用/结果保持配对。压缩后默认开放recall，文本/原生共用回取实现，独立信息仍同批反馈。
+- 默认tf-*连续执行、tf-python、精确正文去重与可替换工程指引保持。协议由核心注入；用户自定义或关闭工程指引不移除协议。可选方法见[工程示例](prompts/engineering-guidance.md)。
+- 本轮实现、复现、保留位置和边界见[长程上下文记录](long-context-20261110.md)，代码入口见[代码地图](代码地图.md)。
 
-## 结果与验证
+## 证据
 
-- GitHub失败邮件已定位：最近20次CI有4次失败，2次为已修复的浅克隆缺基线，另外2次涉及测试竞态。PID发布改为写完再原子替换，流内完成测试改用真实事件同步；3项定向检查通过，产品执行链保持原样。见[CI原因与修复](ci-failures-20261110.md)。
-- 最终ThinkFlow六份来自go-stream-final-20261110，Pi六份来自go-stream-batch-final-20261110。Pi receipt-r2连接失败后实际恢复完成，旧观察器误标accepted=false；原件保留。1条ConnectError没有usage，所以Pi总量用下限。
-- 12份最终实现、最后修改后的公开/附加检查、收尾、原始用量及54份公开源码数据已独立核验。每个对应样本TF总token均更低；恢复成本全部计入。
-- 工程质量节点完整parser19/core82/249项unittest通过；独立定向复核拒绝/修正/镜像编号、真实Unicode子进程与shell隔离、两种Anthropic压缩切点及普通用户文本。见[工程审查](reviews/engineering-quality-20261110.md)和[完整日志](evidence/efficiency-20261110/engineering-quality-full.txt)。
-- 孤立closer追加后37项定向与独立CLI/headless复核通过，63ca6c5的push/PR CI通过。两轮真实试跑共42请求/415705token：首组0/3完整交付；第二组生产判题3/3、完整交付1/3。所有样本和成本保留，不据此宣称新增指引节省或提高质量。
-- 独立复核关闭/自定义、snapshot恢复、桌面替换Agent、实际工具名单与双provider schema一致；唯一P2已修复并复核。见[分层审查](reviews/prompt-layers-20261110.md)及[完整运行日志](evidence/efficiency-20261110/prompt-layers-full.txt)。本节点不重跑付费效率基准，61.11%仍对应原冻结源码。
-- [结果报告](efficiency-results-20261110.md)、[方向评估](efficiency-direction-20261109.md)、[最终审查](reviews/efficiency-final-20261110.md)、[机器计量](evidence/efficiency-20261110/comparison.json)。
+- 全套parser 19/core 82/unittest 259项通过。独立验收覆盖真实桌面状态链、100次连续压缩、300次混合历史及JSON恢复。原生recall不给正文的P1已修复并按双provider原失败路径复核；之后显式load_tools的过滤问题以同一接口检查复核。见[定向审查](reviews/long-context-20261110.md)。
+- Go DS Flash两种恢复场景、旧/新压缩方案共4份产物：独立9项复核由4/9、5/9改善为9/9、9/9。API请求6→5、5→7；token 18,290→≥22,752、15,930→39,496。该探针证明要求保真收益，不更新Pi效率结论。全部源码、用量与原始判题见[证据](evidence/long-context-20261110.json)。
+- 历史三题对照固定于`40dfa30`：双方各6份完整交付，ThinkFlow 34请求/178,804token，Pi 48请求/至少459,820token，总token至少减少61.11%。原件与全部探索记录保留，见[效率结果](efficiency-results-20261110.md)、[工程质量记录](engineering-quality-20261110.md)。
+- 之前GitHub失败为浅克隆缺基线与两处测试竞态，已修复；`ee48f51`的push/PR CI通过。后续最终提交由CI运行现有完整检查，原因见[CI记录](ci-failures-20261110.md)。
 
 ## 交付与保留
 
-GitHub源码入口为既有草稿[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)，head为codex/thinkflow-desktop-v06。按主人本次明确授权，0.8.0 CLI已发布至npm的next通道，并创建[GitHub预发布](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.8.0)，tag指向6d85c06。两处提供同一份已安装验证的tarball，校验见[发布记录](evidence/npm-0.8.0.json)。latest仍为0.5.1；草稿未合并，Windows便携包仍是旧构建，v0.8版本级待Pro终审。
+[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)已转为正式审查，未合并。npm `xuxiang-agent@0.8.0`已发布`next`通道，GitHub [v0.8.0预发布](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.8.0)仍对应`6d85c06`；两者不包含本轮新源码，`latest`仍为0.5.1。发布校验见[记录](evidence/npm-0.8.0.json)，Windows便携包仍是旧构建，v0.8版本级待Pro终审。
 
-18次探索任务和6次单请求回放另存[探索证据](evidence/efficiency-20261110/exploration.json)，不替换最终值或重复计费。历史11-09及原六题/前端/小说报告保留。原始workspace、meter、events、harness、manifest留在本机bench/efficiency_20261011/artifacts/供复现；公开源码是[惰性JSON](evidence/efficiency-20261110/workspaces.json)。
+本轮每个真实样本和离线产物复核结束即清理临时目录，客户端和测试进程已结束；只保留`bench/long_context_20261110/run.py`、正式回归和docs证据。历史benchmark工作区/计量/事件继续作为复用证据保留在`bench/efficiency_20261011/artifacts/`；原接手备份在`.git/thinkflow-pending-20261109.patch`及`.zip`。无新增依赖、PATH或Codex登录改动，密钥不进入项目。
 
-全部本轮隔离profile及bytecode已回收，清单在evidence对应cleanup文件；实验与测试进程均结束。baseline/为复用输入；接手前备份仍在.git/thinkflow-pending-20261109.patch及.zip。无新依赖、PATH、Codex登录改动，密钥未进入项目。
+## 下一步
 
-下一阶段明确方向：用户原始要求/修订独立于压缩摘要保存；超长命令输出和已引用回执可按需回取原文。原文生命周期与会话存储统一设计，验收覆盖长消息中部约束、二次压缩/恢复、尾部诊断及取消/超时。自动ID保留为需先解决镜像/合法重复身份的设计项。
+完整工具输出持久归档与按范围回取：已复现进程8万字符上限丢尾部，以及已反馈账本再次8千字符裁剪。按实际SessionStore归属设计恢复、fork、导出与清理，验证尾部诊断、取消/超时；不要用agent.session_id代替分支存储身份。完整长任务与Pi的新对照在该能力可用后再做。自动ID仍须先解决镜像和合法重复身份，不直接放宽现有去重。

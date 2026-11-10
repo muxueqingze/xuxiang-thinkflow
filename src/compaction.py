@@ -11,6 +11,8 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from .conversation import ConversationContext
+
 
 COMPACTION_HEADER = "[THINKFLOW COMPACTED CONTEXT]"
 
@@ -58,6 +60,7 @@ def compact_messages(
     config: CompactionConfig,
     *,
     force: bool = False,
+    history: ConversationContext | None = None,
 ) -> tuple[list[dict[str, Any]], CompactionStats]:
     """Compact messages if limits are exceeded.
 
@@ -92,9 +95,45 @@ def compact_messages(
     if not older:
         return list(messages), stats
 
-    summary = _build_summary(older, config)
-    compacted = [{"role": "user", "content": summary}] + list(recent)
+    history = history if history is not None else ConversationContext()
+    entries = list(history.summary_entries)
+    count = history.compacted_messages
+    current_position = next((position for position, ref in history.request_positions.items()
+                             if ref == history.current_ref), None)
+    pin_current = current_position is not None and current_position < split_at
+    for position, message in enumerate(older):
+        if position == 0 and history.summary and message.get("content") == history.summary:
+            continue
+        if pin_current and position == current_position:
+            # with_observation only appends to the admitted input. Keep the user
+            # input verbatim and summarize the appended observations separately.
+            suffix = message["content"][len(history.current_input):].strip()
+            if not suffix:
+                continue
+            message = {"role": "observation", "content": suffix}
+        count += 1
+        entry = _message_to_summary_line(count, message, config.max_item_chars)
+        if position in history.request_positions and position != current_position:
+            entry = f"{history.request_positions[position]} | {entry}"
+        entries.append(entry)
+
+    summary, kept_entries = _build_summary(entries, config, count=count, history=history)
+    prefix = [{"role": "user", "content": summary}]
+    if pin_current:
+        prefix.append({"role": "user", "content": history.current_input})
+    compacted = prefix + list(recent)
     after_chars = estimate_message_chars(compacted)
+
+    if compacted == messages:
+        return list(messages), stats
+    history.summary_entries = kept_entries
+    history.summary = summary
+    history.compacted_messages = count
+    positions = {position - split_at + len(prefix): ref
+                 for position, ref in history.request_positions.items() if position >= split_at}
+    if pin_current:
+        positions[1] = history.current_ref
+    history.request_positions = positions
 
     return compacted, CompactionStats(
         changed=True,
@@ -120,18 +159,20 @@ def _adjust_split_for_tool_messages(messages: list[dict[str, Any]], split_at: in
     return split_at
 
 
-def _build_summary(messages: list[dict[str, Any]], config: CompactionConfig) -> str:
+def _build_summary(entries: list[str], config: CompactionConfig, *, count: int,
+                   history: ConversationContext) -> tuple[str, list[str]]:
     lines = [
         COMPACTION_HEADER,
         "Older conversation history was compacted deterministically. No model summarized this text.",
-        f"Compacted messages: {len(messages)}",
-        "",
-        "Recent compacted entries:",
+        f"Compacted messages: {count}",
     ]
-
-    entries: list[str] = []
-    for index, message in enumerate(messages, start=1):
-        entries.append(_message_to_summary_line(index, message, config.max_item_chars))
+    if history.requests:
+        lines.extend([
+            f"Original user requests: request:1 through {history.current_ref}, in chronological order.",
+            f"Current request {history.current_ref} is retained verbatim below.",
+            "Use recall(ref) to retrieve earlier requirements or revisions missing from these excerpts.",
+        ])
+    lines.extend(["", "Recent compacted entries:"])
 
     budget = max(500, config.max_summary_chars - len("\n".join(lines)) - 80)
     kept: list[str] = []
@@ -155,7 +196,7 @@ def _build_summary(messages: list[dict[str, Any]], config: CompactionConfig) -> 
     if len(text) > config.max_summary_chars:
         tail = text[-config.max_summary_chars + 80 :]
         text = f"{COMPACTION_HEADER}\n... compacted summary clipped ...\n{tail}"
-    return text
+    return text, kept
 
 
 def _message_to_summary_line(index: int, message: dict[str, Any], max_chars: int) -> str:

@@ -44,6 +44,9 @@ class CommandRecord:
     evidence_ref: str = ""
     truncated: bool = False
     output_chars: int = 0
+    ref: Optional[str] = None
+    offset: int = 0
+    limit: int = 8000
 
     @staticmethod
     def _clip_text(text: str, max_chars: int = 4000) -> str:
@@ -71,6 +74,8 @@ class CommandRecord:
             attrs.append(f'path="{self.path}"')
         if self.dest:
             attrs.append(f'dest="{self.dest}"')
+        if self.tool == 'recall':
+            attrs.extend([f'ref="{self.ref}"', f'offset="{self.offset}"', f'limit="{self.limit}"'])
         if self.cmd and self.tool != "python":
             safe_cmd = self.cmd.replace('"', "'")
             attrs.append(f'cmd="{safe_cmd}"')
@@ -101,7 +106,7 @@ class CommandRecord:
             lines.append(f'<old>{old_text}</old>')
             lines.append(f'<new>{new_text}</new>')
             lines.append('</edit>')
-        elif self.tool in ("bash", "read", "python"):
+        elif self.tool in ("bash", "read", "python", "recall"):
             if self.tool == "python":
                 lines.extend([f'<python {attr_str}>', self.cmd or "", '</python>'])
             else:
@@ -181,6 +186,9 @@ class ContextManager:
             exit_code=result.exit_code,
             truncated=result.truncated,
             output_chars=len(result.stdout or result.content),
+            ref=command.ref,
+            offset=command.offset,
+            limit=command.limit,
         )
         self.records.append(rec)
         self.next_receipt_ref += 1
@@ -402,6 +410,8 @@ def _command_hash(command: Command) -> str:
         command.old_text or "",
         command.new_text or "",
     ]
+    if command.tool == 'recall':
+        parts.extend([command.ref or '', str(command.offset), str(command.limit)])
     payload = "\0".join(parts).encode("utf-8", errors="replace")
     return hashlib.sha256(payload).hexdigest()[:16]
 
