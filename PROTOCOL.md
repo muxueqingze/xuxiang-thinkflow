@@ -1,6 +1,6 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.5
+> 版本：1.6
 > 日期：2026-11-10
 
 ---
@@ -282,7 +282,11 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 ## 六、执行指引
 
-当前权威入口为`src/cli.py:resolve_system_prompt`，完整用法在`src/skills/thinkflow/SKILL.md`按需加载。自定义system_prompt替换内置指引；工作区约定仍按原配置追加。
+框架协议正文与推荐工程指引分别定义于`src/prompts.py`。`AgentLoop.build_system_prompt`根据当前真实工具集合默认注入协议，供CLI、桌面和直接嵌入调用共用。自定义或关闭工程指引均保留此协议。
+
+`src/cli.py:resolve_system_prompt`只选择工程/用户指引并加载工作区规则：非空`system_prompt`或`--system-prompt 文件`替换推荐工程指引；`use_builtin_system_prompt=false`且自定义为空时关闭推荐指引，`--no-system-prompt`关闭工程/用户指引。工作区规则独立由`context.enabled`控制。`--print-system-prompt`显示实际合成结果。桌面设置提供推荐／自定义／关闭，默认推荐。
+
+连续执行、信息合批、FIFO及need_result是框架能力与协议；项目风格、最小必要信息、验证方法和交付习惯是可选工程建议，不设强制验收门禁。完整用法在`src/skills/thinkflow/SKILL.md`按需加载。
 
 - 已知且独立的信息需求一起声明，例如同一轮输出三个tf-read，再结束生成。
 - 依据结果确定修改后，连续输出文件操作，并在同次生成末尾安排已经知道要做的检查。FIFO保证先落盘再检查。
@@ -334,6 +338,7 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.6 | 2026-11-10 | 工具协议由AgentLoop默认注入；工程指引可替换/关闭；工作区规则独立，桌面三模式与实际提示预览。 |
 | 1.5 | 2026-11-10 | 默认流式协议、独立信息调用整批反馈、tf-python、与有效配置同步的指引；保留即时依赖与失败边界。 |
 | 1.4 | 2026-09-29 | 强制信息边界、native去重/失败短路、取消清理、实例事件、运行限额、桌面意图恢复与授权。 |
 | 0.1 | 2026-06-29 | 初版。定义 write/mkdir/bash/edit 四种工具、XML 标签格式、状态机解析规则。 |

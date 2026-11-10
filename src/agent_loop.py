@@ -27,6 +27,7 @@ from .executor import Executor, ExecutionResult
 from .context import ContextManager, _command_hash
 from .streaming import EventType, StreamEvent
 from .provider import ProviderConfig, is_deepseek, openai_thinking_options, output_budget_options
+from .prompts import build_protocol_prompt
 from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
 from .compaction import CompactionConfig, CompactionStats, compact_messages, estimate_message_chars
@@ -75,7 +76,7 @@ def _as_int(value, default: int) -> int:
 class AgentConfig:
     """Agent 配置"""
     provider: ProviderConfig = field(default_factory=ProviderConfig)
-    system_prompt: str = ""
+    system_prompt: str = ""  # Optional user guidance/context; the protocol belongs to AgentLoop.
     cwd: str = "."
     verbose: bool = False
     max_read_chars: int = 200_000
@@ -639,7 +640,8 @@ class AgentLoop:
         Runtime state must not be appended to the system prompt, because changing
         the first message every turn prevents provider-side prompt cache hits.
         """
-        return self.config.system_prompt or ""
+        protocol = build_protocol_prompt(self._enabled_native_tool_names())
+        return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
     def build_runtime_status_message(self) -> dict:
         """Build per-request runtime state without persisting it in session history."""
@@ -741,12 +743,13 @@ class AgentLoop:
 
         allow = {name for name in p.native_tools if name}
         deny = {name for name in p.disabled_native_tools if name}
+        registered = {schema["name"] for schema in self.tool_registry.schemas()}
         if allow:
-            return allow - deny
+            return (allow - deny) & registered
         names = set(CORE_NATIVE_TOOLS) | self.additional_native_tools
         if self.native_write_fallback:
             names.update({"write", "append", "edit", "mkdir", "touch", "copy"})
-        names &= {schema["name"] for schema in self.tool_registry.schemas()}
+        names &= registered
         names -= deny
         return names
 

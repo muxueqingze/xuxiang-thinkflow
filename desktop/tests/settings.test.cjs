@@ -28,7 +28,7 @@ test('optional output budget follows provider protocol without injecting a defau
   assert.equal(normalizeConfig({ ...DEFAULTS, provider: 'anthropic', max_tokens: 8192 }).max_tokens, 8192);
 });
 
-test('native tools default off and both boolean choices survive configure, save and restart', t => {
+test('tool and engineering guidance choices survive configure, save and restart', t => {
   const source = fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8');
   const validateParams = vm.runInNewContext(source.slice(source.indexOf('function validateParams('), source.indexOf('function cleanError(')) + '\nvalidateParams');
   const files = new Map();
@@ -40,6 +40,9 @@ test('native tools default off and both boolean choices survive configure, save 
   assert.equal(DEFAULTS.enable_native_tools, false);
   const legacy = { ...DEFAULTS }; delete legacy.enable_native_tools;
   assert.equal(normalizeConfig(legacy).enable_native_tools, false);
+  delete legacy.use_builtin_system_prompt; delete legacy.system_prompt;
+  assert.equal(normalizeConfig(legacy).use_builtin_system_prompt, true);
+  assert.equal(normalizeConfig(legacy).system_prompt, '');
   const store = new SettingsStore('in-memory-settings', encrypted);
   for (const enabled of [true, false]) {
     const input = { ...DEFAULTS, enable_native_tools: enabled };
@@ -52,6 +55,20 @@ test('native tools default off and both boolean choices survive configure, save 
     assert.equal(restarted.backendConfig().enable_native_tools, enabled);
   }
   assert.throws(() => normalizeConfig({ ...DEFAULTS, enable_native_tools: 'false' }), /布尔值/);
+  for (const guidance of [
+    { use_builtin_system_prompt: true, system_prompt: '' },
+    { use_builtin_system_prompt: false, system_prompt: '  自定义指引\r\n保留原文与空白  ' },
+    { use_builtin_system_prompt: false, system_prompt: '' },
+  ]) {
+    const input = { ...DEFAULTS, ...guidance };
+    assert.doesNotThrow(() => validateParams('configure', input));
+    const prepared = store.prepare(input); store.save(prepared);
+    const restarted = new SettingsStore('in-memory-settings', encrypted); restarted.load();
+    for (const key of ['use_builtin_system_prompt', 'system_prompt']) {
+      assert.equal(prepared.backend[key], guidance[key]);
+      assert.equal(restarted.backendConfig()[key], guidance[key]);
+    }
+  }
 });
 test('encryption failure refuses to persist plaintext', () => {
   const store = new SettingsStore(path.join(os.tmpdir(), 'thinkflow-unused'), { isEncryptionAvailable: () => false });

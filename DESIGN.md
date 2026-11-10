@@ -1,6 +1,6 @@
 # 续想 ThinkFlow · v0.8 架构
 
-更新于2026-11-10。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.5 与源码为准。
+更新于2026-11-10。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.6 与源码为准。
 
 ## 核心判断
 
@@ -43,7 +43,8 @@ CLI / Electron desktop
 
 | 模块 | 职责 |
 |---|---|
-| `agent_loop.py` | provider 调用、反馈边界、FIFO 生命周期、运行限额 |
+| `agent_loop.py` | provider调用、核心协议注入、反馈边界、FIFO生命周期、运行限额 |
+| `prompts.py` | 分开维护框架协议与推荐工程指引，协议按真实工具集合生成 |
 | `parser.py / text_filter.py` | 完整命令解析、显示过滤、围栏保护 |
 | `executor.py / security.py` | 文件动作、shell与原生Python代码块；共用进程输出、取消及权限策略 |
 | `tool_registry.py / interfaces.py` | 工具schema、分流/风险、自定义接口 |
@@ -87,7 +88,7 @@ update_plan将步骤、验收条件和工具回执引用存入agent快照。完�
 
 CLI和桌面默认使用tf-*文本协议；CLI的`--native-tools`、桌面设置的原生工具开关或显式`enable_native_tools=true`启用原生兼容能力。原生模式首批schema包含read/write/edit/bash/python/read_skill/load_tools；搜索、计划、联网和扩展工具从同一registry由load_tools(names)按需开放，会话及快照保留已加载名称。显式native_tools名单优先，disabled_native_tools继续生效。原生多个调用同批提交、一次反馈；其回执仍标记blocking。独立嵌入调用的ProviderConfig保留原生默认，应用入口负责默认策略。
 
-工具声明与内置指引使用同一有效配置，CLI切换provider时同步指引并保留工作区上下文。DeepSeek文本模式显式发送tool_choice=none，原生模式发送auto。返回独立行上的DSML控制标记（含未闭合开头）或空正文stop且无已执行命令时，记录provider_protocol_error并进入原有错误反馈；不把空响应当完成，也不执行DSML。供应商要求的reasoning不删改。提前关闭供应商流可能收不到最终usage，界面标明用量不完整。
+工具协议由AgentLoop在请求前按真实开放工具生成，CLI切换provider无需改写用户提示。推荐工程指引默认启用，可由system_prompt/文件替换或关闭；工作区规则独立按context配置加载。桌面使用相同两字段保存推荐／自定义／关闭。用户提示不会替换框架协议。DeepSeek文本模式显式发送tool_choice=none，原生模式发送auto。返回独立行上的DSML控制标记（含未闭合开头）或空正文stop且无已执行命令时，记录provider_protocol_error并进入原有错误反馈；不把空响应当完成，也不执行DSML。供应商要求的reasoning不删改。提前关闭供应商流可能收不到最终usage，界面标明用量不完整。
 
 2026-11-09 的效率实现：未反馈的命令载荷和执行器输出完整保留；模型请求先完成历史压缩，再按最终有效历史精确去重成功写入正文。DeepSeek携带tools时保留完整reasoning；未携带tools时不把其忽略的reasoning当成正文副本。runtime与待反馈账本合入末尾observation，不另造原生工具后的用户回合。已反馈的本机旧账本按原预算归档，与首次模型反馈分开。
 

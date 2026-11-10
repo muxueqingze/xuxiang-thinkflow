@@ -29,6 +29,7 @@ DEFAULT_CONFIG = {
     "provider": "openai", "base_url": "", "api_path": "", "model": "", "api_key": "",
     "max_tokens": None, "max_run_turns": 40, "max_run_seconds": 1800,
     "enable_native_tools": False,
+    "use_builtin_system_prompt": True, "system_prompt": "",
     "security_profile": "balanced",
     "thinking_mode": "disabled", "reasoning_effort": "high", "stream_options_include_usage": True,
 }
@@ -302,7 +303,9 @@ class DesktopService:
             raise ValueError("无效思考模式或推理强度。")
         if type(config["stream_options_include_usage"]) is not bool:
             raise ValueError("用量流选项须为布尔值。")
-        for field in ("base_url", "api_path", "model", "api_key"):
+        if type(config["use_builtin_system_prompt"]) is not bool:
+            raise ValueError("工程指引选项须为布尔值。")
+        for field in ("base_url", "api_path", "model", "api_key", "system_prompt"):
             if not isinstance(config[field], str):
                 raise ValueError(f"{field} 须为文本。")
         if config["base_url"]:

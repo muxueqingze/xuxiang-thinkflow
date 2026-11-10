@@ -181,9 +181,15 @@ Interactive slash commands include:
 - [Citation Metadata](CITATION.cff)
 - [Security Policy](SECURITY.md)
 
+## System prompts
+
+The core always injects the tool protocol. Recommended engineering guidance is optional: replace it with `--system-prompt my-guidance.md` or `system_prompt`, or disable it with `--no-system-prompt` / `use_builtin_system_prompt=false` and an empty custom prompt. Workspace rules are controlled separately by `context.enabled`. The desktop offers Recommended, Custom and Off; keeping the recommendation is the default. `--print-system-prompt` shows the actual composed prompt. Both layers are maintained separately in `src/prompts.py`.
+
+The 61.11% benchmark remains pinned to source commit 40dfa30; the subsequent prompt separation preserves those historical results.
+
 ## Benchmark
 
-See the [2026-11-10 streaming/batch comparison](docs/efficiency-results-20261110.md) for the current source. The [2026-11-09 native-mode results](docs/efficiency-results-20261109.md) and the older six-task report below remain separate historical comparisons.
+See the [2026-11-10 streaming/batch comparison](docs/efficiency-results-20261110.md) for the measured streaming implementation. The [2026-11-09 native-mode results](docs/efficiency-results-20261109.md) and the older six-task report below remain separate historical comparisons.
 
 The 2026-09-29 [production configuration benchmark](bench/harness_benchmark_20260929/reports-production/README.md) omits client output budgets and disables automatic history compaction and experiment run/request/continuation limits. ThinkFlow (91e4911), Pi 0.87.1 and OpenCode 1.18.33 used official DeepSeek Flash high on the same six tasks twice. Each completed 12/12 valid samples. Total tokens were 3,845,627, 1,397,532 and 1,732,556; mean times were 105.38, 54.62 and 59.90 seconds. **That earlier ThinkFlow version had no overall efficiency advantage on those six tasks.** Claude Code was not used.
 

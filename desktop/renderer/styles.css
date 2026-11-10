@@ -181,7 +181,9 @@ dialog form{display:flex;flex-direction:column;max-height:calc(100vh - 64px);ove
 .form-grid .wide{grid-column:1/-1}
 .form-grid.three{grid-template-columns:1fr 1fr 1fr}
 label{font-size:12px;font-weight:500;display:block}
-input:not([type=checkbox]),select{display:block;width:100%;height:40px;border:1px solid #d7d5ce;border-radius:6px;background:#fff;color:var(--ink);padding:8px 12px;margin-top:8px;font-size:13px}
+input:not([type=checkbox]),select,#settings-form textarea{display:block;width:100%;height:40px;border:1px solid #d7d5ce;border-radius:6px;background:#fff;color:var(--ink);padding:8px 12px;margin-top:8px;font-size:13px}
+#settings-form textarea{height:auto;line-height:1.7;resize:vertical}
+#custom-engineering-guidance{margin-top:16px}
 input::placeholder{color:#99958b;font-size:12px}
 .optional{font-size:10px;font-weight:400;color:var(--muted);margin-left:8px}
 .field-hint{display:block;font-size:10px;color:var(--muted);line-height:1.8;margin-top:8px;font-weight:400}

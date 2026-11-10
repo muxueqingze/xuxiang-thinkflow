@@ -44,6 +44,7 @@ from src import interfaces
 from src.model_registry import choose_model, merge_active_provider, provider_catalog, resolve_auto_model
 from src.parser import Command, StreamingParser
 from src.provider import ProviderConfig
+from src.prompts import STREAM_PROTOCOL_PROMPT
 from src.streaming import EventType, SSEStreamProcessor
 from src.security import SecurityPolicy
 from src.session import SessionStore
@@ -468,16 +469,18 @@ def test_agent_keeps_system_prompt_stable_and_appends_runtime_status():
     )
     agent = AgentLoop(config)
     try:
-        assert agent.build_system_prompt() == ""
+        assert STREAM_PROTOCOL_PROMPT in agent.build_system_prompt()
         agent.config.system_prompt = "custom"
-        assert agent.build_system_prompt() == "custom"
+        composed = agent.build_system_prompt()
+        assert composed.endswith("custom")
+        assert composed.count(STREAM_PROTOCOL_PROMPT) == 1
         agent.context.next_stamp = 41
         body1 = agent.build_request_body(agent.build_system_prompt())
         agent.context.next_stamp = 42
         body2 = agent.build_request_body(agent.build_system_prompt())
         assert body1["messages"][:-1] == body2["messages"][:-1]
-        assert body1["messages"][0] == {"role": "system", "content": "custom"}
-        assert body2["messages"][0] == {"role": "system", "content": "custom"}
+        assert body1["messages"][0] == {"role": "system", "content": composed}
+        assert body2["messages"][0] == {"role": "system", "content": composed}
         assert "41" in body1["messages"][-1]["content"]
         assert "42" in body2["messages"][-1]["content"]
         assert body1["messages"][-1]["content"] != body2["messages"][-1]["content"]
@@ -859,19 +862,17 @@ def test_global_session_and_context_injection_use_thinkflow_home():
 def test_system_prompt_defaults_to_builtin_and_context_is_appended():
     assert resolve_system_prompt({"context": {"enabled": False}}) == BUILTIN_SYSTEM_PROMPT
     assert "\u6c90\u96ea\u6e05\u6cfd" not in BUILTIN_SYSTEM_PROMPT
-    # 协议骨架必须留在系统提示词里（模型不读 skill 也要会写 tf-* 标签），
-    # 工作方法/文件归纳迁移进内置 skill，提示词只保留指引。
-    assert '<tf-write ' in BUILTIN_SYSTEM_PROMPT
-    assert '<tf-python ' in BUILTIN_SYSTEM_PROMPT
-    native_prompt = resolve_system_prompt({'enable_native_tools': True, 'context': {'enabled': False}})
-    assert 'read_skill' in native_prompt
-    assert 'name="thinkflow"' in native_prompt
+    # User guidance is replaceable; AgentLoop owns protocol injection.
+    assert '<tf-write ' not in BUILTIN_SYSTEM_PROMPT
+    assert '<tf-python ' not in BUILTIN_SYSTEM_PROMPT
+    assert resolve_system_prompt({'enable_native_tools': True, 'context': {'enabled': False}}) == BUILTIN_SYSTEM_PROMPT
     assert "文件归纳整理" not in BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"use_builtin_system_prompt": True, "context": {"enabled": False}}) == BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"context": {"enabled": False}}, use_builtin=True) == BUILTIN_SYSTEM_PROMPT
     assert resolve_system_prompt({"system_prompt": "custom prompt", "context": {"enabled": False}}) == "custom prompt"
-    assert resolve_system_prompt({"disable_system_prompt": True}) == ""
-    assert resolve_system_prompt({}, disable_system_prompt=True) == ""
+    assert resolve_system_prompt({"use_builtin_system_prompt": False, "context": {"enabled": False}}) == ""
+    assert resolve_system_prompt({"disable_system_prompt": True, "context": {"enabled": False}}) == ""
+    assert resolve_system_prompt({"context": {"enabled": False}}, disable_system_prompt=True) == ""
 
     with tempfile.TemporaryDirectory() as tmp:
         path = os.path.join(tmp, "prompt.txt")

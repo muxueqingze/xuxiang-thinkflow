@@ -136,6 +136,18 @@ set THINKFLOW_API_KEY=...
 thinkflow --prompt "创建 hello.py"
 ```
 
+## 系统提示词
+
+工具协议由框架核心自动注入。工程方法提供推荐默认，用户可替换或关闭，工作区规则独立保留。推荐保持默认配置；自定义只改变工程指引与回答风格。
+
+```bash
+thinkflow --system-prompt my-guidance.md
+thinkflow --no-system-prompt
+thinkflow --print-system-prompt
+```
+
+配置中用`system_prompt`设置自定义正文；关闭推荐指引可设`use_builtin_system_prompt=false`并留空`system_prompt`。桌面「工程指引」提供推荐／自定义／关闭。协议和工程建议的权威正文分开存于`src/prompts.py`。61.11%的实测数据固定对应源码40dfa30；提示词分层保留该历史记录。
+
 ## Provider 与模型发现
 
 续想不绑定任何模型供应商。可以在 `config.json` 里配置多个命名 provider，让 agent 根据 URL/key 动态读取该 provider 的模型列表，并按偏好自动选择：
@@ -253,7 +265,7 @@ ThinkFlow保留25次与stream重叠的文件操作，但协议恢复、测试修
 - 命令 ledger、session 快照、`/resume` 历史恢复。
 - OpenAI-compatible 与 Anthropic-compatible 适配。
 - 原生工具注册层：read、grep、glob、bash、write、append、edit、web、skills 等。
-- **内置 `thinkflow` skill 随包分发**：完整 harness 使用指南（协议、分流、ledger、工作方法）以 skill 形式按需拉取，系统提示词只保留协议骨架与 `read_skill("thinkflow")` 指引；用户同名 skill 可覆盖内置。
+- **内置 `thinkflow` skill 随包分发**：完整 harness 使用指南（协议、分流、ledger、工作方法）以 skill 形式按需拉取，核心默认注入执行协议，工程指引可由用户替换或关闭；用户同名 skill 可覆盖内置。
 - 自动上下文压缩，避免长会话无限增长。
 - 模型目录发现与 provider profile。
 - Windows 友好的 CLI、测试与 CI。

@@ -305,6 +305,9 @@ function openSettings() {
   form.elements.namedItem('thinking_mode').value = state.config.thinking_mode || 'disabled';
   form.elements.namedItem('reasoning_effort').value = state.config.reasoning_effort || 'high';
   form.elements.namedItem('enable_native_tools').checked = state.config.enable_native_tools === true;
+  form.elements.namedItem('system_prompt').value = state.config.system_prompt ?? '';
+  $('engineering-guidance').value = state.config.system_prompt?.trim() ? 'custom' : state.config.use_builtin_system_prompt !== false ? 'recommended' : 'off';
+  updateEngineeringGuidance();
   form.elements.namedItem('api_key').value = '';
   form.elements.namedItem('api_key').disabled = false;
   form.elements.namedItem('clear_api_key').checked = false;
@@ -314,12 +317,14 @@ function openSettings() {
 }
 function closeSettings() { if (!busy) { $('settings-dialog').close(); $('settings-form').elements.namedItem('api_key').value = ''; } }
 function updatePolicy() { $('policy-description').textContent = policies[$('settings-form').elements.namedItem('security_profile').value]; }
+function updateEngineeringGuidance() { $('custom-engineering-guidance').hidden = $('engineering-guidance').value !== 'custom'; }
 async function chooseWorkspace() { await perform(() => api.chooseWorkspace(), { navigation: true }); }
 for (const id of ['workspace', 'setup-workspace']) $(id).addEventListener('click', chooseWorkspace);
 for (const id of ['settings-top', 'settings-side', 'setup-model', 'policy-button']) $(id).addEventListener('click', openSettings);
 for (const id of ['close-settings', 'cancel-settings']) $(id).addEventListener('click', closeSettings);
 $('settings-dialog').addEventListener('cancel', event => { if (busy) event.preventDefault(); else $('settings-form').elements.namedItem('api_key').value = ''; });
 $('settings-form').elements.namedItem('security_profile').addEventListener('change', updatePolicy);
+$('engineering-guidance').addEventListener('change', updateEngineeringGuidance);
 $('settings-form').elements.namedItem('clear_api_key').addEventListener('change', event => { $('settings-form').elements.namedItem('api_key').disabled = event.target.checked; });
 $('settings-form').addEventListener('submit', async event => {
   event.preventDefault(); $('settings-error').hidden = true;
@@ -328,6 +333,8 @@ $('settings-form').addEventListener('submit', async event => {
   values.max_tokens = values.max_tokens.trim() === '' ? null : Number(values.max_tokens);
   values.clear_api_key = event.currentTarget.elements.namedItem('clear_api_key').checked;
   values.enable_native_tools = event.currentTarget.elements.namedItem('enable_native_tools').checked;
+  values.use_builtin_system_prompt = $('engineering-guidance').value === 'recommended';
+  values.system_prompt = $('engineering-guidance').value === 'custom' ? event.currentTarget.elements.namedItem('system_prompt').value : '';
   values.thinking_mode = event.currentTarget.elements.namedItem('thinking_mode').value;
   values.reasoning_effort = event.currentTarget.elements.namedItem('reasoning_effort').value;
   const result = await perform(() => api.request('configure', values), { settings: true });
