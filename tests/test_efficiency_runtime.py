@@ -157,13 +157,30 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_same_stream_writes_then_real_shell_check(self):
         requests = []
+        writes_completed = asyncio.Event()
+
+        def record_event(event):
+            self.events.append(event)
+            if event['type'] == 'tool_completed' and event.get('id') == '2':
+                writes_completed.set()
+
+        self.agent.events.sink = record_event
+
+        class WriteBarrierSSE(SlowSSE):
+            async def __aiter__(self):
+                for index, frame in enumerate(self.frames):
+                    if index == 1:
+                        await asyncio.wait_for(writes_completed.wait(), 5)
+                    yield ('data: ' + json.dumps({'choices': [frame]}) + '\n\n').encode()
+                yield b'data: [DONE]\n\n'
+
         reasoning = ('<tf-write id="1" path="app.py">ANSWER = 42\n</tf-write>\n'
                      '<tf-write id="2" path="check.py">from app import ANSWER\nassert ANSWER == 42\nprint("passed")\n</tf-write>')
         def receive(request):
             body = json.loads(request.content)
             requests.append(body)
             if len(requests) == 1:
-                return httpx.Response(200, stream=SlowSSE([
+                return httpx.Response(200, stream=WriteBarrierSSE([
                     {'delta': {'reasoning_content': reasoning}},
                     {'delta': {'tool_calls': [{'index': 0, 'id': 'check', 'function': {
                         'name': 'bash', 'arguments': json.dumps({'cmd': 'python check.py'})}}]}},

@@ -112,7 +112,7 @@ class BoundedBashTests(unittest.IsolatedAsyncioTestCase):
             kernel.CloseHandle(handle)
 
     def hanging_command(self):
-        return self.command('import os, pathlib, sys, time\npathlib.Path("pid.txt").write_text(str(os.getpid()))\nsys.stdout.buffer.write(b"x" * (2 * 1024 * 1024))\nsys.stdout.flush()\nsys.stderr.buffer.write(b"y" * (2 * 1024 * 1024))\nsys.stderr.flush()\ntime.sleep(60)\n')
+        return self.command('import os, pathlib, sys, time\npid = pathlib.Path("pid.pending")\npid.write_text(str(os.getpid()))\npid.replace("pid.txt")\nsys.stdout.buffer.write(b"x" * (2 * 1024 * 1024))\nsys.stdout.flush()\nsys.stderr.buffer.write(b"y" * (2 * 1024 * 1024))\nsys.stderr.flush()\ntime.sleep(60)\n')
 
     async def test_timeout_kills_owned_child_and_settles_bounded_readers(self):
         result = await asyncio.wait_for(self.executor(bash_timeout_seconds=0.8, max_bash_output_chars=80).execute(self.hanging_command()), 4)
@@ -126,15 +126,19 @@ class BoundedBashTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_cancel_kills_owned_child_and_joins_readers(self):
         task = asyncio.create_task(self.executor(max_bash_output_chars=80).execute(self.hanging_command()))
-        deadline = asyncio.get_running_loop().time() + 3
-        while not (self.root / "pid.txt").exists():
-            self.assertLess(asyncio.get_running_loop().time(), deadline)
-            await asyncio.sleep(0.01)
-        pid = int((self.root / "pid.txt").read_text())
-        task.cancel()
-        with self.assertRaises(asyncio.CancelledError):
-            await asyncio.wait_for(task, 4)
-        self.assertFalse(self.alive(pid))
+        try:
+            deadline = asyncio.get_running_loop().time() + 3
+            while not (self.root / "pid.txt").exists():
+                self.assertLess(asyncio.get_running_loop().time(), deadline)
+                await asyncio.sleep(0.01)
+            pid = int((self.root / "pid.txt").read_text())
+            task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await asyncio.wait_for(task, 4)
+            self.assertFalse(self.alive(pid))
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
 
     async def test_exited_shell_with_inherited_child_pipes_cannot_hang_timeout_cleanup(self):
         command = self.command('import pathlib, subprocess, sys\nchild = subprocess.Popen([sys.executable, "-B", "-c", "import time; time.sleep(60)"])\npathlib.Path("child-pid.txt").write_text(str(child.pid))\n')

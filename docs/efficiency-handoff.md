@@ -15,6 +15,7 @@
 
 ## 结果与验证
 
+- GitHub失败邮件已定位：最近20次CI有4次失败，2次为已修复的浅克隆缺基线，另外2次涉及测试竞态。PID发布改为写完再原子替换，流内完成测试改用真实事件同步；3项定向检查通过，产品执行链保持原样。见[CI原因与修复](ci-failures-20261110.md)。
 - 最终ThinkFlow六份来自go-stream-final-20261110，Pi六份来自go-stream-batch-final-20261110。Pi receipt-r2连接失败后实际恢复完成，旧观察器误标accepted=false；原件保留。1条ConnectError没有usage，所以Pi总量用下限。
 - 12份最终实现、最后修改后的公开/附加检查、收尾、原始用量及54份公开源码数据已独立核验。每个对应样本TF总token均更低；恢复成本全部计入。
 - 工程质量节点完整parser19/core82/249项unittest通过；独立定向复核拒绝/修正/镜像编号、真实Unicode子进程与shell隔离、两种Anthropic压缩切点及普通用户文本。见[工程审查](reviews/engineering-quality-20261110.md)和[完整日志](evidence/efficiency-20261110/engineering-quality-full.txt)。
