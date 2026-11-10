@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "status": "review_complete",
+  "experiment": "go-engineering-quality-r2-20261110",
+  "source_commit": "63ca6c5",
+  "model": "deepseek-v4.1-flash",
+  "thinking": "enabled/high",
+  "parallel_jobs": 3,
+  "jobs": [
+    {
+      "id": "receipt_package-thinkflow-r1",
+      "task": "receipt_package",
+      "raw_accepted": true,
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "package_and_empty",
+            "passed": true
+          },
+          {
+            "check": "aggregate_then_round",
+            "passed": true
+          },
+          {
+            "check": "void_sort_and_whitespace",
+            "passed": true
+          },
+          {
+            "check": "validation_including_void",
+            "passed": true
+          },
+          {
+            "check": "generator_and_no_mutation",
+            "passed": true
+          },
+          {
+            "check": "cli_csv_utf8_and_quoting",
+            "passed": true
+          },
+          {
+            "check": "cli_invalid_keeps_output",
+            "passed": true
+          },
+          {
+            "check": "cli_missing_input_no_output",
+            "passed": true
+          }
+        ]
+      },
+      "delivery_complete": false,
+      "delivery_state": "verified_production_pending_cleanup",
+      "delivery_basis": "Production files and required checks passed; final legacy bash cleanup was not executed and no complete handoff followed.",
+      "usage": {
+        "prompt_tokens": 18666,
+        "cached_tokens": 11904,
+        "uncached_tokens": 6762,
+        "completion_tokens": 8558,
+        "reasoning_tokens": 5064,
+        "total_tokens": 27224,
+        "api_requests": 5,
+        "successful_requests": 5,
+        "usage_reported_requests": 5,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 5,
+        "reasoning_reported_requests": 5,
+        "abandoned_requests": 0,
+        "failed_requests": 0,
+        "cache_creation_tokens": 0,
+        "provider_input_excluding_cache_tokens": 0,
+        "protocol": "openai",
+        "input_usage_complete": true,
+        "totals_are_partial": false
+      },
+      "artifact": "bench/efficiency_20261011/artifacts/go-engineering-quality-r2-20261110/receipt_package-thinkflow-r1"
+    },
+    {
+      "id": "frame_decoder-thinkflow-r1",
+      "task": "frame_decoder",
+      "raw_accepted": true,
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "utf8_every_byte",
+            "passed": true
+          },
+          {
+            "check": "multiple_frames_embedded_delimiters",
+            "passed": true
+          },
+          {
+            "check": "maximum_zero_and_invalid_constructor",
+            "passed": true
+          },
+          {
+            "check": "illegal_headers_poison",
+            "passed": true
+          },
+          {
+            "check": "comma_and_utf8_errors",
+            "passed": true
+          },
+          {
+            "check": "oversize_rejected_before_payload",
+            "passed": true
+          },
+          {
+            "check": "eof_closed_and_type_errors",
+            "passed": true
+          },
+          {
+            "check": "deterministic_arbitrary_chunks",
+            "passed": true
+          }
+        ]
+      },
+      "delivery_complete": false,
+      "delivery_state": "implementation_passed_pending_check_repair",
+      "delivery_basis": "Production decoder passed public and hidden checks; final checks.py still contains incorrect expectations and was not rerun; no complete handoff.",
+      "usage": {
+        "prompt_tokens": 26802,
+        "cached_tokens": 16512,
+        "uncached_tokens": 10290,
+        "completion_tokens": 15613,
+        "reasoning_tokens": 7013,
+        "total_tokens": 42415,
+        "api_requests": 6,
+        "successful_requests": 6,
+        "usage_reported_requests": 6,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 6,
+        "reasoning_reported_requests": 6,
+        "abandoned_requests": 2,
+        "failed_requests": 0,
+        "cache_creation_tokens": 0,
+        "provider_input_excluding_cache_tokens": 0,
+        "protocol": "openai",
+        "input_usage_complete": true,
+        "totals_are_partial": false
+      },
+      "artifact": "bench/efficiency_20261011/artifacts/go-engineering-quality-r2-20261110/frame_decoder-thinkflow-r1"
+    },
+    {
+      "id": "pricing_refactor-thinkflow-r1",
+      "task": "pricing_refactor",
+      "raw_accepted": true,
+      "grade": {
+        "passed": true,
+        "checks_passed": 8,
+        "checks_total": 8,
+        "details": [
+          {
+            "check": "decimal_discount_and_bulk",
+            "passed": true
+          },
+          {
+            "check": "per_line_half_up_not_total_rounding",
+            "passed": true
+          },
+          {
+            "check": "report_aggregation_order_and_zero",
+            "passed": true
+          },
+          {
+            "check": "monetary_validation",
+            "passed": true
+          },
+          {
+            "check": "no_input_mutation",
+            "passed": true
+          },
+          {
+            "check": "shared_runtime_dependency",
+            "passed": true
+          },
+          {
+            "check": "legacy_api_and_empty",
+            "passed": true
+          },
+          {
+            "check": "deterministic_money_cases",
+            "passed": true
+          }
+        ]
+      },
+      "delivery_complete": true,
+      "delivery_state": "complete",
+      "delivery_basis": "Final production files were followed by public and self checks, then a complete final report without further edits.",
+      "usage": {
+        "prompt_tokens": 71743,
+        "cached_tokens": 58368,
+        "uncached_tokens": 13375,
+        "completion_tokens": 16166,
+        "reasoning_tokens": 8583,
+        "total_tokens": 87909,
+        "api_requests": 11,
+        "successful_requests": 11,
+        "usage_reported_requests": 11,
+        "usage_complete": true,
+        "unknown_usage_requests": 0,
+        "cache_usage_complete": true,
+        "cache_reported_requests": 11,
+        "reasoning_reported_requests": 11,
+        "abandoned_requests": 3,
+        "failed_requests": 0,
+        "cache_creation_tokens": 0,
+        "provider_input_excluding_cache_tokens": 0,
+        "protocol": "openai",
+        "input_usage_complete": true,
+        "totals_are_partial": false
+      },
+      "artifact": "bench/efficiency_20261011/artifacts/go-engineering-quality-r2-20261110/pricing_refactor-thinkflow-r1"
+    }
+  ],
+  "cleanup": {
+    "owned_profiles_recycled": [
+      "receipt_package-thinkflow-r1/profile",
+      "frame_decoder-thinkflow-r1/profile",
+      "pricing_refactor-thinkflow-r1/profile"
+    ],
+    "bytecode_found": false,
+    "process_exit_code": 0
+  },
+  "totals": {
+    "api_requests": 22,
+    "total_tokens": 157548,
+    "complete_deliveries": 1,
+    "jobs": 3
+  }
+}

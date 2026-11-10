@@ -148,7 +148,7 @@ thinkflow --print-system-prompt
 
 配置中用`system_prompt`设置自定义正文；关闭推荐指引可设`use_builtin_system_prompt=false`并留空`system_prompt`。桌面「工程指引」提供推荐／自定义／关闭。协议和工程建议的权威正文分开存于`src/prompts.py`。61.11%的实测数据固定对应源码40dfa30；提示词分层保留该历史记录。
 
-推荐工程指引包含按缺口读取、单一权威实现、契约内实现、有效断言与实际产物验证；[工程改进记录](docs/engineering-quality-20261110.md)说明具体问题、已处理的框架缺陷和长会话原文回取方向。
+默认保留精简工程指引。按缺口读取、单一权威实现、契约内实现、有效断言与实际产物验证另有[可选指引示例](docs/prompts/engineering-guidance.md)，可用`--system-prompt docs/prompts/engineering-guidance.md`取用；本轮试验未证明扩展指引有稳定收益。[工程改进记录](docs/engineering-quality-20261110.md)记录已修框架缺陷、全部试跑结果和长会话原文回取方向。
 
 ## Provider 与模型发现
 

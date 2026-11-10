@@ -187,7 +187,7 @@ The core always injects the tool protocol. Recommended engineering guidance is o
 
 The 61.11% benchmark remains pinned to source commit 40dfa30; the subsequent prompt separation preserves those historical results.
 
-The optional recommendation covers scoped information gathering, shared implementations, contract-based design, meaningful assertions and inspection of deliverables. The [engineering improvement record](docs/engineering-quality-20261110.md) documents corrected runtime defects and the next steps for retrieving original requirements and execution output in long sessions.
+The concise engineering default is retained. An [optional guidance example](docs/prompts/engineering-guidance.md) covers scoped information gathering, shared implementations, contract-based design, meaningful assertions and inspection of deliverables; load it with `--system-prompt docs/prompts/engineering-guidance.md`. The trials did not establish a consistent benefit from expanded guidance. The [engineering improvement record](docs/engineering-quality-20261110.md) retains all trial results, corrected runtime defects and the next steps for retrieving original requirements and execution output in long sessions.
 
 ## Benchmark
 
