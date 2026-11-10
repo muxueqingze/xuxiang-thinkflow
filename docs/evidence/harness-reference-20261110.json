@@ -1,0 +1,55 @@
+{
+  "date": "2026-11-10",
+  "kind": "deterministic output-capture and range-read component probe; no model requests",
+  "fixtures": {
+    "output_characters": 90026,
+    "output_bytes": 90030,
+    "output_description": "BEGIN newline, 90000 x characters, newline, TAIL_DIAGNOSTIC_中文 newline; identical UTF-8 byte stream, chunks of 997 bytes",
+    "file_lines": 3000,
+    "file_characters": 128993,
+    "file_description": "line=NNNN payload= plus 24 x characters; line 2500 instead has DECISION_REGION_中文; LF-joined with no terminal newline",
+    "requested_range": {
+      "first_line": 2498,
+      "lines": 6
+    },
+    "setup_correction": "Initial fixture write used Windows text newline translation. Repeated with explicit UTF-8 bytes so both capture implementations receive identical bytes; no model calls in either run."
+  },
+  "pi": {
+    "version": "1.0.1",
+    "output": {
+      "returned_characters": 18,
+      "truncated": true,
+      "tail_present": true,
+      "full_output_exact": true,
+      "stored_bytes": 90030
+    },
+    "read": {
+      "offset": 2498,
+      "limit": 6,
+      "returned_characters": 307,
+      "target_present": true,
+      "continuation_present": true
+    }
+  },
+  "thinkflow": {
+    "commit": "941b90a",
+    "output": {
+      "returned_characters": 80000,
+      "truncated": true,
+      "tail_present": false,
+      "full_output_stored_by_reader": false
+    },
+    "read": {
+      "returned_characters": 128993,
+      "target_present": true,
+      "truncated": false,
+      "success": true
+    }
+  },
+  "cleanup": {
+    "workspace_removed": true,
+    "method": "Recycle Bin after verifying the three owned files; both fixture rounds removed immediately",
+    "owned_processes_remaining": 0,
+    "retained": "This JSON only; upstream code inspected in memory or existing installed package"
+  }
+}
