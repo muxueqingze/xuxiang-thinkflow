@@ -121,7 +121,7 @@ class OutputRecallTests(unittest.IsolatedAsyncioTestCase):
         fork_store.save(fork.to_snapshot(), history=False)
         store.output_dir.rename(self.root / 'retired-parent.outputs')
         self.assertIn(original[19:54], await fork._recall_tool({'ref': 'receipt:1:stdout', 'offset': 19, 'limit': 35}))
-        self.assertEqual(fork.outputs.root, fork_store.output_dir)
+        self.assertTrue(fork.outputs.root.samefile(fork_store.output_dir))
         self.assertNotEqual(fork.outputs.root, restored.outputs.root)
 
     async def test_receipt_preview_clipping_preserves_native_read_deduplication(self):
