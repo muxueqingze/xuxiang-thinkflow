@@ -305,6 +305,52 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([(r.id, r.status) for r in self.agent.context.records], [('1', 'success'), ('finish-file', 'success')])
         self.assertEqual((self.root / 'b.txt').read_text(), 'second')
 
+    async def test_orphan_tool_close_recovers_checks_without_replaying_writes(self):
+        self.agent.config.provider.enable_native_tools = False
+        for number, tail in enumerate(('</tf-python>', '</tf-python>\n</tf-bash>',
+                                       '</tf-python>Now checking the result.')):
+            with self.subTest(tail=tail):
+                requests = []
+                agent = AgentLoop(self.agent.config, event_sink=lambda _: None)
+                filename = f'orphan-{number}.txt'
+                replies = [f'<tf-write id="1" path="{filename}">first</tf-write>\n' + tail,
+                    '<tf-python id="2">from pathlib import Path\n'
+                    f'assert Path("{filename}").read_text() == "first"\nprint("CHECKED")</tf-python>',
+                    'File created and checked.']
+                def receive(request):
+                    requests.append(json.loads(request.content))
+                    return httpx.Response(200, stream=SlowSSE([{'delta': {
+                        'content': replies[len(requests) - 1]}, 'finish_reason': 'stop'}]))
+                await agent.client.aclose()
+                agent.client = httpx.AsyncClient(base_url='https://fixture.invalid', transport=httpx.MockTransport(receive))
+                try:
+                    await agent.run('Create and check the file')
+                    self.assertEqual(len(requests), 3)
+                    self.assertEqual(agent.usage.turns[0].abort_reason, 'tool_failed')
+                    self.assertIn('CHECKED', requests[2]['messages'][-1]['content'])
+                    self.assertEqual([(r.id, r.tool, r.status) for r in agent.context.records],
+                                     [('1', 'write', 'success'), ('2', 'python', 'success')])
+                    self.assertEqual((self.root / filename).read_text(), 'first')
+                finally:
+                    await agent.close()
+
+    async def test_literal_tool_closers_in_examples_and_file_payload_do_not_recover(self):
+        payload = 'literal </tf-python>\n</tf-bash>\n'
+        text = ('```xml\n</tf-python>\n</tf-bash>\n```\n'
+                'Inline `</tf-write>` is an example.\n'
+                '<tf-write id="1" path="literal.txt">' + payload + '</tf-write>Done.')
+        requests = []
+        def receive(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, stream=SlowSSE([
+                {'delta': {'content': text}, 'finish_reason': 'stop'}]))
+        await self.agent.client.aclose()
+        self.agent.client = httpx.AsyncClient(base_url='https://fixture.invalid', transport=httpx.MockTransport(receive))
+        await self.agent.run('Write the literal example')
+        self.assertEqual(len(requests), 1)
+        self.assertEqual(self.agent.usage.turns[0].abort_reason, 'end_turn')
+        self.assertEqual((self.root / 'literal.txt').read_text(), payload)
+
     async def test_empty_provider_stop_after_read_recovers_instead_of_finishing(self):
         self.agent.config.provider.enable_native_tools = False
         (self.root / 'a.txt').write_text('before')

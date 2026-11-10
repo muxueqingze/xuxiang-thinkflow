@@ -1131,22 +1131,29 @@ class AgentLoop:
 
         # 3. 记录 assistant 输出
         clean_text = self.view.strip_command_blocks(assistant_text) if assistant_text else ''
-        if abort_reason == AbortReason.END_TURN and is_deepseek(self.config.provider):
+        if abort_reason == AbortReason.END_TURN:
             gate = MarkdownFenceCommandGate()
             plain_text = gate.feed(clean_text) + gate.flush()
-            if not assistant_text.strip() and not commands_this_turn:
+            if is_deepseek(self.config.provider) and not assistant_text.strip() and not commands_this_turn:
                 parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
                                         '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
                 self.events.emit('provider_protocol_error', kind='empty_assistant_response')
                 abort_reason = AbortReason.TOOL_FAILED
                 turn_usage.abort_reason = abort_reason
-            elif re.search(r'(?m)^\s*</?｜+DSML｜+\s*(?:parameter|invoke|calls)\b', plain_text):
+            elif is_deepseek(self.config.provider) and re.search(r'(?m)^\s*</?｜+DSML｜+\s*(?:parameter|invoke|calls)\b', plain_text):
                 protocol_hint = ('请使用当前提供的原生工具或tf-*继续未完成操作；'
                                  if self._openai_provider_tools() else
                                  '当前使用tf-*文本协议：文件操作用tf-write/tf-edit，Python代码用tf-python，shell用tf-bash；')
                 parser_error_message = ('供应商把原生工具调用的DSML控制标记返回成了正文，该调用没有执行。'
                                         + protocol_hint + '已成功的tf写入按账本保留，不要重放。')
                 self.events.emit('provider_protocol_error', kind='deepseek_tool_markup')
+                abort_reason = AbortReason.TOOL_FAILED
+                turn_usage.abort_reason = abort_reason
+            elif re.search(r'(?m)^[ \t]*</tf-(?:' + '|'.join(TOOLS) + r')>', plain_text):
+                parser_error_message = ('响应中出现了没有对应开标签的tf-*结束标签，该残片没有执行。'
+                                        '请根据已有回执继续实际未完成的修改或检查，使用完整tf-*命令；'
+                                        '不要重放已经成功的操作。')
+                self.events.emit('provider_protocol_error', kind='orphan_tool_close')
                 abort_reason = AbortReason.TOOL_FAILED
                 turn_usage.abort_reason = abort_reason
         if abort_reason != AbortReason.TOOL_USE and (clean_text or assistant_reasoning):

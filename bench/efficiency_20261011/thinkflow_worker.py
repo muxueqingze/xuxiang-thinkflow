@@ -18,7 +18,7 @@ async def main():
     events = []
     destination = Path(os.environ['BENCH_RECORD'])
     fields = ('type', 'turn', 'seq', 'id', 'tool', 'channel', 'flow', 'status', 'success',
-              'reason', 'finish_reason', 'cmd', 'path', 'dest', 'input_hash', 'input_summary', 'saved_chars', 'read_results')
+              'reason', 'finish_reason', 'kind', 'error_kind', 'phase', 'cmd', 'path', 'dest', 'input_hash', 'input_summary', 'saved_chars', 'read_results')
 
     def observe(event):
         if event['type'] in ('stream_started', 'stream_finished', 'tool_started', 'tool_completed',
