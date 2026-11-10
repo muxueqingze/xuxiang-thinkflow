@@ -187,6 +187,8 @@ The core always injects the tool protocol. Recommended engineering guidance is o
 
 The 61.11% benchmark remains pinned to source commit 40dfa30; the subsequent prompt separation preserves those historical results.
 
+The optional recommendation covers scoped information gathering, shared implementations, contract-based design, meaningful assertions and inspection of deliverables. The [engineering improvement record](docs/engineering-quality-20261110.md) documents corrected runtime defects and the next steps for retrieving original requirements and execution output in long sessions.
+
 ## Benchmark
 
 See the [2026-11-10 streaming/batch comparison](docs/efficiency-results-20261110.md) for the measured streaming implementation. The [2026-11-09 native-mode results](docs/efficiency-results-20261109.md) and the older six-task report below remain separate historical comparisons.

@@ -236,12 +236,15 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
                 "from b import ANSWER\nassert ANSWER == 42\n"
                 "print('quote: \\\" and apostrophe: \\' and \\u4e2d\\u6587')\n")
         # A real code block larger than the Windows command-line limit goes via stdin.
+        code += "import sys\nprint('caf\\u00e9 \\U0001f642')\nsys.stderr.write('\\u8bca\\u65ad\\n')\n"
         code += '# payload\n' * 4000
-        with patch.dict(os.environ, PYTHONIOENCODING='utf-8', PYTHONDONTWRITEBYTECODE='1'):
+        with patch.dict(os.environ, PYTHONUTF8='0', PYTHONIOENCODING='cp1252', PYTHONDONTWRITEBYTECODE='1'):
             result = await self.agent._execute_traditional_result('python', {'code': code}, tool_id='code')
         self.assertTrue(result.success, result.stderr)
         self.assertEqual(result.exit_code, 0)
         self.assertIn('中文', result.stdout)
+        self.assertIn('café \U0001f642', result.stdout)
+        self.assertEqual(result.stderr.splitlines(), ['诊断'])
         self.assertEqual(sorted(p.name for p in self.root.iterdir()), ['a.py', 'b.py'])
         self.assertIn('exit_code: 0', self.agent._native_result_text(result))
 
@@ -264,9 +267,10 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
     async def test_valid_write_before_parse_error_survives_coalesced_chunk(self):
         prefix = '<tf-write id="1" path="marker.txt">EXECUTED</tf-write>'
         invalid = '<tf-write id="2">bad</tf-write>'
+        payload = prefix + invalid
         async def stream():
             from src.streaming import StreamEvent, EventType
-            yield StreamEvent(type=EventType.THINKING_DELTA, thinking_text=prefix + invalid)
+            yield StreamEvent(type=EventType.THINKING_DELTA, thinking_text=payload)
         async def send(*args):
             return httpx.Response(200)
         self.agent._send_stream_request = send
@@ -274,6 +278,11 @@ class RuntimeEfficiencyTests(unittest.IsolatedAsyncioTestCase):
         await self.agent._run_one_turn()
         self.assertEqual((self.root / 'marker.txt').read_text(), 'EXECUTED')
         self.assertEqual([(r.id, r.status) for r in self.agent.context.records], [('1', 'success')])
+        payload = '<tf-write id="2" path="fixed.txt">CORRECTED</tf-write>'
+        await self.agent._run_one_turn()
+        self.assertEqual((self.root / 'fixed.txt').read_text(), 'CORRECTED')
+        self.assertEqual([(r.id, r.status) for r in self.agent.context.records],
+                         [('1', 'success'), ('2', 'success')])
 
     async def test_dsml_tail_recovers_without_replaying_successful_stream_write(self):
         tail = '</｜｜DSML｜｜ calls>'

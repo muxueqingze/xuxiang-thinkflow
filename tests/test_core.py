@@ -928,6 +928,27 @@ def test_compaction_keeps_tool_result_with_tool_call():
     assert compacted[2]["role"] == "tool"
     assert compacted[2]["tool_call_id"] == "call_1"
 
+    anthropic = [
+        {"role": "user", "content": "before"},
+        {"role": "assistant", "content": [
+            {"type": "tool_use", "id": "call_1", "name": "read", "input": {"path": "a.txt"}},
+            {"type": "tool_use", "id": "call_2", "name": "read", "input": {"path": "b.txt"}},
+        ]},
+        {"role": "user", "content": [
+            {"type": "text", "text": "tool batch"},
+            {"type": "tool_result", "tool_use_id": "call_1", "content": "file content"},
+        ]},
+        {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": "call_2", "content": "missing file", "is_error": True},
+        ]},
+        {"role": "user", "content": "after"},
+    ]
+    for keep in (2, 3):
+        compacted, stats = compact_messages(anthropic,
+            CompactionConfig(enabled=True, max_messages=3, keep_recent_messages=keep))
+        assert stats.changed
+        assert compacted[1:] == anthropic[1:]
+
 
 def test_agent_manual_compaction_updates_snapshot_count():
     async def scenario():

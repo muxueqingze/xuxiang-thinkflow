@@ -110,7 +110,11 @@ def compact_messages(
 def _adjust_split_for_tool_messages(messages: list[dict[str, Any]], split_at: int) -> int:
     """Avoid keeping orphan tool results without their assistant tool call."""
     while split_at > 0 and split_at < len(messages):
-        if messages[split_at].get("role") != "tool":
+        message = messages[split_at]
+        content = message.get("content")
+        anthropic_results = (message.get("role") == "user" and isinstance(content, list)
+                             and any(block.get("type") == "tool_result" for block in content))
+        if message.get("role") != "tool" and not anthropic_results:
             break
         split_at -= 1
     return split_at

@@ -37,6 +37,8 @@ CLI / Electron desktop
 - 截断或断连不把不同请求的残缺命令拼在一起；未完整的命令丢弃，下一请求使用新 id。
 - 取消会等待已开始的文件操作收尾，并清理本次 shell 进程；不回滚已完成副作用。
 - 重复 id 不能伪造成功；相同命令返回原回执，内容冲突报错。去重窗口仍有限，不提供分布式 exactly-once 保证。
+- parser仅在完整命令的语义校验成功后登记id；拒绝的命令没有副作用，可用原id修正重发，不因无效输入制造第二次重复编号错误。
+- 压缩切点保持工具调用与结果配对，覆盖OpenAI的tool消息与Anthropic的user/tool_result块；近期保留的结果不会与调用分离。
 - 模型的自然结束只是本轮结束；不等同于所有需求均被验收。应用默认达到40轮或1800秒停止；连续失败阈值默认null，显式数字配置才生效。
 
 ## 模块职责
@@ -94,7 +96,7 @@ CLI和桌面默认使用tf-*文本协议；CLI的`--native-tools`、桌面设置
 
 OpenCode Go 请求使用 ThinkFlow 自有 User-Agent 和会话级 x-opencode-session；会话标识随快照恢复，新CLI会话重新分配。Python子进程沿用调用方已有的UTF-8及不写bytecode设置，API密钥仍不在默认传递列表。
 
-`tf-python`正文与原生`python(code)`把多行Python直接通过stdin交给独立解释器，可集中执行数据处理和独立检查。它与bash共用`Executor._run_process`，复用cwd、环境、输出捕获、超时和进程树取消；不生成临时脚本，不经过shell转义。产物修改用受版本管理的文件工具。工具授权与read-only检查仍由AgentLoop原执行链处理。解释器是`THINKFLOW_PYTHON`或PATH中的`python`，每次调用没有跨进程变量状态。
+`tf-python`正文与原生`python(code)`把多行Python直接通过stdin交给独立解释器，可集中执行数据处理和独立检查。它与bash共用`Executor._run_process`，复用cwd、输出捕获、超时和进程树取消；Python子进程固定UTF-8模式及标准输入输出编码，与现有代码输入和结果解码一致，shell仍沿用项目环境。不生成临时脚本，不经过shell转义。产物修改用受版本管理的文件工具。工具授权与read-only检查仍由AgentLoop原执行链处理。解释器是`THINKFLOW_PYTHON`或PATH中的`python`，每次调用没有跨进程变量状态。
 
 工具失败继续进入原有反馈恢复链。`max_consecutive_failures`默认null，可在配置中显式指定数字；它不再以隐藏的3次阈值截停仍可恢复的工具错误。现有任务轮数/时间预算、取消及不确定副作用停止保持原语义。
 

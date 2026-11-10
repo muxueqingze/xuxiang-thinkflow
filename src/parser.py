@@ -346,12 +346,6 @@ class StreamingParser:
                 raw=raw[:100],
             ))
             return None
-        self._seen_ids.add(cmd_id)
-        self._seen_ids_order.append(cmd_id)
-        if len(self._seen_ids_order) > MAX_SEEN_IDS:
-            oldest = self._seen_ids_order.popleft()
-            self._seen_ids.discard(oldest)
-
         # 解析其他属性
         path = attrs.get("path")
         dest = attrs.get("dest")
@@ -429,6 +423,14 @@ class StreamingParser:
                 return None
 
         # mkdir / touch / copy / bash 自闭合，无正文
+
+        # Only accepted commands own an ID. A malformed command has no effect
+        # and may be corrected using the same ID on the next response.
+        self._seen_ids.add(cmd_id)
+        self._seen_ids_order.append(cmd_id)
+        if len(self._seen_ids_order) > MAX_SEEN_IDS:
+            oldest = self._seen_ids_order.popleft()
+            self._seen_ids.discard(oldest)
 
         return command
 

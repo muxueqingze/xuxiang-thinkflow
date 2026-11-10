@@ -93,6 +93,24 @@ class ParserDiagnosticTests(unittest.TestCase):
         self.assertEqual(overflow.errors[-1].kind, 'buffer_overflow')
         self.assertNotIn('position', overflow.errors[-1].diagnostic(channel='thinking', phase='feed'))
 
+    def test_rejected_command_can_be_corrected_without_consuming_its_id(self):
+        invalid = [
+            '<tf-touch id="7" />',
+            '<tf-touch id="7" path="x" injected="3" />',
+            '<tf-copy id="7" path="x" />',
+            '<tf-bash id="7" />',
+            '<tf-edit id="7" path="x"><old>old</old></tf-edit>',
+            '<tf-edit id="7" path="x" />',
+        ]
+        corrected = '<tf-touch id="7" path="x" />'
+        for payload in invalid:
+            with self.subTest(payload=payload):
+                parser = StreamingParser(allow_legacy_tags=False)
+                self.assertEqual(parser.feed(payload), [])
+                self.assertEqual([cmd.id for cmd in parser.feed(corrected)], ['7'])
+                self.assertEqual(parser.feed(corrected), [])
+                self.assertEqual(parser.errors[-1].kind, 'duplicate_id')
+
     def test_flush_location_is_buffer_relative_and_default_zero_is_unknown(self):
         for payload, kind in [('<tf-write id="1"', 'incomplete_tag'),
                               ('<tf-write id="1" path="x">' + PRIVATE, 'unclosed_block')]:

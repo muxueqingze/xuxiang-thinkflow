@@ -533,6 +533,9 @@ class Executor:
                    "stdin": asyncio.subprocess.PIPE if stdin is not None else None,
                    "cwd": self.cwd, "env": self.security.command_env(),
                    **({"start_new_session": True} if os.name != "nt" else {})}
+        if tool == "python":
+            # Match the UTF-8 code channel and result decoder, regardless of shell locale.
+            options["env"].update(PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
         proc = (await asyncio.create_subprocess_shell(command, **options) if shell
                 else await asyncio.create_subprocess_exec(*command, **options))
 
