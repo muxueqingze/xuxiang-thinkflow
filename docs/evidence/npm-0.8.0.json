@@ -2,7 +2,7 @@
   "version": "0.8.0",
   "package": "xuxiang-agent",
   "channel": "next",
-  "status": "validated_for_publication",
+  "status": "published_verified",
   "runtime_source_commit": "0187f617f3be9aeca3255c4efa86cb6a556d82c6",
   "artifact": "artifacts/npm-0.8.0/xuxiang-agent-0.8.0.tgz",
   "bytes": 234822,
@@ -25,5 +25,33 @@
     ],
     "unicode_roundtrip": true
   },
-  "independent_package_review": "73 entries inspected; required runtime/skill/prompt files present; no credentials, sessions, raw benchmarks or dependency caches"
+  "independent_package_review": "73 entries inspected; required runtime/skill/prompt files present; no credentials, sessions, raw benchmarks or dependency caches",
+  "package_source_commit": "6d85c06d065a41f4eeff1a6c443c30aec241bc19",
+  "registry": {
+    "version": "0.8.0",
+    "tag": "next",
+    "tarball": "https://registry.npmjs.org/xuxiang-agent/-/xuxiang-agent-0.8.0.tgz",
+    "download_bytes": 234822,
+    "download_integrity": "sha512-TgZbaY9U7sAjM5JcYs4MAx42QUPDlvdsPA0WnbjhW1ld9B0lBLKLSGpPX1ho18/idMCPb5BUDk9+kj1LwpLyqw==",
+    "matches_tested_tarball": true,
+    "dist_tags": {
+      "next": "0.8.0",
+      "latest": "0.5.1",
+      "beta": "0.5.0-beta.2"
+    }
+  },
+  "github": {
+    "tag": "v0.8.0",
+    "release": "https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.8.0",
+    "prerelease": true,
+    "asset": "xuxiang-agent-0.8.0.tgz",
+    "asset_digest": "sha256:8a22cba028e48a69d770a8f17e9c4abfacd265d9ce36b07549d2a3fb7103673f",
+    "matches_tested_tarball": true
+  },
+  "cleanup": {
+    "isolated_install_recycled": true,
+    "publish_cache_recycled": true,
+    "new_global_dependencies": [],
+    "persistent_path_changes": []
+  }
 }

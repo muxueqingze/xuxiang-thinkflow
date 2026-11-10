@@ -24,7 +24,7 @@
 
 ## 交付与保留
 
-GitHub交付入口为既有草稿[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)，head为codex/thinkflow-desktop-v06；源码、双语README、PROTOCOL 1.6、架构与实测口径一同更新，CI以PR检查为准。当前功能节点自评通过；v0.8版本级待Pro终审。没有合并整个草稿或发布npm/Release，便携包仍是旧构建。
+GitHub源码入口为既有草稿[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)，head为codex/thinkflow-desktop-v06。按主人本次明确授权，0.8.0 CLI已发布至npm的next通道，并创建[GitHub预发布](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.8.0)，tag指向6d85c06。两处提供同一份已安装验证的tarball，校验见[发布记录](evidence/npm-0.8.0.json)。latest仍为0.5.1；草稿未合并，Windows便携包仍是旧构建，v0.8版本级待Pro终审。
 
 18次探索任务和6次单请求回放另存[探索证据](evidence/efficiency-20261110/exploration.json)，不替换最终值或重复计费。历史11-09及原六题/前端/小说报告保留。原始workspace、meter、events、harness、manifest留在本机bench/efficiency_20261011/artifacts/供复现；公开源码是[惰性JSON](evidence/efficiency-20261110/workspaces.json)。
 
