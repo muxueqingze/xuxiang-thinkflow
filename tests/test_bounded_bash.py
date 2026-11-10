@@ -14,6 +14,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.executor import Executor
+from src.output_capture import OutputCapture
+from src.output_store import OutputStore
 from src.parser import Command
 from src.security import SecurityPolicy
 
@@ -30,7 +32,9 @@ class BoundedBashTests(unittest.IsolatedAsyncioTestCase):
         return Command("fixture", "bash", cmd=subprocess.list2cmdline([sys.executable, "-B", str(script)]))
 
     def executor(self, **kwargs):
-        return Executor(str(self.root), security=SecurityPolicy(allowed_roots=[str(self.root)], **kwargs))
+        executor = Executor(str(self.root), security=SecurityPolicy(allowed_roots=[str(self.root)], **kwargs))
+        self.addCleanup(executor.close)
+        return executor
 
     async def test_two_mib_dual_streams_are_drained_without_communicate_or_full_capture(self):
         command = self.command('import sys\nsys.stdout.buffer.write(b"x" * (2 * 1024 * 1024))\nsys.stderr.buffer.write(b"y" * (2 * 1024 * 1024))\n')
@@ -60,12 +64,14 @@ class BoundedBashTests(unittest.IsolatedAsyncioTestCase):
                 return self.parts.pop(0)
 
         pipe = Pipe()
-        text, truncated = await Executor._read_bounded_output(pipe, 2)
-        self.assertEqual(text, "甲乙")
+        store = OutputStore()
+        self.addCleanup(store.close)
+        text, truncated = await OutputCapture(store, 2).read(pipe)
+        self.assertEqual(text, "乙\ufffd")
         self.assertTrue(truncated)
         self.assertEqual(set(pipe.read_sizes), {65536})
         pipe = Pipe()
-        text, truncated = await Executor._read_bounded_output(pipe, 3)
+        text, truncated = await OutputCapture(store, 3).read(pipe)
         self.assertEqual(text, "甲乙\ufffd")
         self.assertFalse(truncated)
 
@@ -73,7 +79,7 @@ class BoundedBashTests(unittest.IsolatedAsyncioTestCase):
         command = self.command('import sys\nsys.stdout.buffer.write(("甲乙丙" * 10000).encode("utf8"))\nsys.stderr.buffer.write(b"\\xff")\n')
         result = await self.executor(max_bash_output_chars=5).execute(command)
         self.assertTrue(result.success, result.error)
-        self.assertEqual(result.stdout, "甲乙丙甲乙")
+        self.assertEqual(result.stdout, "乙丙甲乙丙")
         self.assertEqual(result.stderr, "\ufffd")
         self.assertTrue(result.truncated)
 

@@ -16,7 +16,6 @@ import os
 import shutil
 import sys
 import time
-import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -451,14 +450,7 @@ def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None)
         renderer.console.print()
 
     elif command in ("/new", "/clear"):
-        agent.additional_native_tools.clear()
-        agent.session_id = uuid.uuid4().hex
-        agent.refresh_provider_client()
-        agent.messages.clear()
-        agent.context.reset()
-        agent.parser.reset()
-        agent.text_parser.reset()
-        agent.usage = type(agent.usage)(label=agent.usage.label)
+        agent.reset_session()
         if store and command == "/new":
             store.save(agent.to_snapshot())
             renderer.render_info(f"已开始新会话: {store.path}")
@@ -1926,6 +1918,8 @@ def main():
 
     agent = create_agent(config, system_prompt, cwd=cwd)
     autosave = not args.no_autosave
+    if autosave:
+        agent.bind_output_store(store.output_dir)
 
     if args.resume:
         if store.exists():

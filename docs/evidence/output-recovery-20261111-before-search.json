@@ -1,0 +1,328 @@
+{
+  "kind": "one-use output recovery after clipped receipt and disk restore; not a full task benchmark",
+  "date": "2026-11-11",
+  "model": "deepseek-v4.1-flash",
+  "thinking": "enabled/high",
+  "limits": {
+    "max_run_turns": 8,
+    "max_run_seconds": 180
+  },
+  "source_characters": 150083,
+  "source_input_removed": true,
+  "passed": true,
+  "expected": {
+    "alpha": "alpha-27-中文",
+    "beta": "beta-61-Zoe"
+  },
+  "artifact": "{\n  \"alpha\": \"alpha-27-中文\",\n  \"beta\": \"beta-61-Zoe\"\n}",
+  "request_attempts": 8,
+  "usage": {
+    "label": "thinkflow",
+    "start_time": 1794331166.1411276,
+    "elapsed": 51.74993181228638,
+    "turns": [
+      {
+        "turn": 1,
+        "prompt_tokens": 1299,
+        "completion_tokens": 470,
+        "reasoning_tokens": 382,
+        "text_tokens": 88,
+        "cached_tokens": 0,
+        "cache_miss_tokens": 0,
+        "total_tokens": 1769,
+        "commands_executed": 3,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 2,
+        "prompt_tokens": 4426,
+        "completion_tokens": 625,
+        "reasoning_tokens": 399,
+        "text_tokens": 226,
+        "cached_tokens": 0,
+        "cache_miss_tokens": 0,
+        "total_tokens": 5051,
+        "commands_executed": 8,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 3,
+        "prompt_tokens": 5802,
+        "completion_tokens": 2068,
+        "reasoning_tokens": 1954,
+        "text_tokens": 114,
+        "cached_tokens": 4352,
+        "cache_miss_tokens": 0,
+        "total_tokens": 7870,
+        "commands_executed": 4,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 4,
+        "prompt_tokens": 6811,
+        "completion_tokens": 1048,
+        "reasoning_tokens": 540,
+        "text_tokens": 508,
+        "cached_tokens": 4352,
+        "cache_miss_tokens": 0,
+        "total_tokens": 7859,
+        "commands_executed": 0,
+        "tool_calls_traditional": 0,
+        "abort_reason": "tool_failed",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 5,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "reasoning_tokens": 0,
+        "text_tokens": 0,
+        "cached_tokens": 0,
+        "cache_miss_tokens": 0,
+        "total_tokens": 0,
+        "commands_executed": 1,
+        "tool_calls_traditional": 0,
+        "abort_reason": "tool_failed",
+        "delayed_successes": 0,
+        "usage_reported": false
+      },
+      {
+        "turn": 6,
+        "prompt_tokens": 7932,
+        "completion_tokens": 857,
+        "reasoning_tokens": 797,
+        "text_tokens": 60,
+        "cached_tokens": 6656,
+        "cache_miss_tokens": 0,
+        "total_tokens": 8789,
+        "commands_executed": 2,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 7,
+        "prompt_tokens": 16182,
+        "completion_tokens": 711,
+        "reasoning_tokens": 623,
+        "text_tokens": 88,
+        "cached_tokens": 7808,
+        "cache_miss_tokens": 0,
+        "total_tokens": 16893,
+        "commands_executed": 3,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 8,
+        "prompt_tokens": 20036,
+        "completion_tokens": 298,
+        "reasoning_tokens": 186,
+        "text_tokens": 112,
+        "cached_tokens": 14336,
+        "cache_miss_tokens": 0,
+        "total_tokens": 20334,
+        "commands_executed": 1,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      }
+    ],
+    "totals": {
+      "prompt_tokens": 62488,
+      "completion_tokens": 6077,
+      "reasoning_tokens": 4881,
+      "text_tokens": 1196,
+      "cached_tokens": 37504,
+      "effective_input": 24984,
+      "total_tokens": 68565,
+      "api_calls": 8,
+      "total_commands": 22,
+      "estimated_saved_api_calls": 0,
+      "estimated_avoided_prompt_tokens": 0
+    }
+  },
+  "stopped_reason": "max_run_turns",
+  "last_error": "Run stopped at configured limit: max_run_turns",
+  "tools": [
+    {
+      "tool": "python",
+      "status": "success",
+      "ref": null,
+      "offset": 0,
+      "limit": 8000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 0,
+      "limit": 2000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 146000,
+      "limit": 4083
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 74000,
+      "limit": 1000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 2000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 20000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 40000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 60000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 90000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 110000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 130000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 144000,
+      "limit": 150
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 29000,
+      "limit": 400
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 39000,
+      "limit": 400
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 49000,
+      "limit": 400
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 59000,
+      "limit": 200
+    },
+    {
+      "tool": "recall",
+      "status": "failed",
+      "ref": "request:1",
+      "offset": 0,
+      "limit": 8000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 50000,
+      "limit": 10000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 44000,
+      "limit": 6000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 30000,
+      "limit": 2000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 34000,
+      "limit": 2000
+    },
+    {
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 37000,
+      "limit": 3000
+    },
+    {
+      "tool": "python",
+      "status": "success",
+      "ref": null,
+      "offset": 0,
+      "limit": 8000
+    }
+  ],
+  "temporary_workspace_removed": true,
+  "artifact_passed": true,
+  "delivery_complete": false,
+  "passed_field_definition": "Original runner graded artifact only; completion is recorded separately. Original attempts and usage are unchanged."
+}

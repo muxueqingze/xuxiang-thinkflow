@@ -14,6 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.context import ContextManager
+from src.output_store import OutputStore
 from src.desktop_service import DesktopService
 from src.usage_tracker import SessionUsage
 from src import desktop_service
@@ -74,6 +75,8 @@ class FakeAgent:
         self.runner = runner
         self.messages = []
         self.context = ContextManager()
+        self.outputs = OutputStore()
+        self.output_secrets = set()
         self.usage = SessionUsage(label="desktop-test")
         self.last_error = ""
         self.closed = False
@@ -89,13 +92,21 @@ class FakeAgent:
 
     def to_snapshot(self):
         return copy.deepcopy({"version": 1, "messages": self.messages,
-                              "context": self.context.to_dict(), "usage": self.usage.to_dict(),
+                              "context": self.context.to_dict(), "outputs": self.outputs.to_dict(),
+                              "usage": self.usage.to_dict(),
                               "executed_ids": [], "turn_count": 0})
 
     def load_snapshot(self, snapshot):
         self.messages = copy.deepcopy(snapshot.get("messages", []))
         self.context = ContextManager.from_dict(snapshot.get("context", {}))
+        self.outputs.load(snapshot.get("outputs", {}))
         self.usage = SessionUsage.from_dict(snapshot.get("usage", {}))
+
+    def bind_output_store(self, directory):
+        self.outputs.bind(directory)
+
+    def set_output_secrets(self, secrets):
+        self.output_secrets.update(key for key in secrets if key)
 
     def message_stats(self):
         return {"messages": len(self.messages), "chars": sum(len(m.get("content", "")) for m in self.messages),
@@ -105,6 +116,7 @@ class FakeAgent:
         self.compactions += bool(force)
 
     async def close(self):
+        self.outputs.close()
         self.closed = True
 
 

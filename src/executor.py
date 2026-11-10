@@ -13,11 +13,13 @@ import re
 import signal
 import threading
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 from .parser import Command
 from .security import SecurityPolicy
+from .output_capture import OutputCapture
+from .output_store import OutputStore
 from .changes import (
     ChangeStore, MAX_GUARDED_FILE_BYTES, atomic_write_bytes, content_revision,
     read_optional_bytes, reject_symbolic_path,
@@ -41,6 +43,8 @@ class ExecutionResult:
     status: str = ""
     revision: str = ""
     change_id: str = ""
+    output_refs: dict[str, str] = field(default_factory=dict)
+    output_sizes: dict[str, int] = field(default_factory=dict)
 
     @property
     def status_str(self) -> str:
@@ -51,6 +55,12 @@ class ExecutionResult:
 
 class FileRevisionConflict(ValueError):
     """The requested mutation has no valid model-observed baseline."""
+
+
+class ExecutionCancelled(asyncio.CancelledError):
+    def __init__(self, result: ExecutionResult):
+        super().__init__(result.error)
+        self.result = result
 
 
 class Executor:
@@ -64,6 +74,7 @@ class Executor:
         security: Optional[SecurityPolicy] = None,
         change_store: Optional[ChangeStore] = None,
         require_read_revision: bool = True,
+        output_store: Optional[OutputStore] = None,
     ):
         """
         Args:
@@ -84,8 +95,18 @@ class Executor:
         # Explicit legacy opt-out for trusted direct callers only. Agent defaults
         # stay strict; no read/list/grep fallback silently authorizes overwriting.
         self.require_read_revision = require_read_revision
+        self.outputs = output_store if output_store is not None else OutputStore()
+        self.output_secrets: set[str] = set()
         self.change_store = None
         self.set_change_store(change_store)
+
+    def redact_output(self, text: str) -> str:
+        for key in sorted(self.output_secrets, key=len, reverse=True):
+            text = text.replace(key, "[REDACTED]")
+        return text
+
+    def close(self):
+        self.outputs.close()
 
     def set_change_store(self, store: Optional[ChangeStore]) -> None:
         if store is not None and os.path.normcase(str(store.cwd)) != os.path.normcase(self.cwd):
@@ -183,6 +204,7 @@ class Executor:
             content = raw_content
             if not self.security.allow_sensitive_paths:
                 content = self.security.redact_text(content)
+            content = self.redact_output(content)
             truncated = not complete
             if self.max_read_chars > 0 and len(content) > self.max_read_chars:
                 content = content[:self.max_read_chars]
@@ -541,8 +563,10 @@ class Executor:
 
         # A non-positive legacy limit must not silently restore unbounded capture.
         max_chars = min(1_000_000, self.security.max_bash_output_chars if self.security.max_bash_output_chars > 0 else 80000)
-        readers = [asyncio.create_task(self._read_bounded_output(proc.stdout, max_chars)),
-                   asyncio.create_task(self._read_bounded_output(proc.stderr, max_chars))]
+        captures = {name: OutputCapture(self.outputs, max_chars, self.output_secrets)
+                    for name in ("stdout", "stderr")}
+        readers = [asyncio.create_task(captures[name].read(getattr(proc, name)))
+                   for name in ("stdout", "stderr")]
         waiter = asyncio.create_task(proc.wait())
 
         async def exchange():
@@ -568,49 +592,32 @@ class Executor:
         except asyncio.CancelledError:
             await self._stop_process_tree(proc)
             await self._settle_output_capture(proc, transfer, readers, waiter)
-            raise
+            raise ExecutionCancelled(self._captured_result(
+                captures, tool=tool, exit_code=proc.returncode, status="cancelled",
+                error="Execution cancelled; captured output is available for inspection.",
+            )) from None
         except Exception:
             await self._stop_process_tree(proc)
             await self._settle_output_capture(proc, transfer, readers, waiter)
             raise
-        if outputs is None:
-            outputs = (("", True), ("", True))
-        (stdout, stdout_truncated), (stderr, stderr_truncated) = outputs
-        truncated = stdout_truncated or stderr_truncated
-
-        return ExecutionResult(
-            success=(proc.returncode == 0 and not timed_out),
-            tool=tool,
-            stdout=stdout,
-            stderr=stderr,
-            exit_code=proc.returncode,
+        return self._captured_result(
+            captures, tool=tool, exit_code=proc.returncode,
             error=("命令超时；后台输出管道未关闭，已停止读取。请核对仍在后台的进程。" if cleanup_incomplete
-                   else "命令超时" if timed_out else (stderr if proc.returncode != 0 else "")),
-            truncated=truncated,
+                   else "命令超时" if timed_out else (captures["stderr"].text if proc.returncode != 0 else "")),
             timed_out=timed_out,
             status="unknown" if cleanup_incomplete else "",
         )
 
     @staticmethod
-    async def _read_bounded_output(pipe, max_chars: int) -> tuple[str, bool]:
-        """Drain a pipe fully while retaining a bounded UTF-8 character prefix."""
-        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
-        retained = []
-        length = 0
-        truncated = False
-        while chunk := await pipe.read(65536):
-            text = decoder.decode(chunk, final=False)
-            remaining = max(0, max_chars - length)
-            if remaining:
-                retained.append(text[:remaining])
-                length += min(len(text), remaining)
-            truncated = truncated or len(text) > remaining
-        tail = decoder.decode(b"", final=True)
-        remaining = max(0, max_chars - length)
-        if remaining:
-            retained.append(tail[:remaining])
-        truncated = truncated or len(tail) > remaining
-        return "".join(retained), truncated
+    def _captured_result(captures, *, tool, exit_code, error="", timed_out=False, status=""):
+        return ExecutionResult(
+            success=exit_code == 0 and not timed_out and not status,
+            tool=tool, stdout=captures["stdout"].text, stderr=captures["stderr"].text,
+            exit_code=exit_code, error=error, timed_out=timed_out, status=status,
+            truncated=any(capture.truncated or not capture.complete for capture in captures.values()),
+            output_refs={name: capture.ref for name, capture in captures.items() if capture.ref},
+            output_sizes={name: capture.chars for name, capture in captures.items() if capture.ref},
+        )
 
     @staticmethod
     async def _settle_output_capture(proc, transfer, readers, waiter, timeout=1.0):

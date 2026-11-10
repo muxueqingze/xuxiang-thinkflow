@@ -50,5 +50,5 @@ def build_protocol_prompt(native_tools: set[str], *, recall_available: bool = Fa
     if "read_skill" in native_tools:
         parts.append('完整用法可按需read_skill(name="thinkflow")读取，无需启动时重复读取。')
     if recall_available:
-        parts.append('原文可用<tf-recall id="10" ref="request:1" offset="0" limit="8000" />按字符区间回取；offset从0开始，limit为字符数，默认8000、最多200000。')
+        parts.append('原文可用<tf-recall id="10" ref="request:1" offset="0" limit="8000" />回取；工具输出用回执ref，如receipt:3:stdout。知道关键词时加query="关键词"定位匹配行，无需猜偏移。offset从0开始，limit默认8000、最多200000字符。独立回取同批声明。')
     return "\n\n".join(parts)

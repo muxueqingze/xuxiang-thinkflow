@@ -1,0 +1,146 @@
+{
+  "kind": "one-use output recovery after clipped receipt and disk restore; not a full task benchmark",
+  "date": "2026-11-11",
+  "model": "deepseek-v4.1-flash",
+  "thinking": "enabled/high",
+  "limits": {
+    "max_run_turns": 8,
+    "max_run_seconds": 180
+  },
+  "source_characters": 150083,
+  "source_input_removed": true,
+  "artifact_passed": true,
+  "delivery_complete": true,
+  "expected": {
+    "alpha": "alpha-27-中文",
+    "beta": "beta-61-Zoe"
+  },
+  "artifact": "{\n  \"alpha\": \"alpha-27-中文\",\n  \"beta\": \"beta-61-Zoe\"\n}\n",
+  "request_attempts": 3,
+  "usage": {
+    "label": "thinkflow",
+    "start_time": 1794331729.1313913,
+    "elapsed": 8.588303565979004,
+    "turns": [
+      {
+        "turn": 1,
+        "prompt_tokens": 1311,
+        "completion_tokens": 97,
+        "reasoning_tokens": 22,
+        "text_tokens": 75,
+        "cached_tokens": 0,
+        "cache_miss_tokens": 0,
+        "total_tokens": 1408,
+        "commands_executed": 2,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 2,
+        "prompt_tokens": 1622,
+        "completion_tokens": 429,
+        "reasoning_tokens": 337,
+        "text_tokens": 92,
+        "cached_tokens": 1152,
+        "cache_miss_tokens": 0,
+        "total_tokens": 2051,
+        "commands_executed": 2,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      },
+      {
+        "turn": 3,
+        "prompt_tokens": 1855,
+        "completion_tokens": 173,
+        "reasoning_tokens": 35,
+        "text_tokens": 138,
+        "cached_tokens": 1536,
+        "cache_miss_tokens": 0,
+        "total_tokens": 2028,
+        "commands_executed": 0,
+        "tool_calls_traditional": 0,
+        "abort_reason": "end_turn",
+        "delayed_successes": 0,
+        "usage_reported": true
+      }
+    ],
+    "totals": {
+      "prompt_tokens": 4788,
+      "completion_tokens": 699,
+      "reasoning_tokens": 394,
+      "text_tokens": 305,
+      "cached_tokens": 2688,
+      "effective_input": 2100,
+      "total_tokens": 5487,
+      "api_calls": 3,
+      "total_commands": 4,
+      "estimated_saved_api_calls": 0,
+      "estimated_avoided_prompt_tokens": 0
+    }
+  },
+  "stopped_reason": "completed",
+  "last_error": "",
+  "protocol_errors": [],
+  "tools": [
+    {
+      "id": "1",
+      "tool": "python",
+      "status": "success",
+      "ref": null,
+      "offset": 0,
+      "limit": 8000,
+      "query": null,
+      "error": "",
+      "path": null
+    },
+    {
+      "id": "2",
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 0,
+      "limit": 4000,
+      "query": "CONTRACT_ALPHA",
+      "error": "",
+      "path": null
+    },
+    {
+      "id": "3",
+      "tool": "recall",
+      "status": "success",
+      "ref": "receipt:1:stdout",
+      "offset": 0,
+      "limit": 4000,
+      "query": "CONTRACT_BETA",
+      "error": "",
+      "path": null
+    },
+    {
+      "id": "4",
+      "tool": "python",
+      "status": "success",
+      "ref": null,
+      "offset": 0,
+      "limit": 8000,
+      "query": null,
+      "error": "",
+      "path": null
+    },
+    {
+      "id": "5",
+      "tool": "read",
+      "status": "success",
+      "ref": null,
+      "offset": 0,
+      "limit": 8000,
+      "query": null,
+      "error": "",
+      "path": "report.json"
+    }
+  ],
+  "temporary_workspace_removed": true
+}

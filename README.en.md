@@ -46,6 +46,8 @@ Information tools produce new reasoning input; predictable side-effect tools usu
 
 Current source keeps original user requests separate from the compacted view. The current input stays verbatim; earlier requests can be retrieved by reference and character range with `recall`. Repeated compaction retains structured entries instead of clipping the previous summary again, without a summarization API call. Recall instructions are added only when available. In two DS Flash recovery probes, both new artifacts passed all nine independent checks; the old compactor's artifacts passed four and five. See the [implementation and evidence](docs/long-context-20261110.md) for quality results and raw usage. This change is not included in npm 0.8.0.
 
+Tool output is also retained with its session. Long process output keeps a bounded tail preview and a complete text reference, including output received before cancellation or timeout. `recall` supports literal keyword lookup; restored sessions and forks retain their own backing files. A one-use output recovery probe improved from reaching the eight-request limit to completing in three requests. See the [implementation and live evidence](docs/output-recall-20261111.md). Short results stay unchanged; this capability is not included in npm 0.8.0.
+
 ## Installation
 
 The **0.8.0 CLI preview** uses the npm `next` channel:

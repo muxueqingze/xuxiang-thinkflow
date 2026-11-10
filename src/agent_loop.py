@@ -23,9 +23,10 @@ from typing import Optional
 from urllib.parse import urlparse
 
 from .parser import StreamingParser, Command, TOOLS
-from .executor import Executor, ExecutionResult
+from .executor import Executor, ExecutionResult, ExecutionCancelled
 from .context import ContextManager, _command_hash
 from .conversation import ConversationContext
+from .output_store import OutputStore
 from .streaming import EventType, StreamEvent
 from .provider import ProviderConfig, is_deepseek, openai_thinking_options, output_budget_options
 from .prompts import build_protocol_prompt
@@ -251,11 +252,14 @@ class AgentLoop:
         self._last_turn_failed = False
         self._replayed_unknown_effect = False
         self.stopped_reason = ""
+        self.outputs = OutputStore()
         self.executor = Executor(
             cwd=config.cwd,
             max_read_chars=config.max_read_chars,
             security=config.security,
+            output_store=self.outputs,
         )
+        self.set_output_secrets([config.provider.api_key, *(p.api_key for p in config.provider.provider_profiles)])
         self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd)
         self.skill_manager = SkillManager(config.cwd, config.skills)
         self.task_plan = {'explanation': '', 'steps': []}
@@ -267,7 +271,7 @@ class AgentLoop:
             renderer.set_tool_kind_map(self.tool_registry.kind_map())
             renderer.set_tool_flow_map(self.tool_registry.flow_map())
             renderer.set_tool_risk_map(self.tool_registry.risk_map())
-        self.context = ContextManager()
+        self.context = ContextManager(output_store=self.outputs, redact_output=self.executor.redact_output)
         self.parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_filter = SafeTextStreamFilter(allow_legacy_tags=config.allow_legacy_tool_tags)
@@ -296,6 +300,38 @@ class AgentLoop:
         self.compaction_count = 0
         self.last_compaction: Optional[CompactionStats] = None
         self.last_error: str = ""
+
+    def bind_output_store(self, directory):
+        self.outputs.bind(directory)
+
+    def set_output_secrets(self, secrets):
+        self.executor.output_secrets.update(key for key in secrets if key)
+
+    def reset_session(self):
+        if self._run_active:
+            raise RuntimeError("Cannot reset a running session")
+        self.messages.clear()
+        self.conversation = ConversationContext()
+        self.context.reset()
+        self.outputs.clear()
+        self.task_plan = {'explanation': '', 'steps': []}
+        self.additional_native_tools.clear()
+        self.native_write_fallback = False
+        self.parser.reset()
+        self.text_parser.reset()
+        self._executed_ids.clear()
+        self._executed_ids_order.clear()
+        self._command_fingerprints.clear()
+        with self.executor._io_lock:
+            self.executor._read_revisions.clear()
+        self.usage = SessionUsage(label=self.usage.label)
+        self._turn_count = self._auto_continue_count = self._delivery_fix_count = 0
+        self.compaction_count = 0
+        self.last_compaction = None
+        self.last_error = self.stopped_reason = ""
+        self._last_turn_failed = self._replayed_unknown_effect = False
+        self.session_id = uuid.uuid4().hex
+        self.refresh_provider_client()
 
     def mark_text_tool_start(self, _command: Command):
         self.active_text_tool_name = _command.tool
@@ -571,13 +607,16 @@ class AgentLoop:
         return registry
 
     async def _recall_tool(self, tool_input: dict) -> str:
-        return self.conversation.recall(tool_input['ref'], tool_input.get('offset', 0),
-                                        tool_input.get('limit', 8000))
+        ref = tool_input['ref']
+        target = self.context if isinstance(ref, str) and ref.startswith('receipt:') else self.conversation
+        return target.recall(ref, tool_input.get('offset', 0), tool_input.get('limit', 8000),
+                             query=tool_input.get('query'))
 
     async def _execute_builtin(self, command: Command) -> ExecutionResult:
         if command.tool == 'recall':
             result = await self.tool_registry.execute('recall', {
                 'ref': command.ref, 'offset': command.offset, 'limit': command.limit,
+                **({'query': command.query} if command.query is not None else {}),
             })
             return ExecutionResult(success=result.success, tool='recall',
                                    content=str(result) if result.success else '', error=result.error)
@@ -641,6 +680,8 @@ class AgentLoop:
         )
 
     def refresh_provider_client(self):
+        self.set_output_secrets([self.config.provider.api_key,
+                                 *(p.api_key for p in self.config.provider.provider_profiles)])
         old_client = self.client
         self.client = self._new_http_client()
         try:
@@ -657,7 +698,8 @@ class AgentLoop:
         the first message every turn prevents provider-side prompt cache hits.
         """
         names = self._enabled_native_tool_names()
-        recall_available = bool(self.conversation.summary and self.conversation.requests) or 'recall' in names
+        recall_available = (bool(self.conversation.summary and self.conversation.requests)
+                            or self.context.has_archived_output or 'recall' in names)
         protocol = build_protocol_prompt(names, recall_available=recall_available)
         return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
@@ -765,7 +807,7 @@ class AgentLoop:
         if allow:
             return (allow - deny) & registered
         names = set(CORE_NATIVE_TOOLS)
-        if not (self.conversation.summary and self.conversation.requests):
+        if not ((self.conversation.summary and self.conversation.requests) or self.context.has_archived_output):
             names.discard('recall')
         names.update(self.additional_native_tools)
         if self.native_write_fallback:
@@ -1729,7 +1771,8 @@ class AgentLoop:
                                    path=previous.path or "", error=previous.error,
                                    stdout=previous.stdout, content=previous.stdout, stderr=previous.stderr,
                                    bytes_written=previous.bytes_written, exit_code=previous.exit_code,
-                                   status=previous.status)
+                                   status=previous.status, truncated=previous.truncated or previous.payload_clipped,
+                                   output_refs=dict(previous.output_refs), output_sizes=dict(previous.output_sizes))
         result = ExecutionResult(success=False, tool=command.tool,
                                  error=f"Command id={command.id} conflicts with an earlier or unresolved command; use a new id.")
         self.context.record(command, result, flow=self.tool_registry.flow(command.tool),
@@ -1765,9 +1808,10 @@ class AgentLoop:
                                          error=approval_error, exit_code=126 if command.tool == "bash" else None)
             else:
                 result = await self._execute_builtin(command)
-        except asyncio.CancelledError:
-            result = ExecutionResult(success=False, tool=command.tool, path=command.path or "",
-                                     status="cancelled", error="Execution cancelled; inspect any operation already in progress.")
+        except asyncio.CancelledError as exc:
+            result = (exc.result if isinstance(exc, ExecutionCancelled) else
+                      ExecutionResult(success=False, tool=command.tool, path=command.path or "",
+                                      status="cancelled", error="Execution cancelled; inspect any operation already in progress."))
             self.context.record(command, result, flow=self.tool_registry.flow(command.tool),
                                 risk=self.tool_registry.risk(command.tool))
             self._tool_event("tool_completed", command, "text", result)
@@ -1892,9 +1936,7 @@ class AgentLoop:
         return self._native_result_text(result)
 
     def _native_result_text(self, result: ExecutionResult) -> str:
-        if result.tool in TOOLS or result.tool in ("list_files", "glob", "grep", "python") or not result.success:
-            return self._format_tool_result(result)
-        return result.content
+        return self._format_tool_result(result)
 
     def _enable_native_write_fallback(self):
         if self.config.provider.enable_native_tools and not self.config.provider.native_tools:
@@ -1923,7 +1965,7 @@ class AgentLoop:
         if actual_flow == TOOL_FLOW_DELAYED:
             actual_flow = TOOL_FLOW_BLOCKING
         fields = {}
-        for key in ("path", "dest", "cmd", "content", "old_text", "new_text", "ref"):
+        for key in ("path", "dest", "cmd", "content", "old_text", "new_text", "ref", "query"):
             value = tool_input.get(key)
             fields[key] = value if isinstance(value, str) else None
             if tool_name in TOOLS and value is not None and not isinstance(value, str):
@@ -1975,9 +2017,10 @@ class AgentLoop:
                 output = await self.tool_registry.execute(tool_name, tool_input)
                 result = ExecutionResult(success=output.success, tool=tool_name,
                                          content=str(output), error=output.error)
-        except asyncio.CancelledError:
-            result = ExecutionResult(success=False, tool=tool_name, status="cancelled",
-                                     error="Execution cancelled; inspect any operation already in progress.")
+        except asyncio.CancelledError as exc:
+            result = (exc.result if isinstance(exc, ExecutionCancelled) else
+                      ExecutionResult(success=False, tool=tool_name, status="cancelled",
+                                      error="Execution cancelled; inspect any operation already in progress."))
             self.context.record(command, result, flow=actual_flow,
                                 risk=self.tool_registry.risk(tool_name))
             self._tool_event("tool_completed", command, "native", result)
@@ -2007,6 +2050,10 @@ class AgentLoop:
         return ""
 
     def _format_tool_result(self, result: ExecutionResult) -> str:
+        originals = [f"Original {name}: {ref} ({result.output_sizes[name]} characters; use recall)"
+                     for name, ref in result.output_refs.items()
+                     if result.truncated or result.output_sizes[name] > 8000]
+        notice = "\n".join(originals)
         if result.tool in ("bash", "python"):
             parts = [f"exit_code: {result.exit_code}"]
             if result.stdout:
@@ -2017,21 +2064,30 @@ class AgentLoop:
                 parts.append(f"error: {result.error or 'bash failed'}")
             if result.truncated:
                 parts.append("[THINKFLOW TRUNCATED] 输出已截断。")
+            if notice:
+                parts.append(notice)
             return "\n".join(parts)
         if not result.success:
-            return result.error or f"{result.tool} failed"
+            return "\n".join(part for part in (result.error or f"{result.tool} failed", notice) if part)
         if result.tool in ("read", "recall", "list_files", "glob", "grep"):
             text = result.content
             if result.truncated:
                 text += "\n\n[THINKFLOW TRUNCATED] 结果已截断。"
+            if notice:
+                text += "\n" + notice
             return text
+        if result.content or result.tool not in TOOLS:
+            return result.content + ("\n" + notice if notice else "")
         if result.bytes_written:
             return f"{result.tool} ok: {result.bytes_written} bytes"
         return f"{result.tool} ok"
 
     async def close(self):
         """清理。"""
-        await self.client.aclose()
+        try:
+            await self.client.aclose()
+        finally:
+            self.outputs.close()
 
     def to_snapshot(self) -> dict:
         """导出可恢复会话状态。"""
@@ -2040,6 +2096,7 @@ class AgentLoop:
             "session_id": self.session_id,
             "messages": self.messages,
             "conversation": self.conversation.to_dict(),
+            "outputs": self.outputs.to_dict(),
             "task_plan": self.task_plan,
             "native_write_fallback": self.native_write_fallback,
             "additional_native_tools": sorted(self.additional_native_tools),
@@ -2059,10 +2116,12 @@ class AgentLoop:
         self.client.headers.update(self._build_headers())
         self.messages = list(data.get("messages", []))
         self.conversation = ConversationContext.from_dict(data.get('conversation', {}))
+        self.outputs.load(data.get('outputs', {}))
         self.task_plan = validate_plan(data.get('task_plan', {'explanation': '', 'steps': []}))
         self.native_write_fallback = data.get('native_write_fallback') is True
         self.additional_native_tools = set(data.get('additional_native_tools', []))
-        self.context = ContextManager.from_dict(data.get("context", {}))
+        self.context = ContextManager.from_dict(data.get("context", {}), output_store=self.outputs,
+                                               redact_output=self.executor.redact_output)
         restored = [
             str(item) for item in data.get("executed_ids", []) if item
         ]

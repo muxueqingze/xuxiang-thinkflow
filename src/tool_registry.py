@@ -178,13 +178,15 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="recall",
-        description="按引用读取已保存原文的字符区间。",
+        description="按引用读取原始用户要求或已保存工具输出的字符区间。",
         parameters={
             "type": "object",
             "properties": {
-                "ref": {"type": "string", "minLength": 1, "description": "原文引用，如request:1"},
+                "ref": {"type": "string", "minLength": 1, "description": "原文引用，如request:1或receipt:3:stdout"},
                 "offset": {"type": "integer", "minimum": 0, "default": 0},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 200000, "default": 8000},
+                "query": {"type": "string", "minLength": 1,
+                          "description": "可选字面关键词；从offset找首个匹配，返回匹配行片段"},
             },
             "required": ["ref"],
         },

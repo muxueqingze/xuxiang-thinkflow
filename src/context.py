@@ -8,7 +8,7 @@ ThinkFlow Context Manager — 上下文管理
 import hashlib
 import re
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Optional
 
 from .parser import Command
@@ -47,6 +47,10 @@ class CommandRecord:
     ref: Optional[str] = None
     offset: int = 0
     limit: int = 8000
+    query: Optional[str] = None
+    output_refs: dict[str, str] = field(default_factory=dict)
+    output_sizes: dict[str, int] = field(default_factory=dict)
+    payload_clipped: bool = False
 
     @staticmethod
     def _clip_text(text: str, max_chars: int = 4000) -> str:
@@ -76,6 +80,9 @@ class CommandRecord:
             attrs.append(f'dest="{self.dest}"')
         if self.tool == 'recall':
             attrs.extend([f'ref="{self.ref}"', f'offset="{self.offset}"', f'limit="{self.limit}"'])
+            if self.query is not None:
+                query = self.query.replace('&', '&amp;').replace('"', '&quot;').replace('<', '&lt;').replace('>', '&gt;')
+                attrs.append(f'query="{query}"')
         if self.cmd and self.tool != "python":
             safe_cmd = self.cmd.replace('"', "'")
             attrs.append(f'cmd="{safe_cmd}"')
@@ -131,8 +138,11 @@ class CommandRecord:
 
         if self.error and self.error not in (self.stdout, self.stderr):
             lines.append(f'  ERROR: {self.error}')
-        if self.truncated:
-            lines.append('[THINKFLOW TRUNCATED] 执行器输出已截断。')
+        if self.truncated or self.payload_clipped:
+            lines.append('[THINKFLOW TRUNCATED] 此处为部分正文；已有原文引用可用 recall 回取。')
+        for name, ref in self.output_refs.items():
+            if self.truncated or self.payload_clipped or self.output_sizes[name] > 8000:
+                lines.append(f'  original {name}: {ref} ({self.output_sizes[name]} characters; use recall)')
 
         return "\n".join(lines)
 
@@ -144,7 +154,11 @@ class CommandRecord:
 class ContextManager:
     """上下文管理器"""
 
-    def __init__(self, start_stamp: int = 1):
+    def __init__(self, start_stamp: int = 1, *, output_store=None, redact_output=None):
+        self.outputs = output_store
+        self.redact_output = redact_output or (lambda text: text)
+        self.output_index: dict[str, str] = {}
+        self.has_archived_output = False
         self.records: list[CommandRecord] = []
         self.next_stamp: int = start_stamp
         self.next_receipt_ref: int = 1
@@ -160,10 +174,25 @@ class ContextManager:
 
     def record(self, command: Command, result: ExecutionResult, flow: str = "delayed", risk: str = "low"):
         """记录一条已执行的命令。"""
+        for name in ("stdout", "stderr", "content", "error"):
+            setattr(result, name, self.redact_output(getattr(result, name)))
+        evidence_ref = f"receipt:{self.next_receipt_ref}"
+        if self.outputs is not None and command.tool != "recall":
+            refs = dict(result.output_refs)
+            for name, text in (("stdout", result.stdout or result.content), ("stderr", result.stderr)):
+                if text and name not in refs:
+                    refs[name] = self.outputs.put_text(text)
+            result.output_refs = {}
+            for name, raw_ref in refs.items():
+                ref = f"{evidence_ref}:{name}"
+                self.output_index[ref] = raw_ref
+                result.output_refs[name] = ref
+                result.output_sizes[name] = self.outputs.entries[raw_ref]["chars"]
+            self.has_archived_output |= result.truncated or any(size > 8000 for size in result.output_sizes.values())
         rec = CommandRecord(
             id=command.id,
             tool=command.tool,
-            evidence_ref=f"receipt:{self.next_receipt_ref}",
+            evidence_ref=evidence_ref,
             path=command.path,
             dest=command.dest,
             cmd=command.cmd,
@@ -185,10 +214,13 @@ class ContextManager:
             stderr=result.stderr,
             exit_code=result.exit_code,
             truncated=result.truncated,
-            output_chars=len(result.stdout or result.content),
+            output_chars=result.output_sizes.get("stdout", len(result.stdout or result.content)),
             ref=command.ref,
             offset=command.offset,
             limit=command.limit,
+            query=command.query,
+            output_refs=dict(result.output_refs),
+            output_sizes=dict(result.output_sizes),
         )
         self.records.append(rec)
         self.next_receipt_ref += 1
@@ -208,6 +240,11 @@ class ContextManager:
             self._last_need_result = rec
         elif result.success and flow == "blocking":
             self._pending_auto_result = rec
+
+    def recall(self, ref: str, offset=0, limit=8000, query=None) -> str:
+        if ref not in self.output_index:
+            raise ValueError(f"Unknown output reference: {ref}")
+        return self.outputs.recall(self.output_index[ref], offset, limit, display_ref=ref, query=query)
 
     def evidence_ref_for(self, command_id: str) -> Optional[str]:
         """Reuse the original receipt reference, excluding unexecuted skips."""
@@ -319,6 +356,8 @@ class ContextManager:
     def reset(self):
         """重置（新会话）。"""
         self.records.clear()
+        self.output_index.clear()
+        self.has_archived_output = False
         self.next_stamp = 1
         self.next_receipt_ref = 1
         self.archived_records = 0
@@ -347,6 +386,14 @@ class ContextManager:
                     continue
                 limit = min(8000, payload_budget)
                 if len(value) > limit:
+                    if self.outputs is not None and record.tool != "recall" and name not in record.output_refs:
+                        ref = f"{record.evidence_ref}:{name}"
+                        original = self.redact_output(value)
+                        self.output_index[ref] = self.outputs.put_text(original)
+                        record.output_refs[name] = ref
+                        record.output_sizes[name] = len(original)
+                    self.has_archived_output = True
+                    record.payload_clipped = True
                     setattr(record, name, (CommandRecord._clip_text(value, limit) if limit > 120
                                           else "[THINKFLOW ARCHIVED PAYLOAD — inspect the current file or original output]"))
                 payload_budget = max(0, payload_budget - min(len(value), limit))
@@ -354,6 +401,8 @@ class ContextManager:
     def to_dict(self) -> dict:
         """序列化为会话快照。"""
         return {
+            "output_index": dict(self.output_index),
+            "has_archived_output": self.has_archived_output,
             "records": [asdict(r) for r in self.records],
             "next_stamp": self.next_stamp,
             "next_receipt_ref": self.next_receipt_ref,
@@ -364,9 +413,11 @@ class ContextManager:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ContextManager":
+    def from_dict(cls, data: dict, *, output_store=None, redact_output=None) -> "ContextManager":
         """从会话快照恢复。"""
-        ctx = cls(start_stamp=data.get("next_stamp", 1))
+        ctx = cls(start_stamp=data.get("next_stamp", 1), output_store=output_store, redact_output=redact_output)
+        ctx.output_index = dict(data.get("output_index", {}))
+        ctx.has_archived_output = bool(data.get("has_archived_output", False))
         ctx.archived_records = int(data.get("archived_records", 0))
         ctx.records = [
             CommandRecord.from_dict(item)
@@ -412,6 +463,8 @@ def _command_hash(command: Command) -> str:
     ]
     if command.tool == 'recall':
         parts.extend([command.ref or '', str(command.offset), str(command.limit)])
+        if command.query is not None:
+            parts.append(command.query)
     payload = "\0".join(parts).encode("utf-8", errors="replace")
     return hashlib.sha256(payload).hexdigest()[:16]
 

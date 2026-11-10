@@ -64,6 +64,8 @@ description: 续想 ThinkFlow harness 按需参考——tf-* 流式命令协议�
 
 压缩后可按摘要中的request引用回取旧要求：`<tf-recall id="编号" ref="request:1" offset="0" limit="8000" />`。范围按字符计算，独立回取与读取同批声明。
 
+长工具输出按回执原文引用回取，如`<tf-recall id="编号" ref="receipt:3:stdout" query="Error" limit="2000" />`。知道关键词就直接定位，多个独立关键词同批查；需要相邻原文再按返回的字符位置读取。
+
 Python代码块（复用同一Python执行器，运行后反馈新信息）：
 ```xml
 <tf-python id="编号">

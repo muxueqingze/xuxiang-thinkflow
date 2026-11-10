@@ -2,6 +2,8 @@
 
 更新：2026-11-10。当前节点完成原始要求留存、增量摘录与按范围recall。目标是长任务压缩后仍按原要求交付；不增加摘要模型调用，默认工程指引保持精简。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
 
+本轮节点（2026-11-11）：完整工具输出留存、短receipt引用、恢复/fork与CLI无自动保存生命周期已完成；独立节点及query增量验收通过。真实DS首次只按offset恢复，用8请求触限、产物正确；补字面query后同场景3请求正常交付，总token由至少68,565变为5,487。两轮均保留，见[输出留存与证据](output-recall-20261111.md)。范围read与精确edit的同SHA观察覆盖设计已盘点，后续再落地。
+
 ## 当前成果
 
 - `src/conversation.py`独立记录真实用户要求及request引用；当前执行输入完整保留一次，桌面附件展开与用户原文分开保存。原文与摘要状态随snapshot、fork和配置切换保存。

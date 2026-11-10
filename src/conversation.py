@@ -6,8 +6,11 @@ be tool results or harness observations and are not a source of user intent.
 from __future__ import annotations
 
 import copy
+import io
 import re
 from dataclasses import dataclass, field
+
+from .recall import recall_text
 
 
 @dataclass
@@ -36,25 +39,15 @@ class ConversationContext:
         entry = self.requests[-1]
         return entry.get("execution_input", entry["text"])
 
-    def recall(self, ref: str, offset: int = 0, limit: int = 8000) -> str:
+    def recall(self, ref: str, offset: int = 0, limit: int = 8000, query=None) -> str:
         if not isinstance(ref, str) or not re.fullmatch(r"request:[1-9][0-9]*", ref):
             raise ValueError("ref must be request:<number>")
         number = int(ref.split(":", 1)[1])
         if number > len(self.requests):
             raise ValueError(f"Unknown request reference: {ref}")
-        if type(offset) is not int or offset < 0:
-            raise ValueError("offset must be a non-negative character offset")
-        if type(limit) is not int or not 1 <= limit <= 200_000:
-            raise ValueError("limit must be between 1 and 200000 characters")
         text = self.requests[number - 1]["text"]
-        if offset > len(text):
-            raise ValueError(f"offset exceeds request length {len(text)}")
-        end = min(len(text), offset + limit)
-        header = f"[Original user request {ref}; characters {offset}:{end} of {len(text)}]"
-        result = header + "\n" + text[offset:end]
-        if end < len(text):
-            result += f"\n[More request text: recall ref={ref} offset={end}]"
-        return result
+        with io.StringIO(text, newline="") as source:
+            return recall_text(source, len(text), ref, "request", offset, limit, query)
 
     def to_dict(self) -> dict:
         return {

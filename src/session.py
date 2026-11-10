@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 from .runtime_context import cwd_session_path
+from .output_store import OutputStore
 
 
 DEFAULT_SESSION_DIR = ".thinkflow"
@@ -34,6 +35,10 @@ class SessionStore:
 
     def exists(self) -> bool:
         return self.path.exists()
+
+    @property
+    def output_dir(self) -> Path:
+        return self.path.with_suffix(".outputs")
 
     def discover(self) -> list[Path]:
         """Return known session snapshots, newest first."""
@@ -110,9 +115,19 @@ class SessionStore:
         }
     def load(self) -> dict:
         with self.path.open("r", encoding="utf-8-sig") as f:
-            return json.load(f)
+            snapshot = json.load(f)
+        outputs = snapshot.get("outputs")
+        if outputs and outputs.get("root"):
+            outputs["root"] = str((self.path.parent / outputs["root"]).resolve())
+        return snapshot
 
     def save(self, snapshot: dict, *, history: bool = True):
+        snapshot = dict(snapshot)
+        if "outputs" in snapshot:
+            outputs = OutputStore(root=self.output_dir)
+            outputs.load(snapshot["outputs"])
+            snapshot["outputs"] = outputs.to_dict()
+            snapshot["outputs"]["root"] = Path(os.path.relpath(self.output_dir, self.path.parent)).as_posix()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._write_json_atomic(self.path, snapshot)
         if history:
@@ -168,6 +183,9 @@ class SessionStore:
             except Exception:
                 continue
         archived = dict(snapshot)
+        if "outputs" in snapshot:
+            archived["outputs"] = dict(snapshot["outputs"])
+            archived["outputs"]["root"] = Path(os.path.relpath(self.output_dir, history_dir)).as_posix()
         archived["_history_digest"] = digest
         archived["_history_saved_at"] = datetime.fromtimestamp(time.time()).isoformat(timespec="seconds")
         stamp = datetime.fromtimestamp(time.time()).strftime("%Y%m%d-%H%M%S")

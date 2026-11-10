@@ -1,0 +1,12 @@
+{
+  "kind": "actual CLI with local mock SSE endpoint; no paid API",
+  "exit_code": 0,
+  "requests": 2,
+  "command_feedback_seen": true,
+  "final_seen": true,
+  "snapshot_exists": false,
+  "persistent_outputs_exist": false,
+  "temporary_output_directories": 0,
+  "owned_server_stopped": true,
+  "probe_workspace_removed": true
+}

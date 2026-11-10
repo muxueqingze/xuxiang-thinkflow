@@ -159,12 +159,14 @@ class DesktopService:
         config["verbose"] = False
         return config
 
-    async def _replace_agent(self, snapshot=None, *, close_previous=True):
+    async def _replace_agent(self, snapshot=None, *, output_dir, close_previous=True):
         config = self._config_for_agent()
         system = resolve_system_prompt(config, cwd=self.cwd)
         candidate = create_agent(config, system, self.cwd,
                                  event_sink=self._on_agent_event, approval_handler=self._approval)
         try:
+            candidate.set_output_secrets(self._secrets)
+            candidate.bind_output_store(output_dir)
             if snapshot:
                 candidate.load_snapshot(snapshot)
                 # A syntactically valid snapshot can still contain unusable runtime
@@ -344,7 +346,7 @@ class DesktopService:
         self.config = candidate
         try:
             if self.agent:
-                await self._replace_agent(self.agent.to_snapshot())
+                await self._replace_agent(self.agent.to_snapshot(), output_dir=self.store.output_dir)
                 self._attach_change_store()
         except Exception:
             self.config = previous
@@ -355,9 +357,11 @@ class DesktopService:
         self._require_idle()
         if not self.cwd:
             raise ValueError("请先选择工作区。")
-        await self._replace_agent(snapshot, close_previous=close_previous)
-        self.session_id = uuid.uuid4().hex
-        self.store = SessionStore(str(self._session_path(self.session_id)), cwd=self.cwd)
+        session_id = uuid.uuid4().hex
+        store = SessionStore(str(self._session_path(session_id)), cwd=self.cwd)
+        await self._replace_agent(snapshot, close_previous=close_previous, output_dir=store.output_dir)
+        self.session_id = session_id
+        self.store = store
         self.transcript = copy.deepcopy(transcript or [])
         self._assign_message_ids()
         self.input_commands = []
@@ -420,7 +424,7 @@ class DesktopService:
             raise ValueError("会话显示记录损坏；原文件仍保留在本机。")
         recovery = self._unresolved_intents(session_id)
         inputs = self._load_inputs(meta)
-        await self._replace_agent(data, close_previous=close_previous)
+        await self._replace_agent(data, close_previous=close_previous, output_dir=store.output_dir)
         self.store = store
         self.session_id = session_id
         self.title = meta.get("title", "恢复的会话")
@@ -966,6 +970,11 @@ class DesktopService:
             content.append("\n## 执行账本（最近500条；旧正文可能已摘录）\n")
             for record in self.state()["ledger"]:
                 content.append(f"- {record['id']} · {record['tool']} · {record['status']} · {record['path'] or ''}")
+            if self.agent and self.agent.outputs.entries:
+                content.append("\n## 完整工具输出（本地文件索引）\n")
+                for ref, original in self.agent.context.output_index.items():
+                    metadata = self.agent.outputs.entries[original]
+                    content.append(f"- {ref} · {metadata['chars']} 字符 · {self.agent.outputs.path_for(original)}")
             markdown = self._clean("\n\n".join(content))
             if len(markdown) > 16000000:
                 raise ValueError("该会话超过单次导出上限；完整记录仍保留在本机数据目录中。")

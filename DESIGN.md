@@ -1,6 +1,6 @@
 # 续想 ThinkFlow · v0.8 架构
 
-更新于2026-11-10。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.7 与源码为准。
+更新于2026-11-11。原 v0.5 设计保留于 Git 提交 `b45c01e`。当前实现以本文、PROTOCOL 1.8 与源码为准。
 
 ## 核心判断
 
@@ -53,6 +53,7 @@ CLI / Electron desktop
 | `tool_registry.py / interfaces.py` | 工具schema、分流/风险、自定义接口 |
 | `context.py / feedback.py / compaction.py` | 可审计回执、observation 合并、去重与确定性摘录；先压缩再按最终历史判断重复 |
 | `conversation.py` | 原始用户要求、request引用、字符范围回取与结构化摘要状态；与provider消息分离 |
+| `output_capture.py / output_store.py / recall.py` | 流式保存完整输出与尾部预览、不可变原文、共用字符范围及字面搜索；实际SessionStore绑定归档根 |
 | `events.py` | 实例级事件与可选终端视图，不修改全局renderer来服务桌面 |
 | `session.py` | 原子快照、fsync、历史保留 |
 | `desktop_service.py` | 私有NDJSON RPC、工作区会话、分支、授权、恢复、导出 |

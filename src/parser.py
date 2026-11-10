@@ -46,13 +46,14 @@ class Command:
     ref: Optional[str] = None
     offset: int = 0
     limit: int = 8000
+    query: Optional[str] = None
 
 
 PARSER_ERROR_KINDS = frozenset({
     "buffer_overflow", "incomplete_tag", "unclosed_block", "missing_id",
     "invalid_id", "duplicate_id", "invalid_injected", "missing_path",
     "missing_dest", "missing_cmd", "missing_edit_sections", "missing_edit_body",
-    "missing_ref", "invalid_offset", "invalid_limit",
+    "missing_ref", "invalid_offset", "invalid_limit", "invalid_query",
 })
 
 
@@ -400,6 +401,11 @@ class StreamingParser:
 
         if tool == "recall":
             command.ref = attrs.get("ref")
+            command.query = attrs.get("query")
+            if command.query == "":
+                self.errors.append(ParseError(message=f"<recall id={cmd_id}> query 不能为空",
+                                              kind="invalid_query", raw=raw[:100]))
+                return None
             if not command.ref or not command.ref.strip():
                 self.errors.append(ParseError(
                     message=f"<recall id={cmd_id}> 缺少 ref 属性",
