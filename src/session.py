@@ -68,7 +68,10 @@ class SessionStore:
             if stream.tell():
                 stream.seek(-1, os.SEEK_END)
                 if stream.read(1) != b"\n":
-                    stream.write(b"\n")
+                    stream.seek(0)
+                    committed_end = stream.read().rfind(b"\n") + 1
+                    stream.truncate(committed_end)
+                    stream.seek(0, os.SEEK_END)
             stream.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
             stream.flush()
             os.fsync(stream.fileno())
@@ -89,8 +92,12 @@ class SessionStore:
         if not self.journal_path.exists():
             return
         pending = {}
-        with self.journal_path.open(encoding="utf-8") as stream:
+        with self.journal_path.open("rb") as stream:
             for line in stream:
+                # The executor starts only after the complete intent is flushed.
+                # A torn completion already has its receipt in the snapshot.
+                if not line.endswith(b"\n"):
+                    break
                 try:
                     event = json.loads(line)
                 except ValueError as exc:
@@ -103,7 +110,10 @@ class SessionStore:
                 elif event["type"] == "tool_completed":
                     pending.pop(key, None)
         records = snapshot.setdefault("context", {}).setdefault("records", [])
-        known = {record["id"] for record in records if record.get('status') != 'skipped'}
+        known = {}
+        for record in records:
+            if record.get('status') != 'skipped':
+                known.setdefault(record['id'], record)
         executed = snapshot.setdefault("executed_ids", [])
         fingerprints = snapshot.setdefault("command_fingerprints", {})
         for event in pending.values():
@@ -111,6 +121,11 @@ class SessionStore:
             # A crash after snapshot replace but before journal completion already
             # has a committed receipt. Preserve that result instead of downgrading it.
             if identifier in known:
+                receipt = known[identifier]
+                if (receipt.get('status') in ('success', 'failed', 'conflict')
+                        and fingerprints.get(identifier) == event.get('input_hash')):
+                    # Settle the journal before compaction can discard the receipt.
+                    self._journal({**event, 'type': 'tool_completed', 'status': receipt['status']})
                 continue
             records.append({
                 "id": identifier, "tool": event["tool"], "status": "unknown",

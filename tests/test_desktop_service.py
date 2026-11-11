@@ -9,12 +9,14 @@ import sys
 import tempfile
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.context import ContextManager
 from src.output_store import OutputStore
+from src.parser import Command
+from src.executor import ExecutionResult
 from src.desktop_service import DesktopService
 from src.usage_tracker import SessionUsage
 from src import desktop_service
@@ -313,13 +315,13 @@ class DesktopServiceTests(unittest.IsolatedAsyncioTestCase):
         await self.service.dispatch("resume_session", {"session_id": branch})
         self.assertIn("Branch only", [m["content"] for m in self.service.transcript])
 
-    async def test_journal_unfinished_and_corrupt_tail_need_explicit_acknowledgement(self):
+    async def test_journal_unfinished_and_corrupt_line_need_explicit_acknowledgement(self):
         await self.ready()
         identifier = self.service.session_id
         self.service._on_agent_event({"type": "tool_started", "channel": "text", "id": "1",
                                       "tool": "write", "path": "might-exist.txt"})
         with self.service.journal_path.open("a", encoding="utf-8") as stream:
-            stream.write('{"truncated":')
+            stream.write('{"corrupt":\n')
         await self.service.dispatch("new_session")
         state = await self.service.dispatch("resume_session", {"session_id": identifier})
         self.assertTrue(state["recovery_required"])
@@ -537,6 +539,91 @@ class DesktopServiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn("1", self.service.agent._executed_ids)
             self.assertFalse(state["recovery_required"])
             await self.service.dispatch("shutdown")
+
+    async def test_real_torn_completion_reopens_same_session_and_continues(self):
+        self.use_real_agent()
+        await self.ready(security_profile="open")
+        for channel in ('text', 'native'):
+            with self.subTest(channel=channel):
+                await self.service.dispatch('new_session')
+                identifier = self.service.session_id
+                if channel == 'text':
+                    result = await self.service.agent._execute_command(Command('1', 'touch', path='效果.txt'))
+                    expected_status = 'success'
+                else:
+                    result = await self.service.agent._execute_traditional_result(
+                        'read', {'path': '缺失效果.txt'}, tool_id='1')
+                    expected_status = 'failed'
+                self.assertEqual(result.status_str, expected_status)
+                journal = self.service.journal_path
+                await self.service.close()
+                lines = journal.read_bytes().splitlines(keepends=True)
+                self.assertEqual(json.loads(lines[-1])['type'], 'tool_completed')
+                cut = lines[-1].index('效果'.encode('utf-8')) + 1
+                journal.write_bytes(b''.join(lines[:-1]) + lines[-1][:cut])
+                self.service = DesktopService()
+                await self.initialize({'base_url': 'http://127.0.0.1:1', 'model': 'test-local',
+                                       'security_profile': 'open'})
+                state = await self.service.dispatch('open_workspace',
+                    {'cwd': str(self.workspace), 'session_id': identifier})
+                self.assertEqual(self.service.session_id, identifier)
+                self.assertFalse(state['recovery_required'])
+                self.assertEqual(state['ledger'][0]['status'], expected_status)
+                self.assertIn('1', self.service.agent._executed_ids)
+                with LocalSSE([f'<tf-write id="2" path="{channel}-continued.txt">continued</tf-write>']) as server:
+                    await self.service.dispatch('configure', {'base_url': server.url})
+                    await self.service.dispatch('run', {'prompt': 'Continue after journal recovery'})
+                    state = await self.finish()
+                    self.assertEqual(state['status'], 'idle', state['last_error'])
+                    self.assertFalse(state['recovery_required'])
+                    self.assertEqual(len(server.requests), 1)
+                self.assertEqual((self.workspace / f'{channel}-continued.txt').read_text(), 'continued')
+                state = await self.service.dispatch('resume_session', {'session_id': identifier})
+                self.assertFalse(state['recovery_required'])
+                self.assertEqual([r['status'] for r in state['ledger']], [expected_status, 'success'])
+                events = [json.loads(line) for line in journal.read_bytes().splitlines()]
+                self.assertEqual([e['id'] for e in events if e['type'] == 'tool_started'], ['1', '2'])
+                self.assertEqual([e['id'] for e in events if e['type'] == 'tool_completed'], ['1', '2'])
+                for record in self.service.agent.context.records:
+                    self.service.agent.context.mark_injected(record.id)
+                self.service.agent.context.compact_history(keep_records=0)
+                for number in range(4096):
+                    self.service.agent._remember_command(f'recent-{number}', f'hash-{number}')
+                self.assertNotIn('1', self.service.agent._command_fingerprints)
+                self.service._save()
+                state = await self.service.dispatch('resume_session', {'session_id': identifier})
+                self.assertFalse(state['recovery_required'])
+                self.assertEqual(state['ledger'], [])
+
+    async def test_torn_uncertain_receipts_and_ui_intents_still_require_recovery(self):
+        self.use_real_agent()
+        await self.ready(security_profile='open')
+        for status in ('cancelled', 'unknown'):
+            with self.subTest(status=status):
+                await self.service.dispatch('new_session')
+                identifier = self.service.session_id
+                with patch.object(self.service.agent, '_execute_builtin', AsyncMock(return_value=
+                        ExecutionResult(success=False, tool='touch', path='效果.txt', status=status))):
+                    await self.service.agent._execute_command(Command('1', 'touch', path='效果.txt'))
+                journal = self.service.journal_path
+                lines = journal.read_bytes().splitlines(keepends=True)
+                cut = lines[-1].index('效果'.encode('utf-8')) + 1
+                journal.write_bytes(b''.join(lines[:-1]) + lines[-1][:cut])
+                state = await self.service.dispatch('resume_session', {'session_id': identifier})
+                self.assertTrue(state['recovery_required'])
+                self.assertEqual(state['ledger'][0]['status'], status)
+                self.assertEqual([e['id'] for e in state['recovery']], ['1'])
+                state = await self.service.dispatch('acknowledge_recovery')
+                self.assertFalse(state['recovery_required'])
+                state = await self.service.dispatch('resume_session', {'session_id': identifier})
+                self.assertFalse(state['recovery_required'])
+        await self.service.dispatch('new_session')
+        await self.service.agent._execute_command(Command('1', 'touch', path='效果.txt'))
+        # UI reverts do not share Agent receipt IDs, even when the text happens to match.
+        self.service._journal({'type': 'tool_started', 'channel': 'ui', 'id': '1', 'tool': 'revert'})
+        state = await self.service.dispatch('resume_session', {'session_id': self.service.session_id})
+        self.assertTrue(state['recovery_required'])
+        self.assertEqual([e['channel'] for e in state['recovery']], ['ui'])
 
 
 if __name__ == "__main__":

@@ -1,5 +1,7 @@
 # ThinkFlow 执行效率 · 当前接力
 
+当前补丁为 [0.9.1](release-0.9.1.md)：CLI/SDK/桌面恢复已提交回执对应的截断日志，并一次性补齐完成记录；Windows 包内 Python 工具独立于系统 Python。协议切换、真实进程恢复与最终包定向检查见[本次验收](reviews/patch-0.9.1-quality.md)。本补丁不增加模型请求，既有 Pi 效率结论保持原样。
+
 用户的 Pro 报告已用于完成 F01–F12 的具体工程改动，见[本轮接力](pro-review-handoff.md)。0.9.0新增API原始内容块回传、增量持久化与会话索引，并分发CLI和Windows安装版/便携版；[版本说明](release-0.9.0.md)记录固定本地存储收益。[F11/F12独立验收](reviews/release-runtime-quality-20261111.md)通过，下文保留先前节点和历史实测。
 
 更新：2026-11-11。当前新增Pi式配置分层、无模型配置命令、公共运行时工厂，以及按实际待发输入触发的可选预算。最近的 Desktop / CLI 交互节点已实现全屏设置、真实思考档位、工作区终端、Git 行内差异与文件标签，状态和验证集中在[交互接力](interaction-handoff.md)。目标是可组合的基础设施harness，减少重复请求且保持质量；默认工程指引不扩写。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
@@ -29,7 +31,7 @@
 
 ## 交付与保留
 
-[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)保持未合并。0.9.0通过npm `next`及GitHub预发布提供新源码对应的CLI、Windows安装EXE和便携ZIP，`latest`保持0.5.1；安装入口见[版本说明](release-0.9.0.md)。0.8.0历史包对应`6d85c06`，[原发布记录](evidence/npm-0.8.0.json)保留。已收到用户对`558078e`的Pro全局审查，F01–F12按实际工程价值落实。
+[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)保持未合并。0.9.1通过npm `next`及GitHub预发布提供对应的CLI、Windows安装EXE和便携ZIP，`latest`保持0.5.1；安装入口见[版本说明](release-0.9.1.md)。0.8.0历史包对应`6d85c06`，[原发布记录](evidence/npm-0.8.0.json)保留。已收到用户对`558078e`的Pro全局审查，F01–F12按实际工程价值落实。
 
 每轮实验结束即清理临时工作区并关闭客户端/进程。保留`bench/output_recovery_20261111/`、`bench/range_edit_20261111/`复现脚本，正式回归与docs证据；前一轮长上下文和历史benchmark材料仍按原用途保留。无新增依赖、PATH或Codex登录改动，密钥不进入项目。
 

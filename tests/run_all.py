@@ -17,7 +17,7 @@ def main():
     test_parser.run_all()
     test_core.run_all()
     suite = unittest.TestSuite()
-    for pattern in ('test_cli_persistence.py', 'test_process_contracts.py',
+    for pattern in ('test_cli_persistence.py', 'test_process_contracts.py', 'test_python_runtime.py',
                     'test_message_projection.py', 'test_dispatch_contracts.py',
                     'test_anthropic_roundtrip.py', 'test_session_incremental.py'):
         suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern=pattern))

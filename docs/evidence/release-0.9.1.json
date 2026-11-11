@@ -1,0 +1,73 @@
+{
+  "version": "0.9.1",
+  "date": "2026-11-11",
+  "source_tag": "v0.9.1",
+  "npm": {
+    "artifact": "artifacts/npm-0.9.1/xuxiang-agent-0.9.1.tgz",
+    "files": 103,
+    "bytes": 309044,
+    "sha1": "7341ac9e2275a084db29b7f8746e5cf250504ba6",
+    "integrity": "sha512-kgAku7vvVzDvmXNXogUil/gLvj226vKwjhXJ+NH2PDfzF8tGJeGlF2HmLD3vhwWl85UNAcSfUFPYqWcwEnD65Q==",
+    "validation": {
+      "version": "0.9.1",
+      "postinstall": true,
+      "installed_core_import": true,
+      "local_http_requests": 2,
+      "paid_requests": 0,
+      "actual_write_python_read": true,
+      "persisted_receipts": [
+        "success",
+        "success"
+      ],
+      "torn_execution_tail_preserved_receipts": true,
+      "user_agent": "ThinkFlow/0.9.1",
+      "cli_aliases": true,
+      "publish_content_scan": "no findings",
+      "final_repack": "All executable/runtime bytes match the actual installed and tested tarball; only three release/handoff Markdown files changed."
+    }
+  },
+  "desktop": {
+    "applicationDirectory": "artifacts/desktop-2026-11-11T13-42-08-603Z/ThinkFlow-win32-x64",
+    "installer": {
+      "path": "artifacts/desktop-2026-11-11T13-42-08-603Z/ThinkFlow-0.9.1-Windows-x64-Setup.exe",
+      "bytes": 170464146,
+      "sha256": "03893def6c9cb3c6b38a8cd1ad29e7cc35f41a2dafb29257c500d9b68c54ff2e"
+    },
+    "portable": {
+      "path": "artifacts/desktop-2026-11-11T13-42-08-603Z/ThinkFlow-0.9.1-Windows-x64.zip",
+      "bytes": 189768454,
+      "sha256": "628bc61ea18ee91a8c5422d68173fdb2a635782255b7cd1336fd0ae4f6461825"
+    },
+    "electronSmoke": {
+      "passed": true,
+      "clipboard": "Intercepted only in isolated test process.",
+      "checks": "isolation, allowlist, first-run, encrypted settings, streaming write, safe Markdown, clipboard, 1000x700, fork, deny, cancel, export, recovery acknowledgement, explicit key clear"
+    },
+    "independentPackageEvidence": "docs/evidence/patch-0.9.1-quality.json",
+    "installerValidation": "Same installer script and tested install/uninstall behavior as 0.9.0; rebuilt from the validated 0.9.1 application directory with bundled Python."
+  },
+  "regression": {
+    "desktopNodePassed": 15,
+    "localPythonSuite": {
+      "ran": 353,
+      "skipped": 4,
+      "initialFailures": 2,
+      "causes": [
+        "Custom Python fixture wrote cwd stderr in GBK while its command-output contract is UTF-8.",
+        "Non-repository fixture inherited the parent repository after TEMP was placed inside the project."
+      ],
+      "correction": "Explicit UTF-8 fixture output and a test-local Git discovery ceiling; both original failures passed in the same environment."
+    },
+    "subsequentRecoveryChecks": {
+      "passed": 7,
+      "report": "docs/reviews/current-session-20261111.md"
+    },
+    "packagedPythonChecks": {
+      "passed": 5,
+      "report": "docs/reviews/packaged-python-20261111.md"
+    }
+  },
+  "paidModelCalls": 0,
+  "retainedBuildInput": "artifacts/build-inputs/python-3.12.10-embed-amd64.zip (official 3.12.10 x64 archive, reused by desktop builds)",
+  "globalPathChanges": []
+}

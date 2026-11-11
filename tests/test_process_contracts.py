@@ -125,7 +125,7 @@ class ProcessContracts(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(self.executor.outputs.path_for(result.output_refs[stream]).read_text(), original)
 
     async def test_custom_short_output_and_configured_environment_are_preserved(self):
-        source = "import json,os,sys; p=json.load(sys.stdin);sys.stdout.buffer.write(('  '+p['text']+'  \\n').encode());sys.stderr.write(os.getcwd())"
+        source = "import json,os,sys; p=json.load(sys.stdin);sys.stdout.buffer.write(('  '+p['text']+'  \\n').encode());sys.stderr.buffer.write(os.getcwd().encode())"
         tool = CustomToolConfig("custom", "fixture", {}, command=[sys.executable, "-c", source])
         result = await self.interfaces.run_custom_tool(tool, {"text": "short"})
         self.assertEqual(result.stdout, "  short  \n")

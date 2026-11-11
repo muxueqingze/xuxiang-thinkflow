@@ -1,4 +1,4 @@
-> Version 0.9.0 packages the desktop workbench, long-session context and execution improvements, lossless Anthropic content-block round trips, and incremental session persistence. See [release notes](docs/release-0.9.0.md), [desktop guide](docs/desktop.md) and [architecture](DESIGN.md).
+> Version 0.9.1 fixes interrupted execution-journal recovery and ships a standalone CPython runtime for desktop Python tools. The 0.9 series includes the desktop workbench, long-session context, lossless Anthropic content-block round trips, and incremental persistence. See [release notes](docs/release-0.9.1.md), [desktop guide](docs/desktop.md) and [architecture](DESIGN.md).
 
 # Xuxiang ThinkFlow
 
@@ -6,7 +6,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.9.1-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
@@ -44,21 +44,21 @@ model stream
 
 Information tools produce new reasoning input; predictable side-effect tools usually produce execution receipts. Declare independent reads in one generation, then decide from the complete batch. Once changes are known, emit file operations and their checks in the same generation. The existing FIFO preserves order. Read only relevant information, keep first results and real errors, and avoid repeated checks after success.
 
-Current source keeps original user requests separate from the compacted view. The current input stays verbatim; earlier requests can be retrieved by reference and character range with `recall`. Repeated compaction retains structured entries instead of clipping the previous summary again, without a summarization API call. Recall instructions are added only when available. In two DS Flash recovery probes, both new artifacts passed all nine independent checks; the old compactor's artifacts passed four and five. See the [implementation and evidence](docs/long-context-20261110.md) for quality results and raw usage. This change is not included in npm 0.8.0.
+Current source keeps original user requests separate from the compacted view. The current input stays verbatim; earlier requests can be retrieved by reference and character range with `recall`. Repeated compaction retains structured entries instead of clipping the previous summary again, without a summarization API call. Recall instructions are added only when available. In two DS Flash recovery probes, both new artifacts passed all nine independent checks; the old compactor's artifacts passed four and five. See the [implementation and evidence](docs/long-context-20261110.md) for quality results and raw usage. Included in the 0.9 series.
 
-Tool output is also retained with its session. Long process output keeps a bounded tail preview and a complete text reference, including output received before cancellation or timeout. `recall` supports literal keyword lookup; restored sessions and forks retain their own backing files. A one-use output recovery probe improved from reaching the eight-request limit to completing in three requests. See the [implementation and live evidence](docs/output-recall-20261111.md). Short results stay unchanged; this capability is not included in npm 0.8.0.
+Tool output is also retained with its session. Long process output keeps a bounded tail preview and a complete text reference, including output received before cancellation or timeout. `recall` supports literal keyword lookup; restored sessions and forks retain their own backing files. A one-use output recovery probe improved from reaching the eight-request limit to completing in three requests. See the [implementation and live evidence](docs/output-recall-20261111.md). Short results stay unchanged; this capability is included in the 0.9 series.
 
-`read` now accepts line ranges. A function or configuration section can be edited exactly after reading that section; consecutive edits update its version and observed positions. Independent reads stay batched, and whole-file replacement keeps the complete-read contract. See [range reads and continuous editing](docs/read-ranges-20261111.md) for implementation and validation. This is also a source-only update.
+`read` now accepts line ranges. A function or configuration section can be edited exactly after reading that section; consecutive edits update its version and observed positions. Independent reads stay batched, and whole-file replacement keeps the complete-read contract. See [range reads and continuous editing](docs/read-ranges-20261111.md) for implementation and validation. Included in the 0.9 series.
 
 Current source also exposes layered user/project configuration, setting origins, `thinkflow config show|get|set|unset|path`, and invocation-only `--set` overrides. Desktop settings include an advanced runtime editor. Public `create_agent` and `load_configuration` APIs share the core without importing the CLI. Optional input and recent-history token budgets use the prepared request and local compaction. See [configuration and embedding](docs/configuration.md).
 
-The 2026-11-11 review follow-up unifies exact read projection across text and both native protocols, converts history at send time when switching providers, and retains other independent reads after one fails. CLI/SDK sessions persist execution receipts during a run; configured commands retain full output, frozen attachment input is available through `request:N:input`, and usage separates actual HTTP attempts from logical turns. A fixed trace sends 5,710 fewer JSON characters in one request with the same request count. See [implementation and validation](docs/reviews/pro-implementation-20261111.md). These updates are in source; npm 0.8.0 retains its published contents.
+The 2026-11-11 review follow-up unifies exact read projection across text and both native protocols, converts history at send time when switching providers, and retains other independent reads after one fails. CLI/SDK sessions persist execution receipts during a run; configured commands retain full output, frozen attachment input is available through `request:N:input`, and usage separates actual HTTP attempts from logical turns. A fixed trace sends 5,710 fewer JSON characters in one request with the same request count. See [implementation and validation](docs/reviews/pro-implementation-20261111.md). These updates are included in the 0.9 series.
 
 ## Installation
 
-Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.0/ThinkFlow-0.9.0-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.0/ThinkFlow-0.9.0-Windows-x64.zip) runs after extracting the complete folder.
+Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.1/ThinkFlow-0.9.1-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.1/ThinkFlow-0.9.1-Windows-x64.zip) runs after extracting the complete folder.
 
-The **0.9.0 CLI preview** uses the npm `next` channel. npm installs the CLI only:
+The **0.9.1 CLI preview** uses the npm `next` channel. npm installs the CLI only:
 
 ```bash
 npm install -g xuxiang-agent@next
@@ -66,7 +66,7 @@ thinkflow --help
 xuxiang --help
 ```
 
-For an exact version, use `npm install -g xuxiang-agent@0.9.0`. The `latest` channel remains at 0.5.1. See the [release notes](docs/release-0.9.0.md) for installation, upgrades and included changes.
+For an exact version, use `npm install -g xuxiang-agent@0.9.1`. The `latest` channel remains at 0.5.1. See the [release notes](docs/release-0.9.1.md) for installation, upgrades and included changes.
 
 CLI requirements:
 

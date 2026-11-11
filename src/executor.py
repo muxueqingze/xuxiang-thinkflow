@@ -10,6 +10,7 @@ import codecs
 import fnmatch
 import os
 import re
+import sys
 import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -616,8 +617,16 @@ class Executor:
             self.security.check_bash(code)
         except PermissionError as error:
             return ExecutionResult(success=False, tool="python", error=str(error), exit_code=126)
-        executable = os.environ.get("THINKFLOW_PYTHON", "python")
-        return await self._run_process([executable, "-"], shell=False, tool="python", stdin=code)
+        executable = os.environ.get("THINKFLOW_PYTHON")
+        if executable:
+            command = [executable, "-X", "utf8", "-"]
+        elif getattr(sys, "frozen", False):
+            runtime = os.path.join(os.path.dirname(sys.executable), "python")
+            command = [os.path.join(runtime, "python.exe"), "-X", "utf8",
+                       os.path.join(runtime, "thinkflow_stdin.py")]
+        else:
+            command = ["python", "-X", "utf8", "-"]
+        return await self._run_process(command, shell=False, tool="python", stdin=code)
 
     async def run_command(self, command: list[str], *, tool: str, stdin: str,
                           timeout: float, env: dict[str, str]) -> ExecutionResult:

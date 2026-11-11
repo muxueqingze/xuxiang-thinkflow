@@ -22,6 +22,7 @@ class WorkspaceServicesTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         temp = self.enterContext(tempfile.TemporaryDirectory(prefix="thinkflow-desktop-services-"))
         self.root = Path(temp)
+        self.enterContext(patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(self.root)}))
         self.workspace = self.root / "工作区"
         self.workspace.mkdir()
         self.events = []

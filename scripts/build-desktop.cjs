@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
 const { pathToFileURL } = require('node:url');
+const { preparePythonRuntime } = require('./desktop/python-runtime.cjs');
 
 function run(command, args, cwd) {
   const result = spawnSync(command, args, { cwd, stdio: 'inherit', windowsHide: true });
@@ -32,6 +33,7 @@ async function main() {
     '--exclude-module', 'PIL', '--exclude-module', 'numpy',
     path.join(root, 'scripts', 'desktop_entry.py'),
   ], root);
+  await preparePythonRuntime(root, path.join(work, 'runtime', 'thinkflow-service', 'python'), python);
   const { packager } = await import(pathToFileURL(path.join(root, 'desktop', 'node_modules', '@electron', 'packager', 'dist', 'index.js')).href);
   const electronVersion = JSON.parse(fs.readFileSync(path.join(root, 'desktop', 'node_modules', 'electron', 'package.json'), 'utf8')).version;
   const zipName = `electron-v${electronVersion}-win32-x64.zip`;

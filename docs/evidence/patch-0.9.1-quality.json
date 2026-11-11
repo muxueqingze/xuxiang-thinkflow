@@ -1,0 +1,78 @@
+{
+  "date": "2026-11-11",
+  "version": "0.9.1",
+  "scope": "Independent focused patch and shipped ZIP verification",
+  "archive": {
+    "path": "artifacts/desktop-2026-11-11T13-42-08-603Z/ThinkFlow-0.9.1-Windows-x64.zip",
+    "bytes": 189768454,
+    "entries": 244,
+    "crc": "all entries passed"
+  },
+  "frozen_backend": {
+    "source": "fresh extraction of formal portable ZIP",
+    "fresh_path": [
+      "C:/Windows/System32",
+      "C:/Windows"
+    ],
+    "removed_environment": [
+      "THINKFLOW_PYTHON",
+      "PYTHONHOME",
+      "PYTHONPATH"
+    ],
+    "http_requests": 3,
+    "backend_exit_codes": [
+      0,
+      0
+    ],
+    "checks": {
+      "actual_sse_tf_python": true,
+      "bundled_python_executable": "resources/backend/python/python.exe",
+      "utf8_stdin_stdout_files": true,
+      "workspace_module_import": true,
+      "sqlite_calculation": 42,
+      "terminal_conpty_calculation": 42,
+      "terminal_closed": true,
+      "torn_completion_utf8_recovered_same_session": true,
+      "persisted_receipts": [
+        [
+          "1",
+          "success"
+        ],
+        [
+          "2",
+          "success"
+        ]
+      ],
+      "continued_full_run": true,
+      "original_python_not_replayed": true
+    }
+  },
+  "independent_source_checks": [
+    "Synchronous started journal precedes execution; completed receipt precedes journal completion",
+    "Valid JSON without terminal newline ignored",
+    "Next append removes torn tail and preserves committed unknown intent",
+    "Newline-terminated corruption remains explicit",
+    "Interrupted repair targets old session and does not modify active new session",
+    "Retry settles one completion; repeated resume is idempotent"
+  ],
+  "reviewed_preservation": [
+    "cancelled and unknown receipts still require recovery",
+    "UI revert intents are not settled by Agent receipts",
+    "Confirmed completion persists before receipt and fingerprint compaction"
+  ],
+  "implementation_evidence": [
+    "docs/reviews/current-session-20261111.md",
+    "docs/evidence/packaged-python-runtime-20261111.json"
+  ],
+  "findings": [
+    {
+      "severity": "P1",
+      "area": "DesktopService journal UTF-8 torn tail",
+      "status": "fixed and independently verified in final ZIP"
+    }
+  ],
+  "paid_model_calls": 0,
+  "global_path_changes": [],
+  "user_configuration_touched": false,
+  "cleanup": "Independent clients, local HTTP server and ConPTY closed; extracted ZIP and one-off fixture recycled after verification"
+}

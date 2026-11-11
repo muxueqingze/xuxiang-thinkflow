@@ -6,6 +6,8 @@
 
 便携版下载 `ThinkFlow-版本-Windows-x64.zip`，完整解压后双击 `ThinkFlow.exe`。两种桌面包都自带应用所需的 Node.js 和 Python 运行时。具体项目的编译器和运行时按项目配置。首次打开时选择工作区，再在「设置 → 模型连接」填写兼容端点和模型。
 
+`tf-python` 使用包内 `resources/backend/python/python.exe` 独立执行，包含官方 CPython 3.12.10 embeddable 的标准库与扩展模块，可直接导入当前工作区的模块。需要项目虚拟环境或额外第三方包时，在启动桌面前将 `THINKFLOW_PYTHON` 设置为相应解释器路径。CLI 继续使用该变量或系统 `python`。
+
 - Enter 发送，Shift+Enter 换行，Ctrl+Enter 也可发送；中文输入法选词不会触发发送。
 - 后续消息由后端持久接收，最多20条等待任务。当前任务成功后按顺序继续；停止、失败和重启后暂停。可独立编辑或移除未开始的任务，不改动输入框草稿。
 - 提交先保存在本机，使用稳定命令ID和原内容指纹。回执丢失会精确查询原提交，已接收就不重发；未接收可用同ID重试或取回内容。旧0.7队列保留为人工迁移入口，不自动执行。
@@ -81,6 +83,8 @@ npm run desktop:build
 ```
 
 每次构建在独立的 `artifacts/desktop-时间戳/` 下生成 `ThinkFlow-win32-x64/`、安装程序和便携 ZIP。`artifacts/latest-desktop.json` 记录最近一次完整构建的版本与三种产物路径。Python 服务入口为 `scripts/desktop_entry.py`，Electron 使用私有管道连接服务。
+
+构建会下载并校验官方 Python embeddable ZIP，复用缓存为 `artifacts/build-inputs/python-3.12.10-embed-amd64.zip`，这是保留的构建输入。离线构建可预先把同名官方文件放到该目录。工具运行时完整解包到后端的 `python/`，保留官方 `._pth` 隔离设置和许可证；stdin 入口使用命令行 UTF-8 开关并显式加入工作区导入路径。它不安装 pip/Tk；项目第三方依赖使用上面的解释器覆盖。构建不修改系统 PATH。
 
 ```powershell
 python -B tests/run_all.py

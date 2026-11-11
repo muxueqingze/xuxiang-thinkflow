@@ -127,14 +127,18 @@ class DesktopService:
     def journal_path(self):
         return self._session_path(self.session_id).with_suffix(".jsonl")
 
-    def _journal(self, event):
-        self.journal_path.parent.mkdir(parents=True, exist_ok=True)
+    def _journal(self, event, *, session_id=None):
+        journal_path = self._session_path(session_id).with_suffix(".jsonl") if session_id else self.journal_path
+        journal_path.parent.mkdir(parents=True, exist_ok=True)
         payload = self._clean({"time": time.time(), **event})
-        with self.journal_path.open("a+b") as stream:
+        with journal_path.open("a+b") as stream:
             if stream.tell():
                 stream.seek(-1, os.SEEK_END)
                 if stream.read(1) != b"\n":
-                    stream.write(b"\n")
+                    stream.seek(0)
+                    committed_end = stream.read().rfind(b"\n") + 1
+                    stream.truncate(committed_end)
+                    stream.seek(0, os.SEEK_END)
             stream.write((json.dumps(payload, ensure_ascii=False) + "\n").encode("utf-8"))
             stream.flush()
             os.fsync(stream.fileno())
@@ -403,13 +407,15 @@ class DesktopService:
         self._save()
         return self._publish_state()
 
-    def _unresolved_intents(self, session_id=None):
+    def _unresolved_intents(self, session_id=None, *, snapshot=None):
         pending = {}
         journal_path = self._session_path(session_id).with_suffix(".jsonl") if session_id else self.journal_path
         if not journal_path.exists():
             return []
-        with journal_path.open(encoding="utf-8") as stream:
+        with journal_path.open("rb") as stream:
             for line in stream:
+                if not line.endswith(b"\n"):
+                    break
                 try:
                     event = json.loads(line)
                     if not isinstance(event, dict):
@@ -427,6 +433,24 @@ class DesktopService:
                         pending.pop(key, None)
                 elif event.get("type") == "recovery_acknowledged":
                     pending.clear()
+        if pending and snapshot is None:
+            snapshot = SessionStore(str(journal_path.with_suffix(".json")), cwd=self.cwd).load()
+        if snapshot is not None:
+            receipts = {}
+            for record in snapshot.get("context", {}).get("records", []):
+                if record.get("status") != "skipped":
+                    receipts.setdefault(record["id"], record)
+            fingerprints = snapshot.get("command_fingerprints", {})
+            for key, event in list(pending.items()):
+                receipt = receipts.get(event.get("id"), {})
+                # Agent receipts precede completion appends. UI reverts have no
+                # ledger receipt; cancelled/unknown results still need review.
+                if (event.get("type") == "tool_started" and event.get("channel") in ("text", "native")
+                        and receipt.get("status") in ("success", "failed", "conflict")
+                        and fingerprints.get(event.get("id")) == event.get("input_hash")):
+                    self._journal({**event, "type": "tool_completed", "status": receipt["status"]},
+                                  session_id=session_id)
+                    del pending[key]
         return list(pending.values())
 
     async def resume(self, session_id, *, close_previous=True):
@@ -443,7 +467,7 @@ class DesktopService:
                 or any(not isinstance(item, dict) or item.get("role") not in ("user", "assistant")
                        or not isinstance(item.get("content"), str) for item in transcript)):
             raise ValueError("会话显示记录损坏；原文件仍保留在本机。")
-        recovery = self._unresolved_intents(session_id)
+        recovery = self._unresolved_intents(session_id, snapshot=data)
         inputs = self._load_inputs(meta)
         await self._replace_agent(data, close_previous=close_previous, output_dir=store.output_dir)
         self.store = store

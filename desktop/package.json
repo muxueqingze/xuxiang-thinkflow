@@ -1,6 +1,6 @@
 {
   "name": "thinkflow-desktop",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "private": true,
   "description": "续想 ThinkFlow Windows 桌面应用",
   "main": "main.cjs",

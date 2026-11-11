@@ -1,0 +1,15 @@
+{
+  "version": "0.9.0",
+  "model_requests": 2,
+  "status": "idle",
+  "ledger": [
+    {
+      "tool": "python",
+      "status": "failed",
+      "error": "python failed: [WinError 2] 系统找不到指定的文件。",
+      "exit_code": null
+    }
+  ],
+  "python_on_path": false,
+  "normal_python_available": true
+}

@@ -10,7 +10,7 @@ import threading
 import time
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.cli import handle_slash_command, select_session
@@ -179,6 +179,33 @@ class CLIProcessTests(unittest.TestCase):
         self.assertIn("已停止自动继续", err)
         self.assertEqual(len([e for e in self.journal_events() if e["type"] == "tool_started"]), 1)
 
+    def test_torn_completion_journal_restores_receipt_and_accepts_new_tools(self):
+        self.text = '<tf-write id="1" path="效果.txt">persisted effect</tf-write>'
+        self.hold = True
+        process = self.start()
+        self.wait_for(lambda: any(e["type"] == "tool_completed" for e in self.journal_events()))
+        process.kill()
+        process.communicate(timeout=10)
+        lines = self.store.journal_path.read_bytes().splitlines(keepends=True)
+        self.assertEqual(json.loads(lines[-1])["type"], "tool_completed")
+        # Receipt save precedes completion append; a kill may tear even a UTF-8 character.
+        cut = lines[-1].index('效果'.encode('utf-8')) + 1
+        self.store.journal_path.write_bytes(b''.join(lines[:-1]) + lines[-1][:cut])
+        snapshot = self.store.load()
+        self.assertEqual([(r["id"], r["status"]) for r in snapshot["context"]["records"]],
+                         [("1", "success")])
+        self.hold = False
+        self.text = '<tf-write id="2" path="second.txt">continued</tf-write>'
+        resumed = self.start("--resume")
+        out, err = resumed.communicate(timeout=15)
+        self.assertEqual(resumed.returncode, 0, (out, err))
+        self.assertEqual((self.root / "效果.txt").read_text(), "persisted effect")
+        self.assertEqual((self.root / "second.txt").read_text(), "continued")
+        self.assertEqual([(r["id"], r["status"]) for r in self.store.load()["context"]["records"]],
+                         [("1", "success"), ("2", "success")])
+        self.assertEqual([e["id"] for e in self.journal_events() if e["type"] == "tool_started"],
+                         ["1", "2"])
+
     def test_no_autosave_does_not_create_session_or_journal(self):
         self.text = '<tf-write id="1" path="effect.txt">effect</tf-write>'
         process = self.start("--no-autosave")
@@ -190,6 +217,60 @@ class CLIProcessTests(unittest.TestCase):
 
 
 class SDKPersistenceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_recovered_receipt_settles_intent_before_compaction(self):
+        with tempfile.TemporaryDirectory(prefix="thinkflow-sdk-recovered-compaction-") as temp:
+            root = Path(temp)
+            store = SessionStore(str(root / 'session.json'), cwd=temp)
+            config = {'context': {'enabled': False}, 'security': {'profile': 'open'}}
+            agent = create_agent(config, '', cwd=temp, event_sink=lambda _: None, session_store=store)
+            try:
+                await agent._execute_command(Command('1', 'touch', path='effect.txt'))
+                lines = store.journal_path.read_bytes().splitlines(keepends=True)
+                store.journal_path.write_bytes(b''.join(lines[:-1]) + lines[-1][:15])
+                agent.load_snapshot(store.load())
+                self.assertEqual(agent.context.records[0].status, 'success')
+                agent.context.mark_injected('1')
+                agent.context.compact_history(keep_records=0)
+                for number in range(4096):
+                    agent._remember_command(f'recent-{number}', f'hash-{number}')
+                self.assertNotIn('1', agent._command_fingerprints)
+                store.save(agent.to_snapshot(), history=False)
+                self.assertEqual(store.load()['context']['records'], [])
+                events = [json.loads(line) for line in store.journal_path.read_bytes().splitlines()]
+                self.assertEqual([e['type'] for e in events], ['tool_started', 'tool_completed'])
+            finally:
+                await agent.close()
+
+    async def test_torn_start_prevents_execution_and_resume_can_commit_it(self):
+        with tempfile.TemporaryDirectory(prefix="thinkflow-sdk-torn-start-") as temp:
+            root = Path(temp)
+            store = SessionStore(str(root / "session.json"), cwd=temp)
+            config = {"context": {"enabled": False}, "security": {"profile": "open"}}
+            agent = create_agent(config, "", cwd=temp, event_sink=lambda _: None, session_store=store)
+            command = Command("1", "write", path="效果.txt", content="once")
+            try:
+                store.save(agent.to_snapshot(), history=False)
+
+                def torn_append(event):
+                    payload = (json.dumps(event, ensure_ascii=False) + '\n').encode('utf-8')
+                    store.journal_path.write_bytes(payload[:payload.index('效果'.encode('utf-8')) + 1])
+                    raise OSError('fixture interrupted intent append')
+
+                with patch.object(store, '_journal', torn_append):
+                    with self.assertRaisesRegex(OSError, 'fixture interrupted'):
+                        await agent._execute_command(command)
+                self.assertFalse((root / "效果.txt").exists())
+                snapshot = store.load()
+                self.assertEqual(snapshot['context']['records'], [])
+                self.assertEqual(snapshot['executed_ids'], [])
+                agent.load_snapshot(snapshot)
+                result = await agent._execute_command(command)
+                self.assertEqual(result.status_str, 'success')
+                self.assertEqual((root / "效果.txt").read_text(), 'once')
+                self.assertEqual(store.load()['context']['records'][0]['status'], 'success')
+            finally:
+                await agent.close()
+
     async def test_binding_switch_new_and_unknown_replay(self):
         with tempfile.TemporaryDirectory(prefix="thinkflow-sdk-session-") as temp:
             root = Path(temp)
