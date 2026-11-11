@@ -1,6 +1,6 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.9
+> 版本：1.10
 > 日期：2026-11-11
 
 ---
@@ -9,7 +9,7 @@
 
 1. **主路径扫描 thinking 流，正文 parser 只做兼容兜底。** 职责上仍鼓励模型只在 thinking 输出命令；DeepSeek 等模型偶尔漏到正文时，框架负责执行并从显示/消息历史剥离命令块。
 2. **默认只执行 canonical `tf-` 标签。** `<tf-write>` 才是执行协议；普通 `<write>` 更像文档/XML 示例，默认不会被 agent 执行。
-3. **工具语义决定反馈要求，信息依赖决定反馈时机。** 独立read/bash/python在同次生成中集中声明，批次结束后一起反馈；后续依赖结果的操作等下一轮。显式`need_result`或`confirm`立即反馈，真实失败立即打断。
+3. **工具语义决定反馈要求，信息依赖决定反馈时机。** 独立read/bash/python在同次生成中集中声明，批次结束后一起反馈；后续依赖结果的操作等下一轮。显式`need_result`或`confirm`立即反馈。纯信息批次中的读取失败与其余结果一起反馈，涉及写入/执行的链条失败时停止。
 4. **流式扫描 + 结构化解析。** 开标签用逐字符 scanner 找不在引号里的 `>`，属性用 quoted-attribute parser，避免 `>`、引号转义和跨 chunk 截断导致误判；不用 LLM 做格式转换，降低延迟和成本。
 
 属性支持双/单引号、匹配属性定界符的反斜线转义，以及XML五个命名实体 `&quot;`、`&apos;`、`&lt;`、`&gt;`、`&amp;`。只解码一次；未知实体和普通Windows路径反斜线原样保留。正文不做属性实体解码。CLI和桌面默认使用文本协议；`--native-tools`或配置`enable_native_tools=true`启用原生兼容。shell属性按上述规则转义，多行Python直接放入tf-python正文。
@@ -62,7 +62,7 @@
 | `path` | read/write/append/mkdir/touch/copy/edit 必需 | — | 文件/目录路径。 |
 | `dest` | copy 必需 | — | 复制目标路径。 |
 | `cmd` | bash 必需 | — | Shell 命令。 |
-| `ref` | recall 必需 | — | 原文引用，如`request:1`或`receipt:3:stdout`。 |
+| `ref` | recall 必需 | — | 原文引用，如`request:1`、冻结输入`request:1:input`或`receipt:3:stdout`。 |
 | `offset` | read/recall 可选 | read省略；recall为`0` | read为从1开始的行号；recall为非负字符偏移。 |
 | `limit` | read/recall 可选 | read省略；recall为`8000` | read为正整数行数；recall为字符数，范围1至200000。 |
 | `query` | recall 可选 | — | 从offset起搜索非空字面关键词，返回首个匹配行的有界片段。 |
@@ -198,9 +198,10 @@ print("checked")
 ```xml
 <tf-recall id="10" ref="request:1" offset="0" limit="8000" />
 <tf-recall id="11" ref="receipt:3:stdout" query="Error" limit="2000" />
+<tf-recall id="12" ref="request:1:input" query="附件中的关键词" limit="2000" />
 ```
 
-只读回取本会话的原始用户要求或工具输出，范围按字符计算；结果包含总长度和下一偏移。query是大小写敏感字面文本，按块定位首个匹配，返回匹配字符位置及行片段；未命中是正常结果。request编号按真实用户输入顺序递增，provider工具观察不占编号；附件展开与用户原文分开。工具原文使用回执中的短引用，通常为`receipt:N:stdout/stderr`；账本裁剪的命令载荷也可有content/old_text/new_text引用。
+只读回取本会话的原始要求、冻结输入或工具输出，范围按字符计算；结果包含总长度和下一偏移。query是大小写敏感字面文本，按块定位首个匹配，返回匹配字符位置及行片段；未命中是正常结果。request编号按真实用户输入顺序递增，provider工具观察不占编号。`request:N`是用户原话，`request:N:input`是提交时含冻结附件的完整执行输入，后续文件变化不改变它。工具原文使用回执中的短引用，通常为`receipt:N:stdout/stderr`；账本裁剪的命令载荷也可有content/old_text/new_text引用。
 
 独立回取可与read同批声明，沿用信息批次反馈。压缩后或存在长输出原文时默认注入recall说明与原生schema；显式工具名单或load_tools也可开放。短结果原样反馈，长输出预览带原文引用与长度；取消/超时保存已收到的输出，保持原停止与恢复语义。原文归实际SessionStore管理，恢复/fork及导出索引见[输出生命周期](docs/output-recall-20261111.md)。
 
@@ -341,7 +342,7 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 ```
 
 - 成功命令：首次完整反馈载荷；当前请求中已有相同完整正文时只返回回执元数据。
-- 信息批次：按声明顺序合并所有未反馈的成功blocking结果，入消息后标记已反馈；快照恢复不重新执行。
+- 信息批次：按声明顺序合并未反馈结果。纯信息批次保留失败与其他独立读取的成功结果；混合写入/执行链仍在失败处停止。入消息后标记已反馈，快照恢复不重新执行。
 - 失败的命令：保留 status="failed"、summary 和错误信息，模型下一轮必须根据错误调整。
 - need_result 命令：结果详细注入（stdout/stderr/exit_code 或写入详情），并立即进入下一轮。
 ## 八、上下文压缩
@@ -358,6 +359,7 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.10 | 2026-11-11 | 冻结输入request:N:input；纯信息失败批次结算；文本及两种原生格式的精确read投影与发送时协议转换。 |
 | 1.9 | 2026-11-11 | read行范围与续读metadata；同SHA观察范围内的唯一exact edit，连续修改维护覆盖，局部不授予全文操作。 |
 | 1.8 | 2026-11-11 | 完整工具输出留存、尾部预览、短回执原文引用、recall字面query；恢复/fork与无自动保存生命周期。 |
 | 1.7 | 2026-11-10 | 原始要求独立留存、当前输入完整保留、结构化增量摘录与按范围recall；不增加摘要模型调用。 |

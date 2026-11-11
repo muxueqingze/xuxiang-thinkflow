@@ -9,6 +9,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Awaitable, Callable
+import uuid
+
+from .executor import ExecutionResult
 
 
 class ToolResult(str):
@@ -25,7 +28,7 @@ class ToolResult(str):
         return cls(error, success=False)
 
 
-ToolHandler = Callable[[dict], Awaitable[str | ToolResult]]
+ToolHandler = Callable[..., Awaitable[str | ToolResult | ExecutionResult]]
 
 TOOL_KIND_INPUT = "input"
 TOOL_KIND_OUTPUT = "output"
@@ -63,17 +66,18 @@ TOOL_RISK_LABELS = {
 @dataclass(frozen=True)
 class ToolSpec:
     name: str
-    description: str
+    description: str | Callable[[], str]
     parameters: dict
     kind: str = TOOL_KIND_INPUT
     flow: str = TOOL_FLOW_BLOCKING
     risk: str = TOOL_RISK_LOW
     handler: ToolHandler | None = None
+    pass_call_id: bool = False
 
     def without_handler(self) -> dict:
         return {
             "name": self.name,
-            "description": self.description,
+            "description": self.description() if callable(self.description) else self.description,
             "parameters": self.parameters,
         }
 
@@ -84,7 +88,7 @@ class ToolRegistry:
     def __init__(self):
         self._tools: dict[str, ToolSpec] = {}
 
-    def register(self, spec: ToolSpec, handler: ToolHandler) -> None:
+    def register(self, spec: ToolSpec, handler: ToolHandler, *, pass_call_id: bool = False) -> None:
         self._tools[spec.name] = ToolSpec(
             name=spec.name,
             description=spec.description,
@@ -93,13 +97,14 @@ class ToolRegistry:
             flow=spec.flow,
             risk=spec.risk,
             handler=handler,
+            pass_call_id=pass_call_id,
         )
 
     def has(self, name: str) -> bool:
         return name in self._tools
 
-    def schemas(self) -> list[dict]:
-        return [tool.without_handler() for tool in self._tools.values()]
+    def schemas(self, *, exclude=()) -> list[dict]:
+        return [tool.without_handler() for name, tool in self._tools.items() if name not in exclude]
 
     def kind(self, name: str) -> str:
         spec = self._tools.get(name)
@@ -109,6 +114,10 @@ class ToolRegistry:
 
     def kind_map(self) -> dict[str, str]:
         return {name: spec.kind for name, spec in self._tools.items()}
+
+    def information_only(self, name: str) -> bool:
+        return (self.kind(name) == TOOL_KIND_INPUT and self.flow(name) == TOOL_FLOW_BLOCKING
+                and name not in {'update_plan', 'load_tools'})
 
     def flow(self, name: str) -> str:
         spec = self._tools.get(name)
@@ -151,15 +160,16 @@ class ToolRegistry:
             for schema in self.schemas()
         ]
 
-    async def execute(self, name: str, tool_input: dict) -> ToolResult:
+    async def execute(self, name: str, tool_input: dict, *, call_id: str = "") -> ToolResult | ExecutionResult:
         spec = self._tools.get(name)
         if not spec or not spec.handler:
             return ToolResult.failure(f"未知工具: {name}")
         try:
-            result = await spec.handler(tool_input)
+            result = (await spec.handler(tool_input, call_id=call_id or uuid.uuid4().hex)
+                      if spec.pass_call_id else await spec.handler(tool_input))
         except Exception as exc:
             return ToolResult.failure(f"{name} failed: {exc}")
-        if isinstance(result, ToolResult):
+        if isinstance(result, (ToolResult, ExecutionResult)):
             return result
         if isinstance(result, str):
             return ToolResult(result)
@@ -186,7 +196,7 @@ BUILTIN_TOOL_SPECS = [
         parameters={
             "type": "object",
             "properties": {
-                "ref": {"type": "string", "minLength": 1, "description": "原文引用，如request:1或receipt:3:stdout"},
+                "ref": {"type": "string", "minLength": 1, "description": "原文引用，如request:1、request:1:input或receipt:3:stdout"},
                 "offset": {"type": "integer", "minimum": 0, "default": 0},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 200000, "default": 8000},
                 "query": {"type": "string", "minLength": 1,

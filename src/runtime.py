@@ -211,8 +211,12 @@ def build_agent_config(config: dict, system_prompt: str | None = None, cwd: str 
     return agent_config
 
 
-def create_agent(config: dict, system_prompt: str | None = None, cwd: str = None, *, event_sink=None, approval_handler=None) -> AgentLoop:
-    return AgentLoop(build_agent_config(config, system_prompt, cwd), event_sink=event_sink, approval_handler=approval_handler)
+def create_agent(config: dict, system_prompt: str | None = None, cwd: str = None, *,
+                 event_sink=None, approval_handler=None, session_store=None) -> AgentLoop:
+    agent = AgentLoop(build_agent_config(config, system_prompt, cwd), event_sink=event_sink, approval_handler=approval_handler)
+    if session_store is not None:
+        session_store.bind(agent)
+    return agent
 
 
 def effective_config(config: dict, cwd: str = None) -> dict:

@@ -58,10 +58,12 @@ class InteractiveController:
     def status_line(self, columns: int, permission: str) -> str:
         stats = self.agent.message_stats()
         usage = self.agent.usage
+        totals = usage.totals()
+        calls = str(totals["api_calls"]) + ("（旧轮未计量）" if totals["legacy_turns"] else "")
         provider = self.agent.config.provider
         segments = [self.status(), f"思考 {thinking_label(provider)}", provider.model, f"权限 {permission}", "/help",
                     f"上下文 {stats['chars']:,} 字符 / {stats['messages']} 条",
-                    f"API {usage.api_calls}", f"缓存 {usage.total_cached_tokens:,}"]
+                    f"HTTP {calls}", f"缓存 {usage.total_cached_tokens:,}"]
         status = " | ".join(segments)
         width = max(1, columns - 1)
         if get_cwidth(status) <= width:

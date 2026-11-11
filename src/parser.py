@@ -286,9 +286,8 @@ class StreamingParser:
             inner = inner[:-1].rstrip()
         if not inner:
             return None
-        name, sep, attrs_str = inner.partition(" ")
-        if not sep:
-            attrs_str = ""
+        parts = inner.split(None, 1)
+        name, attrs_str = parts[0], parts[1] if len(parts) > 1 else ""
         prefix = ""
         tool = name
         if name.startswith("tf-"):

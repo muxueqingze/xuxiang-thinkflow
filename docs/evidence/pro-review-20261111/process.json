@@ -1,0 +1,112 @@
+{
+  "date": "2026-11-11",
+  "baseline": "558078e",
+  "findings": [
+    "F05",
+    "F07",
+    "F09"
+  ],
+  "before": {
+    "F05": {
+      "platform": "Windows",
+      "late_write_after_timeout": true
+    },
+    "F07": {
+      "source_chars": 90016,
+      "returned_chars": 80081,
+      "tail_marker_recoverable": false
+    },
+    "F09": {
+      "actual_append": "once",
+      "exception": "CancelledError",
+      "execution_result": false
+    }
+  },
+  "implementation": {
+    "ownership": "Windows suspended start, shared Job Object, then resume; POSIX process group. Successful root cleanup also stops descendants with closed pipes.",
+    "output": "custom/image-command use Executor.run_command and complete OutputStore references with bounded tail previews.",
+    "cancellation": "Settled file ExecutionResult travels through ExecutionCancelled; repeated cancel and queued threads preserve fact; failed durable receipt stays unknown."
+  },
+  "tests": [
+    {
+      "platform": "Windows Python 3.12.10",
+      "suite": "tests/test_process_contracts.py",
+      "passed": 9,
+      "execution": "Initial seven plus two added cancellation boundary cases"
+    },
+    {
+      "platform": "WSL AutoResearch-Ubuntu2404",
+      "python": "/opt/autoresearch/harbor/bin/python",
+      "suite": "tests/test_process_contracts.py",
+      "passed": 9,
+      "execution": "Real POSIX children; initial seven plus two added cancellation boundary cases"
+    },
+    {
+      "platform": "Windows",
+      "suite": "tests/test_bounded_bash.py",
+      "passed": 8
+    },
+    {
+      "platform": "Windows",
+      "suite": "tests/test_output_recall.py",
+      "passed": 10
+    },
+    {
+      "platform": "Windows",
+      "suite": "tests/test_harness.py",
+      "cases": [
+        "test_shell_cancellation_cleans_owned_process",
+        "test_extension_process_cancel_and_timeout_clean_owned_tree"
+      ],
+      "passed": 2
+    },
+    {
+      "platform": "Windows",
+      "suite": "tests/test_desktop_services.py",
+      "cases": [
+        "test_terminal_input_resize_replay_exit_and_workspace_cleanup"
+      ],
+      "passed": 1
+    }
+  ],
+  "assertions": [
+    "Exited-parent timeout/cancel leave no running owned child or delayed marker write",
+    "Successful root closes owned descendants even with redirected pipes",
+    "bash/python/custom/image-command retain exact 90013-character dual streams and exit 0/7",
+    "Custom short output preserves whitespace, cwd and stdin payload",
+    "Custom timeout/cancel retain 90011-character stdout and full tail marker reference",
+    "Queued, pre-write and post-receipt cancellation keep success and bytes_written=4",
+    "Receipt commit failure remains unknown in both result and ChangeStore"
+  ],
+  "integration": {
+    "constructor": "ExternalInterfaces(config, cwd, executor=agent.executor)",
+    "process_api": "Executor.run_command(command, tool=..., stdin=..., timeout=..., env=...) -> ExecutionResult",
+    "registry": "Preserve ExecutionResult through registry and dispatch; parent owns adaptation",
+    "display": "image output_path is in result.content; stdout/stderr/refs/exit_code retained separately"
+  },
+  "references": [
+    "https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects",
+    "https://learn.microsoft.com/en-us/windows/win32/procthread/suspending-thread-execution",
+    "https://learn.microsoft.com/windows/win32/api/processthreadsapi/nf-processthreadsapi-resumethread"
+  ],
+  "dependencies_installed": [],
+  "quality_followup": {
+    "finding": "Repeated process cancellation interrupted cleanup and lost ExecutionCancelled.result",
+    "before": "Real image command reproduced plain CancelledError after task.cancel plus call_soon(task.cancel)",
+    "fix": "Shield a single stop-and-settle task; consume repeated cancellation until it completes, then raise ExecutionCancelled with the captured result",
+    "windows_passed": [
+      "test_repeated_image_cancel_settles_output_and_returns_receipt",
+      "test_custom_timeout_and_cancel_keep_captured_output",
+      "test_exited_parent_cancel_stops_inherited_pipe_child"
+    ],
+    "wsl_passed": [
+      "test_repeated_image_cancel_settles_output_and_returns_receipt"
+    ],
+    "assertions": "90010-character complete image stdout and refs retained; child exited; no pending asyncio tasks",
+    "baseline_temp_remaining": "None: the parent recycled the interrupted probe output file and removed its empty directory after checking the exact path."
+  },
+  "cleanup": {
+    "tests": "TemporaryDirectory fixtures cleaned by test teardown; no persistent test processes",
+    "baseline_fixture": "Parent completed narrow recovery after the rejected recursive attempt: four verified fixture files were recycled, then the empty fixture directory was removed. Readback confirmed the fixture and temporary output paths no longer exist."
+  }
+}

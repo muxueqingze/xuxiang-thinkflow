@@ -14,10 +14,13 @@ class RuntimeEvents:
         self.sink = sink
         self.sequence = 0
         self.turn = 0
+        self.observers: list[Callable[[dict], None]] = []
 
     def emit(self, event_type: str, **payload):
         self.sequence += 1
         event = {"type": event_type, "seq": self.sequence, "turn": self.turn, **payload}
+        for observer in self.observers:
+            observer(event)
         if self.sink is not None:
             # Durable observers run before execution and must fail closed.
             self.sink(event)

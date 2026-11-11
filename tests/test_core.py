@@ -714,7 +714,9 @@ def test_configured_custom_tool_executes_as_native_tool():
                 assert "hello_tool" in names
                 assert agent.tool_registry.kind("hello_tool") == "exec"
                 result = await agent._execute_traditional_tool("hello_tool", {"name": "thinkflow"})
-                assert result == "hello thinkflow"
+                assert 'exit_code: 0' in result and 'hello thinkflow' + os.linesep in result, repr(result)
+                assert agent.context.records[-1].stdout == 'hello thinkflow' + os.linesep
+                assert agent.context.records[-1].exit_code == 0
             finally:
                 await agent.close()
 

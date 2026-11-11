@@ -40,14 +40,21 @@ class ConversationContext:
         return entry.get("execution_input", entry["text"])
 
     def recall(self, ref: str, offset: int = 0, limit: int = 8000, query=None) -> str:
-        if not isinstance(ref, str) or not re.fullmatch(r"request:[1-9][0-9]*", ref):
-            raise ValueError("ref must be request:<number>")
-        number = int(ref.split(":", 1)[1])
+        match = re.fullmatch(r"request:([1-9][0-9]*)(:input)?", ref) if isinstance(ref, str) else None
+        if not match:
+            raise ValueError("ref must be request:<number> or request:<number>:input")
+        number = int(match[1])
         if number > len(self.requests):
             raise ValueError(f"Unknown request reference: {ref}")
-        text = self.requests[number - 1]["text"]
+        entry = self.requests[number - 1]
+        if match[2]:
+            if "execution_input" not in entry:
+                raise ValueError(f"No separate execution input for {ref}")
+            text, kind = entry["execution_input"], "execution input"
+        else:
+            text, kind = entry["text"], "request"
         with io.StringIO(text, newline="") as source:
-            return recall_text(source, len(text), ref, "request", offset, limit, query)
+            return recall_text(source, len(text), ref, kind, offset, limit, query)
 
     def to_dict(self) -> dict:
         return {

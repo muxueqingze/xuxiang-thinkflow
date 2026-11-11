@@ -40,6 +40,7 @@ from .interfaces import ExternalInterfaces, InterfaceConfig
 from .skills import SkillConfig, SkillManager
 from .delivery import verify_delivery
 from .feedback import project_read_results, with_observation
+from .message_projection import project_messages
 from .tool_registry import (
     BUILTIN_TOOL_SPECS,
     TOOL_FLOW_BLOCKING,
@@ -55,7 +56,7 @@ from .tool_registry import (
     ToolRegistry,
     ToolSpec,
 )
-from .usage_tracker import SessionUsage, TurnUsage, parse_usage_from_data
+from .usage_tracker import SessionUsage, TurnUsage
 from . import renderer
 from .events import RuntimeEvents, RuntimeView
 
@@ -185,15 +186,18 @@ class CommandExecutionQueue:
             try:
                 if command is None:
                     return
-                if self._failed_result is not None:
+                if self._failed_result is not None and (self.failed.is_set()
+                        or not self._tool_registry.information_only(command.tool)):
                     self._record_skipped(command)
+                    self.failed.set()
                     continue
                 if self._on_start:
                     self._on_start(command)
                 result = await self._execute(command)
                 if not result.success and self._failed_result is None:
                     self._failed_result = result
-                    self.failed.set()
+                    if not self._tool_registry.information_only(command.tool):
+                        self.failed.set()
             except Exception as exc:
                 self._exception = exc
                 if self._failed_result is None:
@@ -262,7 +266,7 @@ class AgentLoop:
             output_store=self.outputs,
         )
         self.set_output_secrets([config.provider.api_key, *(p.api_key for p in config.provider.provider_profiles)])
-        self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd)
+        self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd, executor=self.executor)
         self.skill_manager = SkillManager(config.cwd, config.skills)
         self.task_plan = {'explanation': '', 'steps': []}
         self.conversation = ConversationContext()
@@ -390,31 +394,31 @@ class AgentLoop:
     def _build_tool_registry(self) -> ToolRegistry:
         registry = ToolRegistry()
 
-        async def read_tool(tool_input: dict) -> str:
+        async def read_tool(tool_input: dict) -> ExecutionResult:
             result = await self.executor.read(str(tool_input.get("path", "")),
                                               offset=tool_input.get('offset'), limit=tool_input.get('limit'))
-            return self._format_tool_result(result)
+            return result
 
         async def pwd_tool(tool_input: dict) -> str:
             return self.executor.cwd
 
-        async def list_files_tool(tool_input: dict) -> str:
+        async def list_files_tool(tool_input: dict) -> ExecutionResult:
             result = await self.executor.list_files(
                 path=str(tool_input.get("path", ".") or "."),
                 recursive=bool(tool_input.get("recursive", False)),
                 max_entries=_as_int(tool_input.get("max_entries"), 200),
             )
-            return self._format_tool_result(result)
+            return result
 
-        async def glob_tool(tool_input: dict) -> str:
+        async def glob_tool(tool_input: dict) -> ExecutionResult:
             result = await self.executor.glob(
                 pattern=str(tool_input.get("pattern", "")),
                 path=str(tool_input.get("path", ".") or "."),
                 max_results=_as_int(tool_input.get("max_results"), 200),
             )
-            return self._format_tool_result(result)
+            return result
 
-        async def grep_tool(tool_input: dict) -> str:
+        async def grep_tool(tool_input: dict) -> ExecutionResult:
             result = await self.executor.grep(
                 pattern=str(tool_input.get("pattern", "")),
                 path=str(tool_input.get("path", ".") or "."),
@@ -422,72 +426,72 @@ class AgentLoop:
                 case_sensitive=bool(tool_input.get("case_sensitive", False)),
                 max_results=_as_int(tool_input.get("max_results"), 100),
             )
-            return self._format_tool_result(result)
+            return result
 
-        async def bash_tool(tool_input: dict) -> str:
+        async def bash_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
             result = await self.executor.execute(Command(
-                id=f"tool_{self._turn_count}_bash",
+                id=call_id,
                 tool="bash",
                 cmd=str(tool_input.get("cmd", "")),
                 need_result=True,
             ))
-            return self._format_tool_result(result)
+            return result
 
-        async def write_tool(tool_input: dict) -> str:
+        async def write_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
             result = await self.executor.execute(Command(
-                id=f"tool_{self._turn_count}_write",
+                id=call_id,
                 tool="write",
                 path=str(tool_input.get("path", "")),
                 content=str(tool_input.get("content", "")),
             ))
-            return self._format_tool_result(result)
+            return result
 
-        async def python_tool(tool_input: dict) -> str:
-            return self._format_tool_result(await self.executor.python(**tool_input))
+        async def python_tool(tool_input: dict) -> ExecutionResult:
+            return await self.executor.python(**tool_input)
 
-        async def append_tool(tool_input: dict) -> str:
+        async def append_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
             result = await self.executor.execute(Command(
-                id=f"tool_{self._turn_count}_append",
+                id=call_id,
                 tool="append",
                 path=str(tool_input.get("path", "")),
                 content=str(tool_input.get("content", "")),
             ))
-            return self._format_tool_result(result)
+            return result
 
-        async def edit_tool(tool_input: dict) -> str:
+        async def edit_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
             result = await self.executor.execute(Command(
-                id=f"tool_{self._turn_count}_edit",
+                id=call_id,
                 tool="edit",
                 path=str(tool_input.get("path", "")),
                 old_text=str(tool_input.get("old_text", "")),
                 new_text=str(tool_input.get("new_text", "")),
             ))
-            return self._format_tool_result(result)
+            return result
 
-        async def mkdir_tool(tool_input: dict) -> str:
+        async def mkdir_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
             result = await self.executor.execute(Command(
-                id=f"tool_{self._turn_count}_mkdir",
+                id=call_id,
                 tool="mkdir",
                 path=str(tool_input.get("path", "")),
             ))
-            return self._format_tool_result(result)
+            return result
 
-        async def touch_tool(tool_input: dict) -> str:
+        async def touch_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
             result = await self.executor.execute(Command(
-                id=f"tool_{self._turn_count}_touch",
+                id=call_id,
                 tool="touch",
                 path=str(tool_input.get("path", "")),
             ))
-            return self._format_tool_result(result)
+            return result
 
-        async def copy_tool(tool_input: dict) -> str:
+        async def copy_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
             result = await self.executor.execute(Command(
-                id=f"tool_{self._turn_count}_copy",
+                id=call_id,
                 tool="copy",
                 path=str(tool_input.get("path", "")),
                 dest=str(tool_input.get("dest", "")),
             ))
-            return self._format_tool_result(result)
+            return result
 
         handlers = {
             "read": read_tool,
@@ -511,7 +515,8 @@ class AgentLoop:
                                   '多行Python直接调用python工具传code；已有脚本可在此运行，保留真实退出码。'
                                   if os.name == 'nt' else '当前执行器使用/bin/sh。')
                 spec = replace(spec, description=spec.description + shell_contract)
-            registry.register(spec, handlers[spec.name])
+            registry.register(spec, handlers[spec.name],
+                              pass_call_id=spec.name in {"bash", "write", "append", "edit", "mkdir", "touch", "copy"})
 
         registry.register(ToolSpec(
             name="web_search",
@@ -598,14 +603,16 @@ class AgentLoop:
             description='保存多步骤任务的计划与验收条件。完成项必须引用成功工具回执id；仅代表模型标记，用户仍可核验。简单任务不必调用。',
             parameters=PLAN_SCHEMA,
         ), self._update_plan_tool)
-        optional = sorted(f'{schema["name"]}: {schema["description"]}' for schema in registry.schemas()
-                          if schema['name'] not in CORE_NATIVE_TOOLS
-                          and schema['name'] not in self.config.provider.disabled_native_tools
-                          and (not self.config.provider.native_tools
-                               or schema['name'] in self.config.provider.native_tools))
+        def tool_catalog():
+            optional = sorted(f'{schema["name"]}: {schema["description"]}'
+                              for schema in registry.schemas(exclude=CORE_NATIVE_TOOLS)
+                              if schema['name'] not in self.config.provider.disabled_native_tools
+                              and (not self.config.provider.native_tools
+                                   or schema['name'] in self.config.provider.native_tools))
+            return '按需开放更多原生工具，下一次请求即可调用；已开放能力在本会话保留。工具目录：\n' + '\n'.join(optional)
         registry.register(ToolSpec(
             name='load_tools', kind=TOOL_KIND_INPUT,
-            description='按需开放更多原生工具，下一次请求即可调用；已开放能力在本会话保留。工具目录：\n' + '\n'.join(optional),
+            description=tool_catalog,
             parameters={'type': 'object', 'properties': {
                 'names': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1},
             }, 'required': ['names']},
@@ -619,15 +626,20 @@ class AgentLoop:
                              query=tool_input.get('query'))
 
     async def _execute_builtin(self, command: Command) -> ExecutionResult:
-        if command.tool == 'recall':
-            result = await self.tool_registry.execute('recall', {
-                'ref': command.ref, 'offset': command.offset if command.offset is not None else 0,
-                'limit': command.limit if command.limit is not None else 8000,
-                **({'query': command.query} if command.query is not None else {}),
-            })
-            return ExecutionResult(success=result.success, tool='recall',
-                                   content=str(result) if result.success else '', error=result.error)
-        return await self.executor.execute(command)
+        properties = next(schema['parameters']['properties'] for schema in TOOL_SCHEMAS
+                          if schema['name'] == command.tool)
+        fields = vars(command)
+        arguments = {name: fields[name] for name in properties if fields.get(name) is not None}
+        if command.tool == 'python':
+            arguments['code'] = command.cmd
+        return await self._execute_registered(command.tool, arguments, command.id)
+
+    async def _execute_registered(self, name: str, arguments: dict, call_id: str) -> ExecutionResult:
+        result = await self.tool_registry.execute(name, arguments, call_id=call_id)
+        if isinstance(result, ExecutionResult):
+            return result
+        return ExecutionResult(success=result.success, tool=name,
+                               content=str(result) if result.success else '', error=result.error)
 
     async def _load_tools(self, tool_input):
         names = set(tool_input['names'])
@@ -732,14 +744,15 @@ class AgentLoop:
                     if original is not projected]
         if replaced:
             self.events.emit('context_projection', read_results=len(replaced),
-                             saved_chars=sum(len(original['content']) - len(projected['content'])
+                             saved_chars=sum(len(json.dumps(original['content'], ensure_ascii=False))
+                                             - len(json.dumps(projected['content'], ensure_ascii=False))
                                              for original, projected in replaced))
         return with_observation(request_messages, self.build_runtime_status_message()['content'])
 
     def build_request_body(self, system: str) -> dict:
         """Build the provider request body."""
         p = self.config.provider
-        request_messages = self._messages_with_runtime_status()
+        request_messages = project_messages(self._messages_with_runtime_status(), p.format)
 
         if p.format == "anthropic":
             body = {
@@ -851,6 +864,7 @@ class AgentLoop:
         turns = 0
         deadline = (None if self.config.max_run_seconds is None
                     else time.monotonic() + max(0.01, self.config.max_run_seconds))
+        self.usage.start_run()
         try:
             self.conversation.record_request(len(self.messages),
                                              user_input if user_request is None else user_request,
@@ -894,6 +908,7 @@ class AgentLoop:
             raise
         finally:
             self._run_active = False
+            self.usage.finish_run()
             self.events.emit("run_finished", cancelled=cancelled, error=self.last_error,
                              stopped_reason=self.stopped_reason, turns=turns)
 
@@ -906,9 +921,10 @@ class AgentLoop:
         if (self.config.provider.format == 'openai' and is_deepseek(self.config.provider)
                 and self._openai_provider_tools()):
             retained.extend(message.get('reasoning_content', '') for message in self.messages)
-        injection = self.context.build_injection(retained_text='\n'.join(retained))
+        read_spans = []
+        injection = self.context.build_injection(retained_text='\n'.join(retained), read_spans=read_spans)
         if injection:
-            self.messages = with_observation(self.messages, injection)
+            self.messages = with_observation(self.messages, injection, read_spans=read_spans)
 
     def compact(self, *, force: bool = False) -> CompactionStats:
         """Run deterministic compaction and keep stats for status output."""
@@ -942,13 +958,14 @@ class AgentLoop:
         try:
             return await self._run_one_turn_impl()
         finally:
+            self.usage.turns[-1].end_time = time.time()
             self.events.emit("turn_finished", error=self.last_error,
                              failed=self._last_turn_failed)
 
     async def _run_one_turn_impl(self) -> bool:
         """运行一轮。"""
         self._turn_count += 1
-        turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time())
+        turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time(), http_attempts=0)
         self.usage.add_turn(turn_usage)  # 先加入，_process_stream 会更新它
         commands_this_turn = 0
         tools_this_turn = 0
@@ -1277,12 +1294,14 @@ class AgentLoop:
             return True
 
         elif abort_reason == AbortReason.NEED_RESULT:
-            msg = self.context.build_need_result_message()
+            read_spans = []
+            msg = self.context.build_need_result_message(read_spans=read_spans)
             if msg:
                 requested = self.context.last_need_result
                 if requested:
                     self.context.mark_injected(requested.id)
-                self.messages.append({"role": "user", "content": msg})
+                self.messages.append({"role": "user", "content": msg,
+                                      **({'_thinkflow_reads': read_spans} if read_spans else {})})
                 self.view.render_need_result_return(
                     requested.tool if requested else "",
                     requested.id if requested else "",
@@ -1335,10 +1354,12 @@ class AgentLoop:
             return True
 
         elif abort_reason == AbortReason.END_TURN:
-            msg = self.context.build_auto_result_message()
+            read_spans = []
+            msg = self.context.build_auto_result_message(read_spans=read_spans)
             if msg:
                 pending = self.context.pending_auto_results
-                self.messages.append({"role": "user", "content": msg})
+                self.messages.append({"role": "user", "content": msg,
+                                      **({'_thinkflow_reads': read_spans} if read_spans else {})})
                 for record in pending:
                     self.context.mark_injected(record.id)
                 self.view.render_need_result_return(
@@ -1449,7 +1470,8 @@ class AgentLoop:
             if cmd.need_result or self.tool_registry.flow(cmd.tool) == TOOL_FLOW_CONFIRM:
                 cmd.need_result = True
                 prior_failure = await command_queue.barrier()
-                if prior_failure:
+                if prior_failure and (command_queue.failed.is_set()
+                                      or not self.tool_registry.information_only(cmd.tool)):
                     for remainder in commands[index:]:
                         command_queue._record_skipped(remainder)
                     return dispatched, AbortReason.TOOL_FAILED
@@ -1459,7 +1481,8 @@ class AgentLoop:
                     for remainder in commands[index + 1:]:
                         command_queue._record_skipped(
                             remainder, "Skipped because an earlier command requires feedback before continuing; no side effect was executed.")
-                    return dispatched, AbortReason.NEED_RESULT if result.success else AbortReason.TOOL_FAILED
+                    return dispatched, (AbortReason.NEED_RESULT if result.success and prior_failure is None
+                                        else AbortReason.TOOL_FAILED)
                 finally:
                     self.mark_text_tool_done(cmd)
             command_queue.enqueue(cmd)
@@ -1493,11 +1516,15 @@ class AgentLoop:
         """发送流式请求，针对网络错误和临时 HTTP 错误做轻量重试。"""
         retryable_status = {408, 409, 425, 429, 500, 502, 503, 504}
         attempts = max(1, self.config.max_retries + 1)
+        turn_usage = self.usage.turns[-1] if self.usage.turns else None
 
         for attempt in range(attempts):
             try:
+                request = self.client.build_request("POST", path, json=body)
+                if turn_usage is not None:
+                    turn_usage.http_attempts = (turn_usage.http_attempts or 0) + 1
                 response = await self.client.send(
-                    self.client.build_request("POST", path, json=body),
+                    request,
                     stream=True,
                 )
             except Exception as e:
@@ -1509,6 +1536,8 @@ class AgentLoop:
                 return None
 
             if response.status_code == 200:
+                if turn_usage is not None:
+                    turn_usage.successful_responses += 1
                 self.last_error = ""
                 return response
 
@@ -1577,16 +1606,9 @@ class AgentLoop:
                 provider_usage = (data.get("message", {}).get("usage") if data_type == "message_start"
                                   else data.get("usage"))
                 if isinstance(provider_usage, dict) and provider_usage:
-                    current_usage = self.usage.turns[-1]
-                    current_usage.usage_reported = True
-                    if "input_tokens" in provider_usage:
-                        current_usage.cached_tokens = int(provider_usage.get("cache_read_input_tokens", 0) or 0)
-                        current_usage.prompt_tokens = (int(provider_usage["input_tokens"] or 0)
-                                                       + current_usage.cached_tokens
-                                                       + int(provider_usage.get("cache_creation_input_tokens", 0) or 0))
-                    if "output_tokens" in provider_usage:
-                        current_usage.completion_tokens = int(provider_usage["output_tokens"] or 0)
-                        current_usage.text_tokens = current_usage.completion_tokens
+                    self.usage.turns[-1].observe_usage(provider_usage, anthropic=True,
+                        final=bool(data_type == "message_delta" and
+                                   (data.get("delta", {}).get("stop_reason") or data.get("stop_reason"))))
             if data_type == "content_block_delta":
                 delta = data.get("delta", {})
                 dt = delta.get("type", "")
@@ -1644,19 +1666,10 @@ class AgentLoop:
 
             # 捕获 usage（最后一个 chunk，choices 可能为空）
             usage_data = data.get("usage")
-            if usage_data and isinstance(usage_data, dict):
-                parsed = parse_usage_from_data(data, self._turn_count)
-                if parsed:
-                    # 更新当前轮的 usage
-                    turn_usage = self.usage.turns[-1] if self.usage.turns else None
-                    if turn_usage:
-                        turn_usage.usage_reported = True
-                        turn_usage.prompt_tokens = parsed.prompt_tokens
-                        turn_usage.completion_tokens = parsed.completion_tokens
-                        turn_usage.reasoning_tokens = parsed.reasoning_tokens
-                        turn_usage.text_tokens = parsed.text_tokens
-                        turn_usage.cached_tokens = parsed.cached_tokens
-                        turn_usage.cache_miss_tokens = parsed.cache_miss_tokens
+            if data_type not in ('message_start', 'message_delta') and usage_data and isinstance(usage_data, dict):
+                if self.usage.turns:
+                    self.usage.turns[-1].observe_usage(usage_data,
+                        final=bool(pending_openai_finish_reason or not choices or choices[0].get("finish_reason")))
                 if pending_openai_finish_reason:
                     yield StreamEvent(
                         type=EventType.MESSAGE_STOP,
@@ -1785,9 +1798,13 @@ class AgentLoop:
                 self.context._last_failure = previous
             if command.need_result:
                 self.context._last_need_result = previous
+            process_output = (previous.result_content is not None or previous.exit_code is not None
+                              or command.tool in ('bash', 'python'))
             return ExecutionResult(success=previous.status == "success", tool=command.tool,
                                    path=previous.path or "", error=previous.error,
-                                   stdout=previous.stdout, content=previous.stdout, stderr=previous.stderr,
+                                   stdout=previous.stdout if process_output else '',
+                                   content=(previous.result_content or '') if process_output else previous.stdout,
+                                   stderr=previous.stderr,
                                    bytes_written=previous.bytes_written, exit_code=previous.exit_code,
                                    status=previous.status, truncated=previous.truncated or previous.payload_clipped,
                                    output_refs=dict(previous.output_refs), output_sizes=dict(previous.output_sizes),
@@ -1858,6 +1875,7 @@ class AgentLoop:
         normalized = []
         results = []
         batch_failed = False
+        independent_reads = all(self.tool_registry.information_only(tool.get('name', '')) for tool in tool_calls)
 
         for idx, tool_data in enumerate(tool_calls):
             tool_name = tool_data.get("name", "")
@@ -1876,7 +1894,7 @@ class AgentLoop:
             result = await self._execute_traditional_result(
                 tool_name, tool_input, tool_id=tool_id, input_error=input_error,
                 skip_reason=("Skipped because an earlier native command failed; no side effect was executed."
-                             if batch_failed else ""))
+                             if batch_failed and not independent_reads else ""))
             batch_failed = batch_failed or not result.success
             result_text = self._native_result_text(result)
             evidence = self.context.evidence_ref_for(tool_id) if result.success else ''
@@ -2034,14 +2052,8 @@ class AgentLoop:
             )
             if error:
                 result = ExecutionResult(success=False, tool=tool_name, error=error)
-            elif tool_name in TOOLS:
-                result = await self._execute_builtin(command)
-            elif tool_name in ("list_files", "glob", "grep"):
-                result = await getattr(self.executor, tool_name)(**tool_input)
             else:
-                output = await self.tool_registry.execute(tool_name, tool_input)
-                result = ExecutionResult(success=output.success, tool=tool_name,
-                                         content=str(output), error=output.error)
+                result = await self._execute_registered(tool_name, tool_input, command.id)
         except asyncio.CancelledError as exc:
             result = (exc.result if isinstance(exc, ExecutionCancelled) else
                       ExecutionResult(success=False, tool=tool_name, status="cancelled",
@@ -2079,8 +2091,11 @@ class AgentLoop:
                      for name, ref in result.output_refs.items()
                      if result.truncated or result.output_sizes[name] > 8000]
         notice = "\n".join(originals)
-        if result.tool in ("bash", "python"):
+        if (result.tool in ("bash", "python") or result.exit_code is not None
+                or result.tool not in TOOLS and (result.stdout or result.stderr)):
             parts = [f"exit_code: {result.exit_code}"]
+            if result.content:
+                parts.append(result.content)
             if result.stdout:
                 parts.append(f"stdout:\n{result.stdout}")
             if result.stderr:

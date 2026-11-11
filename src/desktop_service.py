@@ -265,8 +265,7 @@ class DesktopService:
         if self.agent:
             totals = self.agent.usage.to_dict()["totals"]
             usage = {**totals, "commands": len(self.agent.context.records) + self.agent.context.archived_records,
-                     "reported": bool(self.agent.usage.turns) and all(t.usage_reported for t in self.agent.usage.turns),
-                     "reported_turns": sum(t.usage_reported for t in self.agent.usage.turns)}
+                     "reported": totals['usage_complete']}
             fields = ("id", "tool", "path", "dest", "status", "flow", "risk", "error",
                       "bytes_written", "output_summary", "content_hash", "exit_code")
             ledger = [{name: (getattr(record, name, None)[:4000] if isinstance(getattr(record, name, None), str)
@@ -340,8 +339,11 @@ class DesktopService:
             validate_thinking_budget(build_agent_config(config, system_prompt='', cwd='.').provider, config['thinking_budget'])
         for name, maximum in (("max_run_turns", 1000), ("max_run_seconds", 86400)):
             value = config[name]
-            if isinstance(value, bool) or not isinstance(value, (int, float)) or not 1 <= value <= maximum:
-                raise ValueError(f"{name} 须在 1–{maximum} 之间。")
+            if value is None:
+                continue
+            minimum = 0 if name == 'max_run_seconds' else 1
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not minimum <= value <= maximum:
+                raise ValueError(f"{name} 须在 {minimum}–{maximum} 之间，或使用 null 取消限额。")
             if name != "max_run_seconds" and int(value) != value:
                 raise ValueError(f"{name} 须为整数。")
 

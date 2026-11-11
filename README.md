@@ -50,6 +50,8 @@ model stream
 
 当前源码也开放共享配置与嵌入入口：CLI支持用户/项目分层、字段来源、按项修改和单次`--set`；桌面分类设置及「高级配置」可调整上下文、工具和执行参数；`create_agent`、`load_configuration`等公开入口可直接作为基础设施使用。输入触发预算与近期token预算均可选，按实际待发请求估算，整理不增加模型调用。[配置与SDK用法](docs/configuration.md)
 
+2026-11-11根据Pro源码审查进一步统一运行链：文本及两种原生协议共享精确read去重，切换协议时转换发送视图；独立读取失败保留同批其他结果。CLI/SDK新增工具执行中持久化，扩展命令保存完整输出，冻结附件可按`request:N:input`回取；用量显示真实HTTP尝试与缺失情况。固定轨迹单次请求少传5,710个JSON字符，请求数不变。[本轮实现与验证](docs/reviews/pro-implementation-20261111.md)
+
 当前源码重做了桌面与终端交互：桌面输入区直接切换模型、权限与思考强度，提供上下文浮层、全屏设置与搜索、工具与技能目录、Git 行内差异、多文件标签和持续运行的 PowerShell 终端。左右面板可拖拽，浅色/深色与减少动画统一设置。CLI 与全屏 TUI 共用原文队列、停止和退出收尾逻辑。参考源码与实物对照见 [ZCode 记录](docs/research/zcode-interaction-20261111.md)，实际用法见 [桌面指南](docs/desktop.md)，当前节点见 [交互接力](docs/interaction-handoff.md)。这些改动属于源码，已发布 npm 和旧便携包保持原版本。
 
 ## v0.8：完整任务工作流
@@ -109,7 +111,7 @@ npm install -g xuxiang-agent@next
 开发安装：
 
 ```bash
-git clone https://github.com/muxueqingze/xuxiang-thinkflow.git
+git clone --branch codex/thinkflow-desktop-v06 https://github.com/muxueqingze/xuxiang-thinkflow.git
 cd xuxiang-thinkflow
 python -m pip install -e .
 thinkflow --help

@@ -32,6 +32,93 @@ class SessionStore:
             self.path = cwd_session_path(cwd)
         if not self.path.is_absolute():
             self.path = Path(os.getcwd()) / self.path
+        self._agent = None
+
+    def bind(self, agent):
+        """Persist execution boundaries without replacing the host's event view."""
+        previous = getattr(agent, "session_store", None)
+        if previous is not None:
+            previous.unbind()
+        if self._agent is not None:
+            self.unbind()
+        self._agent = agent
+        agent.session_store = self
+        agent.bind_output_store(self.output_dir)
+        agent.events.observers.append(self._on_event)
+
+    def unbind(self):
+        if self._agent is not None:
+            self._agent.events.observers.remove(self._on_event)
+            self._agent.session_store = None
+            self._agent = None
+
+    @property
+    def journal_path(self) -> Path:
+        return self.path.with_suffix(".execution.jsonl")
+
+    def _journal(self, event):
+        self.journal_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.journal_path.open("a+b") as stream:
+            if stream.tell():
+                stream.seek(-1, os.SEEK_END)
+                if stream.read(1) != b"\n":
+                    stream.write(b"\n")
+            stream.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
+            stream.flush()
+            os.fsync(stream.fileno())
+
+    def _on_event(self, event):
+        kind = event["type"]
+        if kind == "tool_started":
+            self._journal({**event, "session_id": self._agent.session_id})
+            self.save(self._agent.to_snapshot(), history=False)
+        elif kind == "tool_completed":
+            # The receipt is committed before the journal marks the intent done.
+            self.save(self._agent.to_snapshot(), history=False)
+            self._journal({**event, "session_id": self._agent.session_id})
+        elif kind in ("turn_started", "turn_finished", "run_finished", "plan_updated"):
+            self.save(self._agent.to_snapshot(), history=kind == "run_finished")
+
+    def _recover_intents(self, snapshot):
+        if not self.journal_path.exists():
+            return
+        pending = {}
+        with self.journal_path.open(encoding="utf-8") as stream:
+            for line in stream:
+                try:
+                    event = json.loads(line)
+                except ValueError as exc:
+                    raise ValueError(f"执行日志损坏，须核对工作区: {self.journal_path}") from exc
+                if event.get("session_id") != snapshot.get("session_id"):
+                    continue
+                key = (event.get("channel"), event.get("id"))
+                if event["type"] == "tool_started":
+                    pending[key] = event
+                elif event["type"] == "tool_completed":
+                    pending.pop(key, None)
+        records = snapshot.setdefault("context", {}).setdefault("records", [])
+        known = {record["id"] for record in records if record.get('status') != 'skipped'}
+        executed = snapshot.setdefault("executed_ids", [])
+        fingerprints = snapshot.setdefault("command_fingerprints", {})
+        for event in pending.values():
+            identifier = event["id"]
+            # A crash after snapshot replace but before journal completion already
+            # has a committed receipt. Preserve that result instead of downgrading it.
+            if identifier in known:
+                continue
+            records.append({
+                "id": identifier, "tool": event["tool"], "status": "unknown",
+                "path": event.get("path"), "dest": event.get("dest"), "cmd": event.get("cmd"),
+                "flow": event.get("flow", "delayed"), "risk": event.get("risk", "low"),
+                "need_result": event.get("need_result", False), "content_hash": event["input_hash"],
+                "error": "进程在执行回执保存前退出；操作结果未知。先检查实际状态，不要自动重放。",
+            })
+            if identifier not in executed:
+                executed.append(identifier)
+            fingerprints[identifier] = event["input_hash"]
+            if identifier.isdecimal():
+                context = snapshot["context"]
+                context["next_stamp"] = max(context.get("next_stamp", 1), int(identifier) + 1)
 
     def exists(self) -> bool:
         return self.path.exists()
@@ -119,6 +206,7 @@ class SessionStore:
         outputs = snapshot.get("outputs")
         if outputs and outputs.get("root"):
             outputs["root"] = str((self.path.parent / outputs["root"]).resolve())
+        self._recover_intents(snapshot)
         return snapshot
 
     def save(self, snapshot: dict, *, history: bool = True):

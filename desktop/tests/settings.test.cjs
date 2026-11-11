@@ -35,6 +35,10 @@ test('only ciphertext persists; blank preserves and explicit clear removes a key
   assert.equal(JSON.parse(fs.readFileSync(loaded.file, 'utf8')).encrypted_key, '');
 });
 test('optional output budget follows provider protocol without injecting a default', () => {
+  const unbounded = normalizeConfig({ ...DEFAULTS, max_run_turns: null, max_run_seconds: '' });
+  assert.equal(unbounded.max_run_turns, null);
+  assert.equal(unbounded.max_run_seconds, null);
+  assert.equal(normalizeConfig({ ...DEFAULTS, max_run_seconds: 0.25 }).max_run_seconds, 0.25);
   for (const max_tokens of [null, undefined, '', 0]) assert.equal(normalizeConfig({ ...DEFAULTS, max_tokens }).max_tokens, null);
   assert.equal(normalizeConfig({ ...DEFAULTS, max_tokens: 8192 }).max_tokens, 8192);
   assert.throws(() => normalizeConfig({ ...DEFAULTS, provider: 'anthropic' }), /Anthropic/);

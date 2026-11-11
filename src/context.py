@@ -52,6 +52,7 @@ class CommandRecord:
     output_sizes: dict[str, int] = field(default_factory=dict)
     payload_clipped: bool = False
     read_note: str = ""
+    result_content: str | None = None  # Process confirmation text, separate from stdout; None for content-only results.
 
     @staticmethod
     def _clip_text(text: str, max_chars: int = 4000) -> str:
@@ -67,7 +68,8 @@ class CommandRecord:
             + text[-tail:]
         )
 
-    def to_injection_string(self, max_content_chars: int = 4000, *, include_payload: bool = True) -> str:
+    def to_injection_string(self, max_content_chars: int = 4000, *, include_payload: bool = True,
+                            read_spans: list | None = None) -> str:
         """Build text injected into the model context."""
         lines = []
 
@@ -134,6 +136,8 @@ class CommandRecord:
             # Native tools can be checkpointed before their provider result message
             # is appended. Preserve the observation when resuming that checkpoint.
             lines.append(f'<tool name="{self.tool}" {attr_str} />')
+            if self.result_content:
+                lines.append(self._clip_text(self.result_content, max_content_chars))
             if self.stdout:
                 lines.append(self._clip_text(self.stdout, max_content_chars))
             if self.stderr:
@@ -152,6 +156,11 @@ class CommandRecord:
             if self.truncated or self.payload_clipped or self.output_sizes[name] > 8000:
                 lines.append(f'  original {name}: {ref} ({self.output_sizes[name]} characters; use recall)')
 
+        if (read_spans is not None and self.tool == 'read' and self.status == 'success'
+                and include_payload and self.stdout and not self.truncated and not self.payload_clipped
+                and (max_content_chars <= 0 or len(self.stdout) <= max_content_chars)):
+            start = len(lines[0]) + len('\n  stdout: ')
+            read_spans.append({'id': self.id, 'start': start, 'end': start + len(self.stdout)})
         return "\n".join(lines)
 
     @classmethod
@@ -187,9 +196,15 @@ class ContextManager:
         for name in ("stdout", "stderr", "content", "error"):
             setattr(result, name, self.redact_output(getattr(result, name)))
         evidence_ref = f"receipt:{self.next_receipt_ref}"
+        process_output = bool(result.stdout or result.stderr or result.exit_code is not None
+                              or command.tool in ('bash', 'python'))
+        preview = result.stdout if process_output else result.content
         if self.outputs is not None and command.tool != "recall":
             refs = dict(result.output_refs)
-            for name, text in (("stdout", result.stdout or result.content), ("stderr", result.stderr)):
+            parts = [("stdout", preview), ("stderr", result.stderr)]
+            if process_output and result.content:
+                parts.append(('result_content', result.content))
+            for name, text in parts:
                 if text and name not in refs:
                     refs[name] = self.outputs.put_text(text)
             result.output_refs = {}
@@ -220,11 +235,12 @@ class ContextManager:
             status=result.status_str,
             error=result.error,
             bytes_written=result.bytes_written,
-            stdout=result.stdout or result.content,
+            stdout=preview,
+            result_content=result.content if process_output else None,
             stderr=result.stderr,
             exit_code=result.exit_code,
             truncated=result.truncated,
-            output_chars=result.output_sizes.get("stdout", len(result.stdout or result.content)),
+            output_chars=result.output_sizes.get("stdout", len(preview)),
             ref=command.ref,
             offset=0 if command.tool == 'recall' and command.offset is None else command.offset,
             limit=8000 if command.tool == 'recall' and command.limit is None else command.limit,
@@ -296,7 +312,7 @@ class ContextManager:
                 rec.injected = 1
                 return
 
-    def build_injection(self, *, retained_text: str = "") -> Optional[str]:
+    def build_injection(self, *, retained_text: str = "", read_spans: list | None = None) -> Optional[str]:
         """
         构建注入文本。把所有 injected=0 的命令构建为注入块。
         注入后标记为 injected=1。
@@ -307,6 +323,7 @@ class ContextManager:
 
         lines = []
         lines.append("[THINKFLOW COMMAND LEDGER — 上一轮可审计工具记录]")
+        position = len(lines[0]) + 1
 
         for rec in pending:
             # Compare the complete payload before compact_history clips receipts.
@@ -315,8 +332,14 @@ class ContextManager:
                         else [rec.content] if rec.tool in ("write", "append") else [])
             duplicate = (rec.status == "success" and bool(payloads)
                          and any(payloads) and all(not p or p in retained_text for p in payloads))
-            lines.append(rec.to_injection_string(max_content_chars=0, include_payload=not duplicate))
+            spans = []
+            fragment = rec.to_injection_string(max_content_chars=0, include_payload=not duplicate, read_spans=spans)
+            if read_spans is not None:
+                read_spans.extend({**span, 'start': span['start'] + position, 'end': span['end'] + position}
+                                  for span in spans)
+            lines.append(fragment)
             lines.append("")  # 空行分隔
+            position += len(fragment) + 2
             rec.injected = 1
 
         lines.append("[END COMMAND LEDGER]")
@@ -335,7 +358,7 @@ class ContextManager:
             f"请根据错误信息调整你的后续操作。"
         )
 
-    def build_need_result_message(self) -> Optional[str]:
+    def build_need_result_message(self, *, read_spans: list | None = None) -> Optional[str]:
         """构建 need_result 打断消息。"""
         if not self._last_need_result:
             return None
@@ -343,11 +366,17 @@ class ContextManager:
         lines = [
             f"[THINKFLOW RESULT — 你请求了命令执行结果，思考被打断]",
             f"以下命令的执行结果：\n",
-            rec.to_injection_string(max_content_chars=0),
         ]
+        spans = []
+        fragment = rec.to_injection_string(max_content_chars=0, read_spans=spans)
+        position = len('\n'.join(lines)) + 1
+        if read_spans is not None:
+            read_spans.extend({**span, 'start': span['start'] + position, 'end': span['end'] + position}
+                              for span in spans)
+        lines.append(fragment)
         return "\n".join(lines)
 
-    def build_auto_result_message(self) -> Optional[str]:
+    def build_auto_result_message(self, *, read_spans: list | None = None) -> Optional[str]:
         """Return the complete information batch at the model feedback boundary."""
         pending = self.pending_auto_results
         if not pending:
@@ -356,8 +385,16 @@ class ContextManager:
             "[THINKFLOW RESULTS — 本批工具结果]",
             "根据以下新信息判断下一步；任务要求已满足时直接交付。",
             "",
-            *(record.to_injection_string(max_content_chars=0) for record in pending),
         ]
+        position = len('\n'.join(lines)) + 1
+        for record in pending:
+            spans = []
+            fragment = record.to_injection_string(max_content_chars=0, read_spans=spans)
+            if read_spans is not None:
+                read_spans.extend({**span, 'start': span['start'] + position, 'end': span['end'] + position}
+                                  for span in spans)
+            lines.append(fragment)
+            position += len(fragment) + 1
         return "\n".join(lines)
 
     def build_system_prompt_suffix(self) -> str:
@@ -388,7 +425,7 @@ class ContextManager:
         self.archived_records += len(self.records) - len(retained)
         self.records = retained
         for record in reversed(self.records):
-            for name in ("stdout", "stderr", "content", "old_text", "new_text"):
+            for name in ("stdout", "stderr", "result_content", "content", "old_text", "new_text"):
                 value = getattr(record, name) or ""
                 if not value:
                     continue

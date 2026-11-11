@@ -52,6 +52,8 @@ Tool output is also retained with its session. Long process output keeps a bound
 
 Current source also exposes layered user/project configuration, setting origins, `thinkflow config show|get|set|unset|path`, and invocation-only `--set` overrides. Desktop settings include an advanced runtime editor. Public `create_agent` and `load_configuration` APIs share the core without importing the CLI. Optional input and recent-history token budgets use the prepared request and local compaction. See [configuration and embedding](docs/configuration.md).
 
+The 2026-11-11 review follow-up unifies exact read projection across text and both native protocols, converts history at send time when switching providers, and retains other independent reads after one fails. CLI/SDK sessions persist execution receipts during a run; configured commands retain full output, frozen attachment input is available through `request:N:input`, and usage separates actual HTTP attempts from logical turns. A fixed trace sends 5,710 fewer JSON characters in one request with the same request count. See [implementation and validation](docs/reviews/pro-implementation-20261111.md). These updates are in source; npm 0.8.0 retains its published contents.
+
 ## Installation
 
 The **0.8.0 CLI preview** uses the npm `next` channel:
@@ -81,7 +83,7 @@ npm install -g xuxiang-agent@next
 Development install:
 
 ```bash
-git clone https://github.com/muxueqingze/xuxiang-thinkflow.git
+git clone --branch codex/thinkflow-desktop-v06 https://github.com/muxueqingze/xuxiang-thinkflow.git
 cd xuxiang-thinkflow
 python -m pip install -e .
 thinkflow --help

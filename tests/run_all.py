@@ -17,6 +17,9 @@ def main():
     test_parser.run_all()
     test_core.run_all()
     suite = unittest.TestSuite()
+    for pattern in ('test_cli_persistence.py', 'test_process_contracts.py',
+                    'test_message_projection.py', 'test_dispatch_contracts.py'):
+        suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern=pattern))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_desktop_catalog.py"))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_cli_interaction.py"))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_desktop_services.py"))

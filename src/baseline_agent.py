@@ -14,7 +14,7 @@ from typing import Optional
 
 import httpx
 
-from .usage_tracker import SessionUsage, TurnUsage, parse_usage_from_data
+from .usage_tracker import SessionUsage, TurnUsage
 
 
 # 传统 tool 定义（OpenAI function calling 格式）
@@ -90,18 +90,25 @@ class BaselineAgent:
         self._turn_count = 0
 
     async def run(self, user_input: str):
+        self.usage.start_run()
         self.messages.append({"role": "user", "content": user_input})
 
-        while True:
-            should_continue = await self._run_one_turn()
-            if not should_continue:
-                break
+        try:
+            while await self._run_one_turn():
+                pass
+        finally:
+            self.usage.finish_run()
 
     async def _run_one_turn(self) -> bool:
         self._turn_count += 1
-        turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time())
+        turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time(), http_attempts=0)
         self.usage.add_turn(turn_usage)
+        try:
+            return await self._run_one_turn_impl(turn_usage)
+        finally:
+            turn_usage.end_time = time.time()
 
+    async def _run_one_turn_impl(self, turn_usage: TurnUsage) -> bool:
         full_messages = [{"role": "system", "content": BASELINE_SYSTEM_PROMPT}]
         full_messages.extend(self.messages)
 
@@ -115,10 +122,9 @@ class BaselineAgent:
         }
 
         try:
-            response = await self.client.send(
-                self.client.build_request("POST", "/v1/chat/completions", json=body),
-                stream=True,
-            )
+            request = self.client.build_request("POST", "/v1/chat/completions", json=body)
+            turn_usage.http_attempts += 1
+            response = await self.client.send(request, stream=True)
         except Exception as e:
             print(f"\n[Baseline ERROR] API 调用失败: {e}", file=sys.stderr)
             return False
@@ -132,6 +138,7 @@ class BaselineAgent:
             await response.aclose()
             return False
 
+        turn_usage.successful_responses += 1
         content = ""
         tool_calls = []
         collected_args = {}
@@ -150,19 +157,9 @@ class BaselineAgent:
                 except json.JSONDecodeError:
                     continue
 
-                # usage
-                usage_data = data.get("usage")
-                if usage_data and isinstance(usage_data, dict) and usage_data.get("prompt_tokens"):
-                    parsed = parse_usage_from_data(data, self._turn_count)
-                    if parsed:
-                        turn_usage.prompt_tokens = parsed.prompt_tokens
-                        turn_usage.completion_tokens = parsed.completion_tokens
-                        turn_usage.reasoning_tokens = parsed.reasoning_tokens
-                        turn_usage.text_tokens = parsed.text_tokens
-                        turn_usage.cached_tokens = parsed.cached_tokens
-                        turn_usage.cache_miss_tokens = parsed.cache_miss_tokens
-
                 choices = data.get("choices", [])
+                finish = choices[0].get("finish_reason") if choices else None
+                turn_usage.observe_usage(data.get("usage"), final=bool(finish or not choices))
                 if not choices:
                     continue
 
@@ -186,7 +183,6 @@ class BaselineAgent:
                         if fn.get("arguments"):
                             collected_args[idx]["arguments"] += fn["arguments"]
 
-                finish = choices[0].get("finish_reason")
                 if finish:
                     if finish == "tool_calls":
                         turn_usage.abort_reason = "tool_calls"

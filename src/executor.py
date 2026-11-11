@@ -10,7 +10,6 @@ import codecs
 import fnmatch
 import os
 import re
-import signal
 import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -20,6 +19,7 @@ from .parser import Command
 from .security import SecurityPolicy
 from .output_capture import OutputCapture
 from .output_store import OutputStore
+from .process_owner import spawn_owned, stop_owned
 from .file_observations import ReadObservation, read_file_range
 from .changes import (
     ChangeStore, MAX_GUARDED_FILE_BYTES, atomic_write_bytes, content_revision,
@@ -193,10 +193,15 @@ class Executor:
         try:
             return await asyncio.shield(work)
         except asyncio.CancelledError:
-            try:
-                await work
-            finally:
-                raise
+            while not work.done():
+                try:
+                    await asyncio.shield(work)
+                except asyncio.CancelledError:
+                    continue
+            result = work.result()
+            if isinstance(result, ExecutionResult):
+                raise ExecutionCancelled(result) from None
+            raise
 
     async def read(self, path: str, offset: int | None = None, limit: int | None = None) -> ExecutionResult:
         """读取文件内容，供传统 read tool 使用。"""
@@ -614,16 +619,21 @@ class Executor:
         executable = os.environ.get("THINKFLOW_PYTHON", "python")
         return await self._run_process([executable, "-"], shell=False, tool="python", stdin=code)
 
-    async def _run_process(self, command, *, shell: bool, tool: str, stdin: Optional[str] = None) -> ExecutionResult:
+    async def run_command(self, command: list[str], *, tool: str, stdin: str,
+                          timeout: float, env: dict[str, str]) -> ExecutionResult:
+        """Execute a configured command with the same capture and ownership as bash."""
+        return await self._run_process(command, shell=False, tool=tool, stdin=stdin,
+                                       timeout=timeout, env=env)
+
+    async def _run_process(self, command, *, shell: bool, tool: str, stdin: Optional[str] = None,
+                           timeout: Optional[float] = None, env: Optional[dict[str, str]] = None) -> ExecutionResult:
         options = {"stdout": asyncio.subprocess.PIPE, "stderr": asyncio.subprocess.PIPE,
                    "stdin": asyncio.subprocess.PIPE if stdin is not None else None,
-                   "cwd": self.cwd, "env": self.security.command_env(),
-                   **({"start_new_session": True} if os.name != "nt" else {})}
+                   "cwd": self.cwd, "env": self.security.command_env() if env is None else env}
         if tool == "python":
             # Match the UTF-8 code channel and result decoder, regardless of shell locale.
             options["env"].update(PYTHONUTF8="1", PYTHONIOENCODING="utf-8")
-        proc = (await asyncio.create_subprocess_shell(command, **options) if shell
-                else await asyncio.create_subprocess_exec(*command, **options))
+        proc = await spawn_owned(command, shell=shell, **options)
 
         # A non-positive legacy limit must not silently restore unbounded capture.
         max_chars = min(1_000_000, self.security.max_bash_output_chars if self.security.max_bash_output_chars > 0 else 80000)
@@ -635,9 +645,13 @@ class Executor:
 
         async def exchange():
             if stdin is not None:
-                proc.stdin.write(stdin.encode("utf-8"))
-                await proc.stdin.drain()
-                proc.stdin.close()
+                try:
+                    proc.stdin.write(stdin.encode("utf-8"))
+                    await proc.stdin.drain()
+                except (BrokenPipeError, ConnectionResetError):
+                    pass  # Commands may finish without reading all their input.
+                finally:
+                    proc.stdin.close()
             stdout, stderr, _ = await asyncio.gather(*readers, waiter)
             return stdout, stderr
 
@@ -645,7 +659,8 @@ class Executor:
         timed_out = False
         cleanup_incomplete = False
         try:
-            outputs = await asyncio.wait_for(asyncio.shield(transfer), timeout=self.security.bash_timeout_seconds)
+            outputs = await asyncio.wait_for(asyncio.shield(transfer), timeout=(
+                self.security.bash_timeout_seconds if timeout is None else timeout))
         except asyncio.TimeoutError:
             # Keep both readers alive while killing: blocked pipes must not prevent
             # the owned process tree from terminating or its readers from settling.
@@ -654,8 +669,17 @@ class Executor:
             cleanup_incomplete = outputs is None
             timed_out = True
         except asyncio.CancelledError:
-            await self._stop_process_tree(proc)
-            await self._settle_output_capture(proc, transfer, readers, waiter)
+            async def finish_cancelled_process():
+                await self._stop_process_tree(proc)
+                await self._settle_output_capture(proc, transfer, readers, waiter)
+
+            cleanup = asyncio.create_task(finish_cancelled_process())
+            while not cleanup.done():
+                try:
+                    await asyncio.shield(cleanup)
+                except asyncio.CancelledError:
+                    continue
+            cleanup.result()
             raise ExecutionCancelled(self._captured_result(
                 captures, tool=tool, exit_code=proc.returncode, status="cancelled",
                 error="Execution cancelled; captured output is available for inspection.",
@@ -664,6 +688,9 @@ class Executor:
             await self._stop_process_tree(proc)
             await self._settle_output_capture(proc, transfer, readers, waiter)
             raise
+        else:
+            # Background descendants with closed output pipes are still owned.
+            await self._stop_process_tree(proc)
         return self._captured_result(
             captures, tool=tool, exit_code=proc.returncode,
             error=("命令超时；后台输出管道未关闭，已停止读取。请核对仍在后台的进程。" if cleanup_incomplete
@@ -711,25 +738,7 @@ class Executor:
     @staticmethod
     async def _stop_process_tree(proc):
         """Only terminate the process tree created by this executor."""
-        if proc.returncode is not None:
-            return
-        if os.name == "nt":
-            killer = await asyncio.create_subprocess_exec(
-                "taskkill", "/PID", str(proc.pid), "/T", "/F",
-                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
-            )
-            await killer.wait()
-        else:
-            try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-        if proc.returncode is None:
-            try:
-                proc.kill()
-            except ProcessLookupError:
-                pass
-        await proc.wait()
+        await stop_owned(proc)
 
     async def _edit(self, command: Command) -> ExecutionResult:
         return await self._file_command(command)

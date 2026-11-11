@@ -81,11 +81,11 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_explicit_read_returns_before_dependent_write(self):
         agent, _, _ = self.agent()
-        agent.executor.execute = AsyncMock(return_value=ExecutionResult(success=True, tool="read", content="fact"))
+        agent.executor.read = AsyncMock(return_value=ExecutionResult(success=True, tool="read", content="fact"))
         self.stream(agent, [thinking('<tf-read id="1" path="a" need_result="true" />'
                                     '<tf-write id="2" path="b">guess</tf-write>'), stop()])
         self.assertTrue(await agent._run_one_turn())
-        self.assertEqual(agent.executor.execute.await_count, 1)
+        self.assertEqual(agent.executor.read.await_count, 1)
         self.assertIn("fact", agent.messages[-1]["content"])
         self.assertEqual(agent.context.records[0].tool, "read")
         self.assertEqual(agent.context.records[1].status, "skipped")
@@ -163,11 +163,11 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
         agent, events, _ = self.agent()
         seen = []
 
-        async def execute(command):
-            seen.append(command.path)
-            return ExecutionResult(success=True, tool="read", content=command.path)
+        async def execute(path, **options):
+            seen.append(path)
+            return ExecutionResult(success=True, tool="read", content=path)
 
-        agent.executor.execute = execute
+        agent.executor.read = execute
         self.stream(agent, [
             StreamEvent(type=EventType.TOOL_USE_START, tool_id="a", tool_name="read", tool_index=0),
             StreamEvent(type=EventType.TOOL_USE_START, tool_id="b", tool_name="read", tool_index=1),
@@ -338,7 +338,7 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
             release.set()
 
         executor._stop_process_tree = AsyncMock(side_effect=cleanup)
-        with patch("asyncio.create_subprocess_shell", AsyncMock(return_value=process)):
+        with patch("src.executor.spawn_owned", AsyncMock(return_value=process)):
             task = asyncio.create_task(executor.execute(Command(id="1", tool="bash", cmd="fake")))
             await started.wait()
             task.cancel()
@@ -441,6 +441,7 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
     async def test_extension_process_cancel_and_timeout_clean_owned_tree(self):
         for cancel in (True, False):
             process = AsyncMock()
+            process.returncode = None
             started = asyncio.Event()
             released = asyncio.Event()
 
@@ -455,15 +456,22 @@ class HarnessTests(unittest.IsolatedAsyncioTestCase):
             process.stdin = Mock(drain=AsyncMock())
 
             async def cleanup(_):
+                process.returncode = -9
                 released.set()
 
-            with patch.object(Executor, "_stop_process_tree", AsyncMock(side_effect=cleanup)) as stop_tree:
-                task = asyncio.create_task(ExternalInterfaces._communicate_owned(process, b"{}", 10 if cancel else .01))
+            executor = Executor()
+            self.addCleanup(executor.close)
+            with patch.object(Executor, "_stop_process_tree", AsyncMock(side_effect=cleanup)) as stop_tree, \
+                    patch("src.executor.spawn_owned", AsyncMock(return_value=process)):
+                task = asyncio.create_task(executor.run_command(
+                    ["fixture"], tool="custom", stdin="{}", timeout=10 if cancel else .01, env={}))
                 await started.wait()
                 if cancel:
                     task.cancel()
-                with self.assertRaises(asyncio.CancelledError if cancel else asyncio.TimeoutError):
-                    await task
+                    with self.assertRaises(asyncio.CancelledError):
+                        await task
+                else:
+                    self.assertTrue((await task).timed_out)
                 stop_tree.assert_awaited_once_with(process)
 
     async def test_failed_bash_returns_stdout_exit_and_truncation(self):

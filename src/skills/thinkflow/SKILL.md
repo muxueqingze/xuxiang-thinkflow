@@ -25,7 +25,7 @@ description: 续想 ThinkFlow harness 按需参考——tf-* 流式命令协议�
 | `blocking` | 批次结果统一返回后，再进行依赖结果的判断 | `read` `bash` `python` `grep` `glob` `list_files` `web_search` `fetch_url` `list_skills` `read_skill`、custom tools |
 | `confirm` | 显式反馈边界，受授权策略约束 | 由扩展工具声明；风险与 flow 独立 |
 
-默认使用**`tf-*`文本命令**，本地解析器、FIFO队列和执行器接管执行。delayed成功只留下回执；已知且互不依赖的信息调用也可连续声明，在生成结束后一次反馈所有结果。真实失败或显式need_result形成即时边界。开启`--native-tools`可使用原生兼容接口；明确配置优先。
+默认使用**`tf-*`文本命令**，本地解析器、FIFO队列和执行器接管执行。delayed成功只留下回执；已知且互不依赖的信息调用也可连续声明，在生成结束后一次反馈所有结果。纯信息批次保留失败与其余读取结果，写入/执行链失败则停止；显式need_result形成即时边界。开启`--native-tools`可使用原生兼容接口；明确配置优先。
 
 ## tf-* 命令格式
 
@@ -66,7 +66,7 @@ description: 续想 ThinkFlow harness 按需参考——tf-* 流式命令协议�
 
 局部edit前只需读取覆盖唯一old文本的当前版本片段。同SHA片段合并覆盖，成功edit后维护新版本及覆盖位置，可连续修改已知内容；局部信息不授予全文操作。覆盖write、append及copy覆盖已有目标仍须完整读取；完整已知文件及自身完整写入保持原行为。
 
-压缩后可按摘要中的request引用回取旧要求：`<tf-recall id="编号" ref="request:1" offset="0" limit="8000" />`。范围按字符计算，独立回取与读取同批声明。
+压缩后可按摘要中的request引用回取旧要求：`<tf-recall id="编号" ref="request:1" offset="0" limit="8000" />`。包含冻结附件的提交时输入用`request:1:input`。范围按字符计算，独立回取与读取同批声明。
 
 长工具输出按回执原文引用回取，如`<tf-recall id="编号" ref="receipt:3:stdout" query="Error" limit="2000" />`。知道关键词就直接定位，多个独立关键词同批查；需要相邻原文再按返回的字符位置读取。
 

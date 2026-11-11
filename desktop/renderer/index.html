@@ -514,7 +514,7 @@
                 </div>
                 <dl class="usage-grid">
                   <div>
-                    <dt>模型调用</dt>
+                      <dt>HTTP 请求</dt>
                     <dd id="usage-calls">0</dd>
                   </div>
                   <div>
@@ -531,10 +531,10 @@
                   </div>
                 </dl>
                 <div class="savings">
-                  <span>节省模型调用 <small>估算</small></span
+                    <span>减少模型往返 <small>估算</small></span
                   ><strong id="usage-saved">0</strong>
                 </div>
-                <p class="usage-note">按成功的可预测工具调用估算，并非账单或实测成本。</p>
+                  <p class="usage-note">往返估算以每个工具单独返回模型为对照。</p>
               </section>
             </section>
             <section
@@ -860,14 +860,15 @@
                       max="1000"
                       min="1"
                       name="max_run_turns"
-                      required=""
+                      placeholder="留空不限回合"
                       type="number" /></label
                   ><label
                     >最长运行时间（秒）<input
                       max="86400"
-                      min="1"
+                      min="0"
                       name="max_run_seconds"
-                      required=""
+                      step="any"
+                      placeholder="留空不限时长"
                       type="number"
                   /></label>
                 </div>

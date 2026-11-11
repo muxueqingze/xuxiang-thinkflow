@@ -45,7 +45,7 @@ def recall_text(
     if query is not None and (not isinstance(query, str) or not query):
         raise ValueError("query must be a non-empty literal string")
 
-    title = "user request" if kind == "request" else "tool output"
+    title = {"request": "user request", "execution input": "frozen execution input", "output": "tool output"}[kind]
     if query is None:
         end = min(total, offset + limit)
         _skip(source, offset)

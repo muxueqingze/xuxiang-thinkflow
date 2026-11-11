@@ -161,12 +161,18 @@ function render() {
   renderSessions(); renderMessages(); renderLedger(); renderApproval(); renderQueue(); renderAttachments(); renderInputReceipt(); renderTaskPlan();
   const usage = state.usage || {};
   for (const [id, key] of [['usage-calls', 'api_calls'], ['usage-commands', 'commands'], ['usage-input', 'prompt_tokens'], ['usage-output', 'completion_tokens'], ['usage-saved', 'estimated_saved_api_calls']]) $(id).textContent = number(usage[key]);
-  const usageReported = usage.reported === true || (usage.reported === undefined && (usage.prompt_tokens > 0 || usage.completion_tokens > 0));
+  const usageReported = usage.reported === true;
+  if (usage.legacy_turns) $('usage-calls').textContent = usage.api_calls ? `≥ ${number(usage.api_calls)}` : '—';
   if (!usageReported) {
-    $('usage-input').textContent = usage.reported_turns ? `≥ ${number(usage.prompt_tokens)}` : '—';
-    $('usage-output').textContent = usage.reported_turns ? `≥ ${number(usage.completion_tokens)}` : '—';
+    $('usage-input').textContent = usage.input_reported ? `≥ ${number(usage.prompt_tokens)}` : '—';
+    $('usage-output').textContent = usage.output_reported ? `≥ ${number(usage.completion_tokens)}` : '—';
   }
-  document.querySelector('.usage-note').textContent = `${!usageReported && usage.api_calls ? (usage.reported_turns ? '部分回合未返回用量，显示已知下限。' : '端点未返回用量。') : ''}节省调用按成功的流式工具估算。`;
+  const usageDetails = [];
+  if (usage.logical_turns) usageDetails.push(`${number(usage.logical_turns)} 个逻辑轮`);
+  if (usage.unknown_usage_requests) usageDetails.push(`${number(usage.unknown_usage_requests)} 次未报用量`);
+  if (usage.partial_usage_requests) usageDetails.push(`${number(usage.partial_usage_requests)} 次用量不完整`);
+  if (usage.legacy_turns) usageDetails.push(`${number(usage.legacy_turns)} 个旧轮未记录请求次数`);
+  document.querySelector('.usage-note').textContent = `${usageDetails.length ? usageDetails.join(' · ') + '。' : ''}往返估算以每个工具单独返回模型为对照。`;
   $('recovery').hidden = !state.recovery_required;
   $('recovery-details').textContent = (state.recovery || []).map(item => `${item.tool || '未知工具'} · ${item.id || '无编号'}\n${item.cmd || item.input_summary || item.path || '请核对工作区实际状态'}${item.input_hash ? `\n输入摘要 ${item.input_hash}` : ''}`).join('\n\n');
   updateControls();
@@ -375,7 +381,8 @@ $('settings-form').elements.namedItem('clear_api_key').addEventListener('change'
 $('settings-form').addEventListener('submit', async event => {
   event.preventDefault(); $('settings-error').hidden = true;
   const values = Object.fromEntries(new FormData(event.currentTarget));
-  for (const field of ['max_run_turns', 'max_run_seconds', 'thinking_budget']) values[field] = Number(values[field]);
+  for (const field of ['max_run_turns', 'max_run_seconds']) values[field] = values[field] === '' ? null : Number(values[field]);
+  values.thinking_budget = Number(values.thinking_budget);
   values.max_tokens = values.max_tokens.trim() === '' ? null : Number(values.max_tokens);
   values.clear_api_key = event.currentTarget.elements.namedItem('clear_api_key').checked;
   values.enable_native_tools = event.currentTarget.elements.namedItem('enable_native_tools').checked;

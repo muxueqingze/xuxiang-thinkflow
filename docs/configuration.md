@@ -56,6 +56,8 @@ thinkflow --system-prompt my-guidance.md
 
 删除字段恢复核心默认，填`{}`恢复全部额外参数。错误保留输入原文和原设置；空闲时保存应用到当前会话，保留上下文、回执与输出引用。运行中设置入口保持禁用。
 
+运行轮数和运行秒数可留空，保存为 `null` 表示不设该项限制；秒数可用小数，例如 `0.25`。切换 OpenAI/Anthropic 时，已有工具调用与结果在发送时转换为目标协议，保存的历史保持原样。
+
 桌面用户设置保存在应用自己的settings.json，凭据继续使用safeStorage；它不自动读取CLI的全局或项目配置文件。两种入口共用核心参数及装配，但各自选择持久配置来源。
 
 ## 上下文预算
@@ -88,9 +90,8 @@ async def main():
     # 此示例使用已配置的明确模型ID；模型发现由宿主按需调用model_registry。
     config.update(enable_native_tools=True,
                   native_tools=["read", "write", "edit", "python", "project_info"])
-    agent = create_agent(config, cwd=cwd)
     store = SessionStore(cwd=cwd)
-    agent.bind_output_store(store.output_dir)
+    agent = create_agent(config, cwd=cwd, session_store=store)
 
     async def project_info(_arguments):
         return "当前项目使用Python标准库。"
@@ -103,7 +104,6 @@ async def main():
         if store.exists():
             agent.load_snapshot(store.load())
         await agent.run("查看项目并继续当前任务。")
-        store.save(agent.to_snapshot())
     finally:
         await agent.close()
 
@@ -112,8 +112,14 @@ asyncio.run(main())
 
 只用内存配置时直接传dict给create_agent；宿主需要事件时传`event_sink`，需要授权交互时传`approval_handler`。自定义工具通过现有ToolRegistry注册，声明flow及risk，沿用现有信息合批和回执链。无需新建一套插件执行器。
 
+绑定 `session_store` 后，执行意图、已完成工具回执和运行终态会自动保存，原 `event_sink` 继续接收事件；载入已有快照仍由宿主显式调用。也可用 `store.bind(agent)` 为已有 agent 绑定或切换持久存储。执行日志位于快照旁的 `.execution.jsonl`，输出位于 `.outputs`。
+
+工具 handler 可返回字符串、`ToolResult` 或 `ExecutionResult`。结构化结果中的失败、stdout/stderr、完整输出引用会保留到实际反馈；覆盖已有工具后 direct、tf、native 使用同一 handler，运行中新增工具会进入 `load_tools` 目录。需要实际调用 ID 的 handler 可注册 `pass_call_id=True`，接收 `handler(arguments, call_id=...)`。
+
 ## 本轮依据与验证
 
 2026-11-11固定核对Pi提交`682c7b93`：借鉴[设置分层](https://github.com/earendil-works/pi/blob/682c7b93ce3e0a52b579c2b65b4c06bb392e7180/packages/coding-agent/src/core/settings-manager.ts#L65)与[显式SDK装配](https://github.com/earendil-works/pi/blob/682c7b93ce3e0a52b579c2b65b4c06bb392e7180/packages/coding-agent/src/core/sdk.ts#L48)。Pi的资源集合及扩展热重载另有生命周期规则，本轮复用ThinkFlow现有工具入口。
 
 完整本地parser/core及291项unittest通过，桌面15项测试通过；实际Electron验证编辑、错误保留、保存、重启及恢复默认。独立验收复核配置层级、运行中/空闲配置切换、实际请求预算和完整工具批次，并修复预算压缩后的账本起点偏移。[独立报告](reviews/configuration-20261111.md)。另从独立临时wheel实际导入公开SDK、注册并执行自定义工具、运行包内配置CLI，均通过；wheel与构建副本当轮清理，[包验证记录](evidence/configuration-package-20261111.json)。本轮未调用付费模型，不更新历史Pi对照比例；完整长任务策略对照沿[接力](efficiency-handoff.md)继续。
+
+随后按 Pro 报告接通持久化、工具真实分发、跨协议投影和准确请求计量，验证见[本轮记录](reviews/pro-implementation-20261111.md)。

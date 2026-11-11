@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import html
 import ipaddress
 import json
@@ -16,7 +15,7 @@ from typing import Any
 import httpx
 
 from .tool_registry import ToolResult
-from .executor import Executor
+from .executor import Executor, ExecutionResult
 
 
 @dataclass
@@ -123,9 +122,10 @@ class InterfaceConfig:
 class ExternalInterfaces:
     """Network/search/image adapters exposed as optional tools."""
 
-    def __init__(self, config: InterfaceConfig, cwd: str):
+    def __init__(self, config: InterfaceConfig, cwd: str, *, executor: Executor | None = None):
         self.config = config
         self.cwd = os.path.abspath(os.path.expanduser(cwd))
+        self.executor = executor if executor is not None else Executor(self.cwd)
 
     async def web_search(self, tool_input: dict) -> str:
         web = self.config.web
@@ -177,7 +177,7 @@ class ExternalInterfaces:
             text = text[:max_chars] + "\n\n[THINKFLOW TRUNCATED] 内容已截断。"
         return f"url: {url}\n\n{text}"
 
-    async def image_generate(self, tool_input: dict) -> str:
+    async def image_generate(self, tool_input: dict) -> str | ExecutionResult:
         image = self.config.image_generation
         prompt = str(tool_input.get("prompt", "") or "").strip()
         if not prompt:
@@ -210,77 +210,28 @@ class ExternalInterfaces:
         return ToolResult.failure(f"未知 image_generation provider: {image.provider}")
 
     def custom_tool_handler(self, tool: CustomToolConfig):
-        async def handler(tool_input: dict) -> str:
+        async def handler(tool_input: dict) -> str | ExecutionResult:
             return await self.run_custom_tool(tool, tool_input)
 
         return handler
 
-    async def run_custom_tool(self, tool: CustomToolConfig, tool_input: dict) -> str:
+    async def run_custom_tool(self, tool: CustomToolConfig, tool_input: dict) -> str | ExecutionResult:
         if not tool.enabled:
             return ToolResult.failure(f"{tool.name} 已禁用")
         if not _valid_tool_name(tool.name):
             return ToolResult.failure(f"custom tool 名称非法: {tool.name}")
         if not tool.command:
             return ToolResult.failure(f"custom tool {tool.name} 缺少 command")
-        payload = json.dumps(tool_input, ensure_ascii=False).encode("utf-8")
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *tool.command,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self.cwd,
-                env=_safe_command_env(),
-                **({"start_new_session": True} if os.name != "nt" else {}),
+            result = await self.executor.run_command(
+                tool.command, tool=tool.name, stdin=json.dumps(tool_input, ensure_ascii=False),
+                timeout=tool.timeout_seconds, env=_safe_command_env(),
             )
-            stdout, stderr = await self._communicate_owned(proc, payload, tool.timeout_seconds)
-        except asyncio.TimeoutError:
-            return ToolResult.failure(f"{tool.name} 超时")
         except Exception as exc:
-            return ToolResult.failure(f"{tool.name} 启动失败: {exc}")
-
-        out = stdout.decode("utf-8", errors="replace").strip()
-        err = stderr.decode("utf-8", errors="replace").strip()
-        if proc.returncode != 0:
-            return ToolResult.failure(f"{tool.name} failed(exit_code={proc.returncode})\n{err or out}")
-        return out or f"{tool.name} ok"
-
-    @staticmethod
-    async def _communicate_owned(proc, payload: bytes, timeout: float):
-        async def drain(pipe):
-            retained = bytearray()
-            truncated = False
-            while chunk := await pipe.read(65536):
-                remaining = max(0, 80000 - len(retained))
-                retained.extend(chunk[:remaining])
-                truncated = truncated or len(chunk) > remaining
-            if truncated:
-                retained.extend(b"\n[THINKFLOW TRUNCATED] output exceeded 80000 bytes; remaining output was drained.")
-            return bytes(retained)
-
-        async def send_input():
-            try:
-                proc.stdin.write(payload)
-                await proc.stdin.drain()
-            except (BrokenPipeError, ConnectionResetError):
-                pass
-            finally:
-                proc.stdin.close()
-
-        async def exchange():
-            stdout, stderr, _, _ = await asyncio.gather(
-                drain(proc.stdout), drain(proc.stderr), send_input(), proc.wait())
-            return stdout, stderr
-
-        transfer = asyncio.create_task(exchange())
-        try:
-            # Keep draining while terminating the process tree so full pipes cannot
-            # deadlock cancellation. Only retained output, not total output, grows.
-            return await asyncio.wait_for(asyncio.shield(transfer), timeout=timeout)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
-            await Executor._stop_process_tree(proc)
-            await transfer
-            raise
+            return ExecutionResult(False, tool=tool.name, error=f"{tool.name} 启动失败: {exc}")
+        if result.success and not result.stdout:
+            result.content = f"{tool.name} ok"
+        return result
 
     async def _get_text(self, url: str, *, max_chars: int, web: WebInterfaceConfig) -> str:
         from . import __version__
@@ -304,34 +255,22 @@ class ExternalInterfaces:
                 return response.text[:max_chars]
             raise ValueError("redirect 次数过多")
 
-    async def _run_image_command(self, image: ImageGenerationConfig, payload: dict[str, Any]) -> str:
+    async def _run_image_command(self, image: ImageGenerationConfig, payload: dict[str, Any]) -> str | ExecutionResult:
         if not image.command:
             return ToolResult.failure("image_generation.command 未配置")
         try:
-            proc = await asyncio.create_subprocess_exec(
-                *image.command,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=self.cwd,
-                env=_safe_command_env(),
-                **({"start_new_session": True} if os.name != "nt" else {}),
+            result = await self.executor.run_command(
+                image.command, tool="image_generate", stdin=json.dumps(payload, ensure_ascii=False),
+                timeout=image.timeout_seconds, env=_safe_command_env(),
             )
-            stdout, stderr = await self._communicate_owned(
-                proc, json.dumps(payload, ensure_ascii=False).encode("utf-8"), image.timeout_seconds,
-            )
-        except asyncio.TimeoutError:
-            return ToolResult.failure("image_generate 命令超时")
         except Exception as exc:
-            return ToolResult.failure(f"image_generate 命令启动失败: {exc}")
-
-        out = stdout.decode("utf-8", errors="replace").strip()
-        err = stderr.decode("utf-8", errors="replace").strip()
-        if proc.returncode != 0:
-            return ToolResult.failure(f"image_generate 失败(exit_code={proc.returncode})\n{err or out}")
-        exists = os.path.exists(payload["output_path"])
-        suffix = f"\noutput_path: {payload['output_path']}" if exists else ""
-        return (out or "image_generate ok") + suffix
+            return ExecutionResult(False, tool="image_generate", error=f"image_generate 命令启动失败: {exc}")
+        if result.success:
+            if not result.stdout:
+                result.content = "image_generate ok"
+            if os.path.exists(payload["output_path"]):
+                result.content += ("\n" if result.content else "") + f"output_path: {payload['output_path']}"
+        return result
 
     async def _call_image_webhook(self, image: ImageGenerationConfig, payload: dict[str, Any]) -> str:
         if not image.webhook_url:

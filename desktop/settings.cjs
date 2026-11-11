@@ -43,13 +43,18 @@ function normalizeConfig(input, runtime = null) {
   }
   if (config.api_path && (!config.api_path.startsWith('/') || config.api_path.startsWith('//') || /[?#]/.test(config.api_path))) throw new Error('接口路径须以单个 / 开头且不包含查询参数');
   for (const [key, max] of [['max_tokens', 1000000], ['max_run_turns', 1000], ['max_run_seconds', 86400]]) {
+    if (key !== 'max_tokens' && (input[key] == null || input[key] === '')) {
+      config[key] = null;
+      continue;
+    }
     if (key === 'max_tokens' && (input[key] == null || input[key] === '' || input[key] === 0)) {
       if (config.provider === 'anthropic') throw new Error('Anthropic 接口要求显式填写输出 token 上限');
       config[key] = null;
       continue;
     }
     const value = Number(input[key]);
-    if (!Number.isInteger(value) || value < 1 || value > max) throw new Error('运行限制必须为有效正整数');
+    if (!Number.isFinite(value) || (key !== 'max_run_seconds' && !Number.isInteger(value))
+        || value < (key === 'max_run_seconds' ? 0 : 1) || value > max) throw new Error('运行限制数值无效');
     config[key] = value;
   }
   if (config.model.length > 512 || config.base_url.length > 4096 || config.api_path.length > 1024) throw new Error('设置字段过长');

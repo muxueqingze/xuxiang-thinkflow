@@ -109,6 +109,7 @@ def compact_messages(
     current_position = next((position for position, ref in history.request_positions.items()
                              if ref == history.current_ref), None)
     pin_current = current_position is not None and current_position < split_at
+    expanded_requests = {entry["ref"] for entry in history.requests[:-1] if "execution_input" in entry}
     for position, message in enumerate(older):
         if position == 0 and history.summary and message.get("content") == history.summary:
             continue
@@ -122,10 +123,15 @@ def compact_messages(
         count += 1
         entry = _message_to_summary_line(count, message, config.max_item_chars)
         if position in history.request_positions and position != current_position:
-            entry = f"{history.request_positions[position]} | {entry}"
+            ref = history.request_positions[position]
+            if ref in expanded_requests:
+                entry = f"{ref} | frozen input: {ref}:input | {entry}"
+            else:
+                entry = f"{ref} | {entry}"
         entries.append(entry)
 
-    summary, kept_entries = _build_summary(entries, config, count=count, history=history)
+    summary, kept_entries = _build_summary(entries, config, count=count, history=history,
+                                           has_expanded_requests=bool(expanded_requests))
     prefix = [{"role": "user", "content": summary}]
     if pin_current:
         prefix.append({"role": "user", "content": history.current_input})
@@ -179,7 +185,7 @@ def _adjust_split_for_tool_messages(messages: list[dict[str, Any]], split_at: in
 
 
 def _build_summary(entries: list[str], config: CompactionConfig, *, count: int,
-                   history: ConversationContext) -> tuple[str, list[str]]:
+                   history: ConversationContext, has_expanded_requests: bool) -> tuple[str, list[str]]:
     lines = [
         COMPACTION_HEADER,
         "Older conversation history was compacted deterministically. No model summarized this text.",
@@ -192,8 +198,10 @@ def _build_summary(entries: list[str], config: CompactionConfig, *, count: int,
             "Use recall(ref) to retrieve earlier requirements or revisions missing from these excerpts.",
         ])
     lines.extend(["", "Recent compacted entries:"])
+    input_hint = ("For a request with attachments, use recall(request:N:input) for its frozen input."
+                  if has_expanded_requests else "")
 
-    budget = max(500, config.max_summary_chars - len("\n".join(lines)) - 80)
+    budget = max(500, config.max_summary_chars - len("\n".join(lines)) - len(input_hint) - 80)
     kept: list[str] = []
     total = 0
     omitted = 0
@@ -209,6 +217,8 @@ def _build_summary(entries: list[str], config: CompactionConfig, *, count: int,
     if omitted:
         lines.append(f"... {omitted} older compacted entries omitted ...")
     lines.extend(kept)
+    if input_hint:
+        lines.append(input_hint)
     lines.append("[END COMPACTED CONTEXT]")
 
     text = "\n".join(lines)

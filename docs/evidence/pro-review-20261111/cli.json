@@ -1,0 +1,20 @@
+{
+  "scope": ["F01", "F02"],
+  "date": "2026-11-11",
+  "implementation": {
+    "exit_codes": {"completed": 0, "error_or_budget_or_unknown_side_effect": 1, "keyboard_interrupt": 130},
+    "persistence": "SessionStore.bind registers a synchronous observer independently of the UI event sink. Tool intent is fsynced before execution; receipt snapshot is committed before the completed journal marker.",
+    "recovery": "Unresolved intents become unknown ledger records with preserved IDs and input hashes. Same-ID replay returns the unknown receipt without executing. Existing committed receipts are preserved. New session IDs isolate previous journal entries.",
+    "sdk": "create_agent(..., session_store=store); agent.load_snapshot(store.load()) remains explicit.",
+    "ownership": "CLI resume switches the shared active store path and output binding. SDK forks retain source snapshot and independent output storage. No-autosave installs no persistence observer."
+  },
+  "checks": [
+    {"command": "python tests/test_cli_persistence.py -v", "result": "6 passed before adding the separate SIGINT check; real loopback HTTP server and CLI subprocesses", "cases": ["success exit 0", "401 exit 1", "503 retry exhaustion exit 1 after two requests", "budget exit 1", "completed write during open SSE stream survives process.kill and resume", "unfinished real python command becomes unknown after process.kill", "no-autosave creates neither snapshot nor journal", "SDK sink coexistence, fork/resume ownership, new session, unknown replay"]},
+    {"command": "python tests/test_cli_persistence.py CLIProcessTests.test_keyboard_interrupt_exits_130 -v", "result": "1 passed; real CLI subprocess receives SIGINT via Python interrupt_main during an open local SSE stream, exit 130"},
+    {"command": "python tests/test_cli_persistence.py CLIProcessTests.test_unresolved_intent_survives_process_kill -v", "result": "1 passed after adding real CLI --resume same-ID replay: exit 1, no second tool_started, next_stamp advanced to 2"},
+    {"command": "python -m pytest tests/test_core.py -q -k 'slash_new_and_resume_roundtrip_session or session_store_keeps_history_snapshots_for_resume_choices'", "result": "2 passed"},
+    {"command": "python tests/test_output_recall.py -q", "result": "10 passed"}
+  ],
+  "fixtures": "Temporary loopback-only endpoints; no provider credentials, remote requests or paid API use. Initial fixture IDs and missing command-line terminators were corrected to valid numeric tf-* commands with newline; no production parser changes.",
+  "cleanup": "Each unittest fixture closes HTTP listeners, kills and waits for its CLI subprocesses, and removes its own temporary directory. Post-run inspection found no thinkflow-cli-* / thinkflow-sdk-session-* directories and no src.cli / test_cli_persistence Python processes. No project experiment directory or dependency installation was needed."
+}

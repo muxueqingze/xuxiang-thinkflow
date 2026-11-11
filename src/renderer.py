@@ -649,7 +649,7 @@ def render_context_compact(agent):
     if agent.usage.total_commands:
         parts.append(f"[tag]cmds[/tag] [bytes]{agent.usage.total_commands}[/bytes]")
     if agent.usage.estimated_saved_api_calls:
-        parts.append(f"[tag]saved[/tag] [bytes]{agent.usage.estimated_saved_api_calls} calls[/bytes]")
+        parts.append(f"[tag]估算减少往返[/tag] [bytes]{agent.usage.estimated_saved_api_calls}（每工具一轮）[/bytes]")
     if stats["compactions"]:
         parts.append(f"[tag]compact[/tag] [bytes]{stats['compactions']}[/bytes]")
     if agent.usage.total_cached_tokens:

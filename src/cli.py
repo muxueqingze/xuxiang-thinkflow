@@ -249,12 +249,17 @@ def build_resume_selection_items(store: SessionStore, sessions: list[Path]) -> l
     return items
 
 
-def select_session(agent: AgentLoop, selected: Path):
+def select_session(agent: AgentLoop, selected: Path, store: SessionStore = None):
     selected_store = SessionStore(str(selected), cwd=agent.executor.cwd)
     if not selected_store.exists():
         renderer.render_error("session 不存在")
         return
-    agent.load_snapshot(selected_store.load())
+    snapshot = selected_store.load()
+    agent.load_snapshot(snapshot)
+    if store is not None:
+        store.path = selected_store.path
+        if getattr(agent, "session_store", None) is store:
+            agent.bind_output_store(store.output_dir)
     renderer.render_info("会话已恢复")
     render_session_transcript(agent.messages)
 
@@ -390,7 +395,7 @@ def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None)
                 renderer.render_error(f"没有找到 session：{store.path.parent}")
 
             if selected is not None:
-                select_session(agent, selected)
+                select_session(agent, selected, store)
 
     elif command == "/usage":
         renderer.console.print(agent.usage.summary())
@@ -398,10 +403,10 @@ def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None)
     elif command == "/savings":
         usage = agent.usage
         renderer.console.print("\n[bold]ThinkFlow Savings[/bold]")
-        renderer.console.print(f"  deterministic cmds   {usage.total_commands}")
-        renderer.console.print(f"  saved api roundtrips  {usage.estimated_saved_api_calls}")
-        renderer.console.print(f"  avoided prompt tokens {usage.estimated_avoided_prompt_tokens:,}")
-        renderer.console.print("[dim]估算基于平均 prompt tokens；真实费用取决于 provider 缓存和模型计费。[/dim]\n")
+        renderer.console.print(f"  工具执行数        {usage.total_commands}")
+        renderer.console.print(f"  估算避免往返      {usage.estimated_saved_api_calls}")
+        renderer.console.print(f"  估算避免输入token {usage.estimated_avoided_prompt_tokens:,}")
+        renderer.console.print("[dim]一工具一往返估算基线；输入token按平均请求估算。[/dim]\n")
 
     elif command in ("/status", "/ctx"):
         render_status(agent, store)
@@ -962,14 +967,15 @@ async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosav
         stats = agent.message_stats()
         provider = agent.config.provider
         ctx = f"{stats['chars']:,} chars / {stats['messages']} msgs"
-        calls = agent.usage.api_calls
+        totals = agent.usage.totals()
+        calls = str(totals["api_calls"]) + ("（旧轮未计量）" if totals["legacy_turns"] else "")
         cache = agent.usage.total_cached_tokens
         perm = current_permission_mode(agent)
         return HTML(
             "<style bg='#0b2239' fg='#9cdcfe'> "
             f"<b>ThinkFlow</b> · {provider.model} "
             f"<style fg='#8a8a8a'>│</style> ctx {ctx} "
-            f"<style fg='#8a8a8a'>│</style> api {calls} "
+            f"<style fg='#8a8a8a'>│</style> HTTP {calls} "
             f"<style fg='#8a8a8a'>│</style> cache {cache:,} "
             f"<style fg='#8a8a8a'>│</style> perm <style fg='#569cd6'><b>{perm}</b></style> "
             f"<style fg='#8a8a8a'>│</style> Shift+Tab "
@@ -1220,7 +1226,7 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
             default_value=items[0].value,
         )
         if selected:
-            select_session(agent, Path(selected))
+            select_session(agent, Path(selected), store)
         return True
 
     async def choose_model() -> bool:
@@ -1286,9 +1292,17 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
 
 
 async def single_run(agent: AgentLoop, prompt: str, store: SessionStore = None, autosave: bool = True):
-    await agent.run(prompt)
-    if autosave and store:
-        store.save(agent.to_snapshot())
+    try:
+        await agent.run(prompt)
+    finally:
+        if autosave and store and getattr(agent, "session_store", None) is not store:
+            store.save(agent.to_snapshot())
+    if agent.stopped_reason == "cancelled":
+        return 130
+    if agent.stopped_reason != "completed" or agent.last_error:
+        print(agent.last_error or f"Run stopped: {agent.stopped_reason}", file=sys.stderr)
+        return 1
+    return 0
 
 
 
@@ -1631,10 +1645,8 @@ def main():
         )
         sys.exit(1)
 
-    agent = create_agent(config, system_prompt, cwd=cwd)
     autosave = not args.no_autosave
-    if autosave:
-        agent.bind_output_store(store.output_dir)
+    agent = create_agent(config, system_prompt, cwd=cwd, session_store=store if autosave else None)
 
     if args.resume:
         if store.exists():
@@ -1647,9 +1659,9 @@ def main():
         try:
             if args.prompt_file:
                 with open(args.prompt_file, "r", encoding="utf-8-sig") as f:
-                    await single_run(agent, f.read(), store=store, autosave=autosave)
+                    return await single_run(agent, f.read(), store=store, autosave=autosave)
             elif args.prompt:
-                await single_run(agent, args.prompt, store=store, autosave=autosave)
+                return await single_run(agent, args.prompt, store=store, autosave=autosave)
             elif args.tui:
                 await run_tui(
                     agent,
@@ -1667,9 +1679,11 @@ def main():
             await agent.close()
 
     try:
-        asyncio.run(main_async())
+        exit_code = asyncio.run(main_async())
     except KeyboardInterrupt:
-        pass
+        exit_code = 130
+    if exit_code:
+        raise SystemExit(exit_code)
 
 
 if __name__ == "__main__":

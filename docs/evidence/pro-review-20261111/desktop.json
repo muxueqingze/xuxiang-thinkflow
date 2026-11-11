@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "localHttpRequests": 3,
+  "paidRequests": 0,
+  "logicalTurns": 1,
+  "unknownUsageRequests": 2,
+  "texts": {
+    "usage-calls": "3",
+    "usage-input": "≥ 100",
+    "usage-output": "≥ 10"
+  },
+  "nullableLimits": true,
+  "fractionalSeconds": 0.25,
+  "pageErrors": []
+}

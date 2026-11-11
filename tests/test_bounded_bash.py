@@ -154,8 +154,9 @@ class BoundedBashTests(unittest.IsolatedAsyncioTestCase):
             elapsed = asyncio.get_running_loop().time() - started
             self.assertFalse(result.success)
             self.assertTrue(result.timed_out)
-            self.assertIn("管道未关闭", result.error)
-            self.assertEqual(result.status_str, "unknown")
+            self.assertEqual(result.error, "命令超时")
+            self.assertEqual(result.status_str, "failed")
+            self.assertFalse(self.alive(int((self.root / "child-pid.txt").read_text())))
             self.assertLess(elapsed, 2.5)
         finally:
             marker = self.root / "child-pid.txt"

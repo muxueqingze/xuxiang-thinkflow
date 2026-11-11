@@ -1,10 +1,12 @@
 """Long-running requests survive compaction without a summarization API call."""
 import asyncio
+import hashlib
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import httpx
 
@@ -13,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.agent_loop import AgentConfig, AgentLoop
 from src.compaction import COMPACTION_HEADER, CompactionConfig, compact_messages
 from src.conversation import ConversationContext
+from src.desktop_service import DesktopService
 from src.parser import Command, StreamingParser
 from src.provider import ProviderConfig
 from src.session import SessionStore
@@ -156,6 +159,83 @@ class ConversationRuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.agent.conversation.requests[0]['text'], original)
         self.assertIn(execution, [m.get('content') for m in self.agent.messages])
         self.assertNotIn('source = 42', self.agent.conversation.recall('request:1'))
+        self.assertNotIn('request:1:input', self.agent.messages[0]['content'])
+
+    async def test_desktop_continue_recalls_frozen_attachment_after_compaction_resume_and_fork(self):
+        service = DesktopService()
+        workspace = self.root / 'workspace'
+        workspace.mkdir()
+        file = workspace / 'spec.txt'
+        contract = 'FROZEN_MIDDLE_CONTRACT preserve the original version.'
+        file.write_bytes(('head ' * 3000 + '\n' + contract + '\n' + ' tail' * 3000).encode())
+        revision = hashlib.sha256(file.read_bytes()).hexdigest()
+        original = 'Implement the attached specification.'
+        requests = []
+
+        def receive(request):
+            requests.append(json.loads(request.content))
+            text = ('<tf-recall id="1" ref="request:1:input" query="FROZEN_MIDDLE_CONTRACT" limit="120" />'
+                    if len(requests) == 3 else 'Recorded.')
+            return httpx.Response(200, stream=SSE(text))
+
+        async def submit(command_id, prompt, **kwargs):
+            await service.dispatch('submit_input', {'command_id': command_id, 'prompt': prompt,
+                                                     'session_id': service.session_id, **kwargs})
+            await asyncio.wait_for(service.task, timeout=5)
+            self.assertEqual(service.status, 'idle', service.last_error)
+
+        try:
+            with patch('src.desktop_service.resolve_system_prompt', return_value='Local test only.'):
+                await service.dispatch('initialize', {'data_dir': str(self.root / 'data'), 'config': {
+                    'base_url': 'https://fixture.invalid', 'model': 'deepseek-flash', 'enable_native_tools': False,
+                    'interfaces': {'skills': {'enabled': False}, 'web': {'enabled': False}},
+                }})
+                await service.dispatch('open_workspace', {'cwd': str(workspace)})
+                initial_id = service.session_id
+                await self.transport(service.agent, receive)
+                await submit('attachment', original, attachments=[{'path': file.name, 'revision': revision}])
+                file.write_bytes(b'CURRENT_DISK_VERSION')
+                await submit('interim', 'Continue.')
+                service.agent.config.compaction.keep_recent_messages = 4
+                for _ in range(2):
+                    progress(service.agent.messages, 3)
+                    await service.dispatch('compact')
+                self.assertEqual(service.agent.compaction_count, 2)
+                self.assertEqual(len(requests), 2)
+                self.assertIn('request:1:input', service.agent.messages[0]['content'])
+                self.assertNotIn(contract, json.dumps(service.agent.messages))
+
+                await service.dispatch('resume_session', {'session_id': initial_id})
+                restored = await service.agent.tool_registry.execute('recall', {
+                    'ref': 'request:1:input', 'limit': 200000,
+                })
+                self.assertTrue(restored.success, restored.error)
+                frozen_input = str(restored)
+                self.assertIn('[Original frozen execution input request:1:input;', frozen_input)
+                self.assertIn(f'"path": "{file.name}", "revision": "{revision}"', frozen_input)
+                self.assertIn(contract, frozen_input)
+                self.assertNotIn('CURRENT_DISK_VERSION', frozen_input)
+                execution_input = frozen_input.split('\n', 1)[1]
+                exact = service.agent.conversation.recall(
+                    'request:1:input', execution_input.index(contract), len(contract),
+                )
+                self.assertEqual(exact.splitlines()[1], contract)
+                self.assertEqual(service.agent.conversation.recall('request:1').split('\n', 1)[1], original)
+                with self.assertRaisesRegex(ValueError, 'No separate execution input'):
+                    service.agent.conversation.recall('request:2:input')
+
+                await service.dispatch('fork_session')
+                self.assertNotEqual(service.session_id, initial_id)
+                await self.transport(service.agent, receive)
+                await submit('branch-continue', 'Continue from the original specification.')
+                self.assertEqual(len(requests), 4)
+                self.assertIn('request:1:input', json.dumps(requests[2]['messages']))
+                self.assertNotIn(contract, json.dumps(requests[2]['messages']))
+                self.assertIn(contract, json.dumps(requests[3]['messages']))
+                self.assertNotIn('CURRENT_DISK_VERSION', json.dumps(requests[3]['messages']))
+                self.assertEqual(file.read_bytes(), b'CURRENT_DISK_VERSION')
+        finally:
+            await service.close()
 
     async def test_recall_is_exposed_after_compaction_and_both_adapters_match(self):
         self.agent.conversation.summary = '[THINKFLOW COMPACTED CONTEXT] legacy snapshot'

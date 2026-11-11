@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import ctypes
-from ctypes import wintypes
 from dataclasses import dataclass
 import os
 from pathlib import Path
@@ -12,6 +10,7 @@ from typing import TYPE_CHECKING
 import uuid
 
 from .configuration import ENV_DEFAULTS
+from .process_owner import WindowsJob as _TerminalJob
 
 if TYPE_CHECKING:
     from winpty import PTY
@@ -19,59 +18,6 @@ if TYPE_CHECKING:
 
 SCROLLBACK_CHARS = 64 * 1024
 MAX_TERMINALS = 8
-JOB_OBJECT_EXTENDED_LIMIT_INFORMATION = 9
-JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x2000
-WAIT_OBJECT_0 = 0
-
-
-class _JobBasicLimits(ctypes.Structure):
-    _fields_ = [("per_process_time", ctypes.c_longlong), ("per_job_time", ctypes.c_longlong),
-                ("limit_flags", wintypes.DWORD), ("minimum_working_set", ctypes.c_size_t),
-                ("maximum_working_set", ctypes.c_size_t), ("active_process_limit", wintypes.DWORD),
-                ("affinity", ctypes.c_size_t), ("priority_class", wintypes.DWORD),
-                ("scheduling_class", wintypes.DWORD)]
-
-
-class _JobLimits(ctypes.Structure):
-    _fields_ = [("basic", _JobBasicLimits), ("io_counters", ctypes.c_ulonglong * 6),
-                ("process_memory_limit", ctypes.c_size_t), ("job_memory_limit", ctypes.c_size_t),
-                ("peak_process_memory", ctypes.c_size_t), ("peak_job_memory", ctypes.c_size_t)]
-
-
-class _TerminalJob:
-    """Close the PowerShell process tree even while ConPTY is still starting."""
-
-    def __init__(self):
-        self.kernel = kernel = ctypes.WinDLL("kernel32", use_last_error=True)
-        kernel.CreateJobObjectW.argtypes = (ctypes.c_void_p, wintypes.LPCWSTR)
-        kernel.CreateJobObjectW.restype = wintypes.HANDLE
-        kernel.SetInformationJobObject.argtypes = (wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD)
-        kernel.AssignProcessToJobObject.argtypes = (wintypes.HANDLE, wintypes.HANDLE)
-        kernel.TerminateProcess.argtypes = (wintypes.HANDLE, wintypes.UINT)
-        kernel.WaitForSingleObject.argtypes = (wintypes.HANDLE, wintypes.DWORD)
-        kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
-
-        self.handle = kernel.CreateJobObjectW(None, None)
-        if not self.handle:
-            raise ctypes.WinError(ctypes.get_last_error())
-        limits = _JobLimits()
-        limits.basic.limit_flags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-        if not kernel.SetInformationJobObject(self.handle, JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
-                                              ctypes.byref(limits), ctypes.sizeof(limits)):
-            error = ctypes.WinError(ctypes.get_last_error())
-            self.close()
-            raise error
-
-    def attach(self, process_handle):
-        if not self.kernel.AssignProcessToJobObject(self.handle, process_handle):
-            error = ctypes.WinError(ctypes.get_last_error())
-            self.kernel.TerminateProcess(process_handle, 1)
-            raise error
-
-    def close(self, process_handle=None):
-        self.kernel.CloseHandle(self.handle)
-        if process_handle is not None and self.kernel.WaitForSingleObject(process_handle, 5000) != WAIT_OBJECT_0:
-            raise OSError("终端进程未在关闭时退出。")
 
 
 @dataclass
