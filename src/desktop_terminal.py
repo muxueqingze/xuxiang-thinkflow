@@ -135,8 +135,9 @@ class DesktopTerminals:
         # PtyProcess opens a loopback TCP socket. Use the native handle directly.
         pty = PTY(cols, rows, backend=Backend.ConPTY)
         job = _TerminalJob()
+        startup = "[Console]::InputEncoding = [Console]::OutputEncoding = $OutputEncoding = [Text.UTF8Encoding]::new()"
         try:
-            if not pty.spawn(str(shell), cmdline=" -NoLogo -NoProfile", cwd=cwd, env=env):
+            if not pty.spawn(str(shell), cmdline=f' -NoLogo -NoProfile -NoExit -Command "{startup}"', cwd=cwd, env=env):
                 raise OSError("无法启动 PowerShell 终端。")
             job.attach(pty.fd)
         except Exception:

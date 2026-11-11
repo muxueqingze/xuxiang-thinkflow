@@ -65,7 +65,7 @@ class WorkspaceServicesTests(unittest.IsolatedAsyncioTestCase):
         before = index.read_bytes(), index.stat().st_mtime_ns
         status = await self.service.dispatch("git_status")
         self.assertEqual(status["branch"], "feature")
-        self.assertEqual(Path(status["root"]), self.workspace)
+        self.assertTrue(Path(status["root"]).samefile(self.workspace))
         self.assertCountEqual(status["staged"], [
             {"path": "-新 文件.txt", "old_path": "原 文件.txt", "status": "R"},
             {"path": "移入.txt", "status": "A"},
@@ -115,6 +115,8 @@ class WorkspaceServicesTests(unittest.IsolatedAsyncioTestCase):
             await self.service.dispatch("terminal_resize", {"id": first, "cols": 96, "rows": 19})
             await self.service.dispatch("terminal_input", {"id": first, "data":
                 '[Console]::WriteLine("尺寸="+[Console]::WindowWidth+"x"+[Console]::WindowHeight); '
+                '[Console]::WriteLine("ENCODING="+[Console]::InputEncoding.CodePage+"/"+'
+                '[Console]::OutputEncoding.CodePage+"/"+$OutputEncoding.CodePage); '
                 '[Console]::WriteLine("ENV="+[bool]$env:OPENAI_API_KEY); '
                 '[Console]::Write("mock-"); Start-Sleep -Milliseconds 450; '
                 '[Console]::WriteLine("private-key"); exit 7\r'})
@@ -124,6 +126,7 @@ class WorkspaceServicesTests(unittest.IsolatedAsyncioTestCase):
         snapshot = (await terminals())[first]
         self.assertIn("\x1b[", snapshot["scrollback"])
         self.assertIn("尺寸=96x19", snapshot["scrollback"])
+        self.assertIn("ENCODING=65001/65001/65001", snapshot["scrollback"])
         self.assertIn("ENV=False", snapshot["scrollback"])
         self.assertIn("[REDACTED]", snapshot["scrollback"])
         self.assertNotIn("mock-private-key", snapshot["scrollback"])

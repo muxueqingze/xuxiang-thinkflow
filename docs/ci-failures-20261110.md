@@ -25,3 +25,7 @@
 ## 2026-11-11：Windows目录别名断言
 
 `b7ac69c`的[失败运行](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42867612372)中269项测试仅一处失败：输出原文的实际目录使用`runneradmin`，测试期望路径使用Windows短名`RUNNER~1`，二者指向同一目录。`38fc9a1`将字符串路径相等改为`Path.samefile`比较目录实体，运行逻辑不变。该提交的[push](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42870619195)及[PR](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42870634186)均通过。
+
+## 2026-11-11：桌面 Git 路径与终端编码
+
+`d34ef25` 的 [PR](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42983581066)和 [push](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42983573845)检查均在新桌面服务测试中失败：Git 目录断言再次误用长/短路径字符串比较；英文 Windows 的 PowerShell Console 默认编码将中文输出变为问号。前者沿用 `Path.samefile`；后者在新建终端时设置 UTF-8，中文输出断言保持。局部真实 CP437→UTF-8 复现及两项回归通过，详见[交互节点验证](reviews/interaction-20261111.md#github-windows-runner-的两处差异)。

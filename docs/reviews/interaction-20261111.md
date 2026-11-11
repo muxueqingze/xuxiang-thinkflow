@@ -24,6 +24,12 @@
 
 独立检查发现的窄窗、焦点、滚动及设置字段问题，原始画面、修复和复核在独立报告按阶段保存，不重复归入内核故障。
 
+## GitHub Windows runner 的两处差异
+
+`d34ef25` 的 [PR 检查](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42983581066)执行 300 项后发现两处失败：Git 根目录的长/短路径字符串不同，以及英文 Windows 中的中文终端输出变成 `??`。前者改用 `Path.samefile` 核对目录实体；后者保留中文断言，修正新建 PowerShell 的 Console 输入/输出及原生管道编码为 UTF-8。
+
+真实 ConPTY 定向复现确认：把该独立终端的输出编码设为 437 时 `BEFORE=??`，改为 UTF-8 后 `AFTER=尺寸`。修复后的 Git/终端两项共 7.152 秒通过，核对 `65001/65001/65001`、中文、resize、输入、回放、退出码及进程树清理。默认编码随系统 locale 变化的依据见 [Console.OutputEncoding](https://learn.microsoft.com/en-us/dotnet/api/system.console.outputencoding?view=netframework-4.8.1)，原生管道变量见 [PowerShell 5.1 OutputEncoding](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_preference_variables?view=powershell-5.1#outputencoding)。仅初始化应用新建的终端，不修改系统配置或用户 profile。
+
 ## 保留与清理
 
 正式回归脚本位于 `tests/` 和 `desktop/tests/`；测试默认不进入正常应用流程。必要截图/JSON 位于 `docs/evidence/interaction-20261111/`，官方参考截图在 `docs/evidence/zcode-reference-20261111/`。本轮专属 profile、临时仓库、模型服务与临时日志在保存上述证据后关闭并回收。
