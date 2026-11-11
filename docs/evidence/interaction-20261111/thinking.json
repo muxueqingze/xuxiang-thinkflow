@@ -1,0 +1,49 @@
+{
+  "fixture": "desktop/tests/electron-thinking.cjs",
+  "command": "node desktop/tests/electron-thinking.cjs",
+  "passed": true,
+  "isolation": "Windows Electron with dedicated userData and workspace, localhost SSE endpoint",
+  "modelRequests": 6,
+  "catalogRequests": 0,
+  "paidRequests": 0,
+  "preliminaryFixtureRequests": 6,
+  "preliminaryFixtureNotes": [
+    "One local request before correcting the expected /v1/chat/completions path.",
+    "Five local requests before aligning the invalid budget assertion with the Desktop validation message."
+  ],
+  "requests": [
+    {
+      "path": "/v1/chat/completions",
+      "model": "deepseek-flash",
+      "options": {"thinking": {"type": "enabled"}, "reasoning_effort": "low"}
+    },
+    {
+      "path": "/v1/chat/completions",
+      "model": "deepseek-flash",
+      "options": {"thinking": {"type": "disabled"}}
+    },
+    {
+      "path": "/v1/chat/completions",
+      "model": "fixture-compatible",
+      "options": {}
+    },
+    {
+      "path": "/v1/chat/completions",
+      "model": "fixture-compatible",
+      "options": {"reasoning_effort": "xhigh"}
+    },
+    {
+      "path": "/v1/messages",
+      "model": "fixture-claude",
+      "options": {"thinking": {"type": "enabled", "budget_tokens": 4096}, "max_tokens": 8192}
+    },
+    {
+      "path": "/v1/messages",
+      "model": "fixture-claude",
+      "options": {"thinking": {"type": "enabled", "budget_tokens": 3072}, "max_tokens": 8192}
+    }
+  ],
+  "invalidBudget": {"attempted": 8192, "preserved": 4096},
+  "pageErrors": [],
+  "cleanup": "Closed the fixture Electron instances and local servers, recycled all fixture directories."
+}

@@ -1,0 +1,417 @@
+{
+  "errors": [],
+  "checks": [
+    "real isolated Electron; real ConPTY keyboard input and natural exit; workspace switch; small-window panes; keyboard resize; rapid reversals; settings sync and modal focus"
+  ],
+  "profile": "D:\\the things of mine\\项目库\\agent\\thinkflow\\temp\\interaction-qa-20261111\\profile",
+  "small": {
+    "sidebar": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0.6666666865348816,
+        "height": 664,
+        "top": 0,
+        "right": 0.6666666865348816,
+        "bottom": 664,
+        "left": 0
+      },
+      "scrollWidth": 142,
+      "clientWidth": 0,
+      "scrollHeight": 664,
+      "clientHeight": 664
+    },
+    "conversation": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 618,
+        "height": 416,
+        "top": 0,
+        "right": 618,
+        "bottom": 416,
+        "left": 0
+      },
+      "scrollWidth": 618,
+      "clientWidth": 618,
+      "scrollHeight": 416,
+      "clientHeight": 416
+    },
+    "inspector": {
+      "rect": {
+        "x": 618,
+        "y": 0,
+        "width": 368,
+        "height": 416,
+        "top": 0,
+        "right": 986,
+        "bottom": 416,
+        "left": 618
+      },
+      "scrollWidth": 367,
+      "clientWidth": 367,
+      "scrollHeight": 416,
+      "clientHeight": 416
+    },
+    "terminal-panel": {
+      "rect": {
+        "x": 0,
+        "y": 416,
+        "width": 986,
+        "height": 248,
+        "top": 416,
+        "right": 986,
+        "bottom": 664,
+        "left": 0
+      },
+      "scrollWidth": 986,
+      "clientWidth": 986,
+      "scrollHeight": 247,
+      "clientHeight": 247
+    },
+    "composer": {
+      "rect": {
+        "x": 24,
+        "y": 269.66668701171875,
+        "width": 570,
+        "height": 115.33333587646484,
+        "top": 269.66668701171875,
+        "right": 594,
+        "bottom": 385.0000228881836,
+        "left": 24
+      },
+      "scrollWidth": 569,
+      "clientWidth": 569,
+      "scrollHeight": 114,
+      "clientHeight": 114
+    },
+    "prompt": {
+      "rect": {
+        "x": 40.66666793823242,
+        "y": 282.3333435058594,
+        "width": 536.6666870117188,
+        "height": 48,
+        "top": 282.3333435058594,
+        "right": 577.3333549499512,
+        "bottom": 330.3333435058594,
+        "left": 40.66666793823242
+      },
+      "scrollWidth": 537,
+      "clientWidth": 537,
+      "scrollHeight": 48,
+      "clientHeight": 48
+    },
+    "send": {
+      "rect": {
+        "x": 512.375,
+        "y": 338.3333435058594,
+        "width": 64.95833587646484,
+        "height": 34,
+        "top": 338.3333435058594,
+        "right": 577.3333358764648,
+        "bottom": 372.3333435058594,
+        "left": 512.375
+      },
+      "scrollWidth": 65,
+      "clientWidth": 65,
+      "scrollHeight": 34,
+      "clientHeight": 34
+    },
+    "context-footer": {
+      "rect": {
+        "x": 0,
+        "y": 385,
+        "width": 618,
+        "height": 31,
+        "top": 385,
+        "right": 618,
+        "bottom": 416,
+        "left": 0
+      },
+      "scrollWidth": 618,
+      "clientWidth": 618,
+      "scrollHeight": 31,
+      "clientHeight": 31
+    }
+  },
+  "terminalText": "PS D:\\the things of mine\\项目库\\agent\\thinkflow\\temp\\interaction-qa-20261111\\workspace> Write-Output \"QA_TERMINAL_OK\"              \nQA_TERMINAL_OK                                                                                                                     \nPS D:\\the things of mine\\项目库\\agent\\thinkflow\\temp\\interaction-qa-20261111\\workspace>                                            \n                                                                                                                                   \n                                                                                                                                   \n                                                                                                                                   \n                                                                                                                                   \n                                                                                                                                   \n                                                                                                                                   \n                                                                                                                                   ",
+  "terminalResize": {
+    "sidebar": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0.6666666865348816,
+        "height": 664,
+        "top": 0,
+        "right": 0.6666666865348816,
+        "bottom": 664,
+        "left": 0
+      },
+      "scrollWidth": 142,
+      "clientWidth": 0,
+      "scrollHeight": 664,
+      "clientHeight": 664
+    },
+    "conversation": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 618,
+        "height": 400,
+        "top": 0,
+        "right": 618,
+        "bottom": 400,
+        "left": 0
+      },
+      "scrollWidth": 618,
+      "clientWidth": 618,
+      "scrollHeight": 400,
+      "clientHeight": 400
+    },
+    "inspector": {
+      "rect": {
+        "x": 618,
+        "y": 0,
+        "width": 368,
+        "height": 400,
+        "top": 0,
+        "right": 986,
+        "bottom": 400,
+        "left": 618
+      },
+      "scrollWidth": 367,
+      "clientWidth": 367,
+      "scrollHeight": 400,
+      "clientHeight": 400
+    },
+    "terminal-panel": {
+      "rect": {
+        "x": 0,
+        "y": 400,
+        "width": 986,
+        "height": 264,
+        "top": 400,
+        "right": 986,
+        "bottom": 664,
+        "left": 0
+      },
+      "scrollWidth": 986,
+      "clientWidth": 986,
+      "scrollHeight": 263,
+      "clientHeight": 263
+    },
+    "composer": {
+      "rect": {
+        "x": 24,
+        "y": 253.6666717529297,
+        "width": 570,
+        "height": 115.33333587646484,
+        "top": 253.6666717529297,
+        "right": 594,
+        "bottom": 369.00000762939453,
+        "left": 24
+      },
+      "scrollWidth": 569,
+      "clientWidth": 569,
+      "scrollHeight": 114,
+      "clientHeight": 114
+    },
+    "prompt": {
+      "rect": {
+        "x": 40.66666793823242,
+        "y": 266.3333435058594,
+        "width": 536.6666870117188,
+        "height": 48,
+        "top": 266.3333435058594,
+        "right": 577.3333549499512,
+        "bottom": 314.3333435058594,
+        "left": 40.66666793823242
+      },
+      "scrollWidth": 537,
+      "clientWidth": 537,
+      "scrollHeight": 48,
+      "clientHeight": 48
+    },
+    "send": {
+      "rect": {
+        "x": 512.375,
+        "y": 322.3333435058594,
+        "width": 64.95833587646484,
+        "height": 34,
+        "top": 322.3333435058594,
+        "right": 577.3333358764648,
+        "bottom": 356.3333435058594,
+        "left": 512.375
+      },
+      "scrollWidth": 65,
+      "clientWidth": 65,
+      "scrollHeight": 34,
+      "clientHeight": 34
+    },
+    "context-footer": {
+      "rect": {
+        "x": 0,
+        "y": 369,
+        "width": 618,
+        "height": 31,
+        "top": 369,
+        "right": 618,
+        "bottom": 400,
+        "left": 0
+      },
+      "scrollWidth": 618,
+      "clientWidth": 618,
+      "scrollHeight": 31,
+      "clientHeight": 31
+    }
+  },
+  "sidebarResize": {
+    "sidebar": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0.6666666865348816,
+        "height": 664,
+        "top": 0,
+        "right": 0.6666666865348816,
+        "bottom": 664,
+        "left": 0
+      },
+      "scrollWidth": 142,
+      "clientWidth": 0,
+      "scrollHeight": 664,
+      "clientHeight": 664
+    },
+    "conversation": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 618,
+        "height": 400,
+        "top": 0,
+        "right": 618,
+        "bottom": 400,
+        "left": 0
+      },
+      "scrollWidth": 618,
+      "clientWidth": 618,
+      "scrollHeight": 400,
+      "clientHeight": 400
+    },
+    "inspector": {
+      "rect": {
+        "x": 618,
+        "y": 0,
+        "width": 368,
+        "height": 400,
+        "top": 0,
+        "right": 986,
+        "bottom": 400,
+        "left": 618
+      },
+      "scrollWidth": 367,
+      "clientWidth": 367,
+      "scrollHeight": 400,
+      "clientHeight": 400
+    },
+    "terminal-panel": {
+      "rect": {
+        "x": 0,
+        "y": 400,
+        "width": 986,
+        "height": 264,
+        "top": 400,
+        "right": 986,
+        "bottom": 664,
+        "left": 0
+      },
+      "scrollWidth": 986,
+      "clientWidth": 986,
+      "scrollHeight": 263,
+      "clientHeight": 263
+    },
+    "composer": {
+      "rect": {
+        "x": 24,
+        "y": 253.6666717529297,
+        "width": 570,
+        "height": 115.33333587646484,
+        "top": 253.6666717529297,
+        "right": 594,
+        "bottom": 369.00000762939453,
+        "left": 24
+      },
+      "scrollWidth": 569,
+      "clientWidth": 569,
+      "scrollHeight": 114,
+      "clientHeight": 114
+    },
+    "prompt": {
+      "rect": {
+        "x": 40.66666793823242,
+        "y": 266.3333435058594,
+        "width": 536.6666870117188,
+        "height": 48,
+        "top": 266.3333435058594,
+        "right": 577.3333549499512,
+        "bottom": 314.3333435058594,
+        "left": 40.66666793823242
+      },
+      "scrollWidth": 537,
+      "clientWidth": 537,
+      "scrollHeight": 48,
+      "clientHeight": 48
+    },
+    "send": {
+      "rect": {
+        "x": 512.375,
+        "y": 322.3333435058594,
+        "width": 64.95833587646484,
+        "height": 34,
+        "top": 322.3333435058594,
+        "right": 577.3333358764648,
+        "bottom": 356.3333435058594,
+        "left": 512.375
+      },
+      "scrollWidth": 65,
+      "clientWidth": 65,
+      "scrollHeight": 34,
+      "clientHeight": 34
+    },
+    "context-footer": {
+      "rect": {
+        "x": 0,
+        "y": 369,
+        "width": 618,
+        "height": 31,
+        "top": 369,
+        "right": 618,
+        "bottom": 400,
+        "left": 0
+      },
+      "scrollWidth": 618,
+      "clientWidth": 618,
+      "scrollHeight": 31,
+      "clientHeight": 31
+    }
+  },
+  "reversal": {
+    "inert": true,
+    "width": 0.6666666865348816,
+    "style": "",
+    "focus": "terminal-resize"
+  },
+  "configCategorized": "{\n  \"compaction\": {\n    \"max_input_tokens\": 12345\n  }\n}",
+  "configFromJSON": "23456",
+  "settingsFocus": "settings-nav-context",
+  "exit": "PowerShell 1 · 已退出 7×",
+  "secondTerminal": {
+    "workspace": "D:\\the things of mine\\项目库\\agent\\thinkflow\\temp\\interaction-qa-20261111\\second",
+    "tabs": [
+      {
+        "title": "PowerShell 1",
+        "exited": false
+      }
+    ]
+  }
+}

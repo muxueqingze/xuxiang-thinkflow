@@ -31,10 +31,10 @@ function attachWorkspaceFile(file) {
   const previous = attachments;
   attachments = [...attachments.filter(item => item.path !== file.path), { path: file.path, revision: file.revision }];
   if (!saveAttachments()) { attachments = previous; return; }
-  renderAttachments(); toast('文件已引用到任务；发送时将核对版本'); $('prompt').focus();
+  renderAttachments(); $('prompt').focus();
 }
 function renderInputReceipt() {
-  $('input-receipt-panel').hidden = !pendingInput;
+  $('input-receipt-panel').hidden = !pendingInput || sending;
   $('input-receipt-status').textContent = pendingReceiptStatus;
   $('query-input-receipt').disabled = receiptQueryBusy || !connected;
   $('retry-input').hidden = !pendingInput || pendingReceiptStatus !== '后端未查到接收记录，内容已保留。可重试同一提交，或继续核对。';
@@ -49,7 +49,7 @@ async function acceptInputReceipt(receipt, key, commandId) {
     renderInputReceipt(); return true;
   }
   pendingInput = null; pendingReceiptStatus = ''; renderInputReceipt(); updateControls();
-  toast(`任务${inputStatusNames[receipt.status] || '已接收'}`); scheduleRefresh(); return true;
+  scheduleRefresh(); return true;
 }
 async function queryInputReceipt() {
   if (!pendingInput || receiptQueryBusy || !connected) return;
@@ -91,7 +91,7 @@ function renderQueue() {
   $('queue-panel').hidden = !waiting.length;
   $('queue-status').textContent = `${queue.some(item => item.status === 'running') ? '执行中 · ' : ''}待发 ${waiting.length} 条${queuePaused ? ' · 已暂停' : ''}`;
   $('resume-queue').hidden = !queuePaused; $('pause-queue').hidden = queuePaused;
-  $('queue-reason').textContent = state.queue_pause_reason || '后续任务由本地后端保存；当前成功完成后继续，重启后暂停。';
+  $('queue-reason').textContent = state.queue_pause_reason || '当前任务成功完成后，按顺序继续。';
   const list = $('queue-list'); list.replaceChildren();
   for (const [index,item] of waiting.entries()) {
     const row = element('li'), label = element('span', '', `${inputStatusNames[item.status] || '待执行'} · ${item.prompt || ''}`), id = item.id || item.command_id;

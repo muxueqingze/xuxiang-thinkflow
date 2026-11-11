@@ -152,7 +152,7 @@ List models:
 thinkflow --config config.json --list-models
 ```
 
-In the interactive session, `/models`, `/model`, `/thinking`, and `/resume` open inline selectors.
+`thinkflow` opens the default terminal interface; `thinkflow --tui` opens the full-screen interface. Enter submits; Ctrl+J or Alt+Enter inserts a newline. `/model`, `/thinking`, and `/resume` offer inline selectors in the default interface; `/models` lists models. [CLI guide](docs/cli-interaction.md)
 
 ## Common Commands
 
@@ -176,8 +176,10 @@ Interactive slash commands include:
 - `/tools`: inspect tool routing and risk
 - `/security` / `/sandbox`: inspect or change security mode
 - `/compact`: compact old context
-- `/btw`: append a note while the model is running
-- `/cancel` or `Esc`: request cancellation
+- `/btw`: submit an independent follow-up, queued verbatim during a run
+- `/queue`: inspect, remove, and resume queued input
+- `/cmds`: inspect local tool records and archived output
+- `/cancel` or `Esc`: stop the active run and pause queued input while preserving the draft
 
 ## Documents
 
@@ -268,3 +270,7 @@ This project is published under the online name **沐雪清泽**.
 Xuxiang ThinkFlow is an experimental agent harness and technical-route validation project. It is not a commercial service commitment and does not represent any company or institution.
 
 For citation, benchmark reproduction, engineering collaboration, or security reports, use GitHub Issues / Discussions or the public contact methods listed on the author's GitHub profile.
+
+## Current desktop source
+
+The desktop now exposes model, permission, and reasoning controls beside the composer, with context details on demand, full-screen searchable settings, real tool and skill catalogs, inline Git patches, multiple file tabs, and workspace-scoped PowerShell terminals. Panels resize without losing state. The default CLI and full-screen TUI share verbatim input queues and await cancellation and snapshot saving on exit. Reasoning controls map to DeepSeek effort, explicit OpenAI-compatible effort, or Anthropic token budgets. [Desktop guide](docs/desktop.md) · [Reference study](docs/research/zcode-interaction-20261111.md) · [Current interaction milestone](docs/interaction-handoff.md). Published npm and older portable builds are separate from these source changes.

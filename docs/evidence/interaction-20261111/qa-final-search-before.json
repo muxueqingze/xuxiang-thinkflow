@@ -1,0 +1,76 @@
+{
+  "errors": [],
+  "settings": {
+    "#settings-dialog": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 986,
+        "height": 664,
+        "top": 0,
+        "right": 986,
+        "bottom": 664,
+        "left": 0
+      },
+      "clientWidth": 986,
+      "scrollWidth": 986,
+      "clientHeight": 664,
+      "scrollHeight": 664
+    },
+    ".settings-content": {
+      "rect": {
+        "x": 224,
+        "y": 56,
+        "width": 762,
+        "height": 541.3333740234375,
+        "top": 56,
+        "right": 986,
+        "bottom": 597.3333740234375,
+        "left": 224
+      },
+      "clientWidth": 754,
+      "scrollWidth": 754,
+      "clientHeight": 541,
+      "scrollHeight": 910
+    },
+    ".settings-nav": {
+      "rect": {
+        "x": 0,
+        "y": 56,
+        "width": 224,
+        "height": 541.3333740234375,
+        "top": 56,
+        "right": 224,
+        "bottom": 597.3333740234375,
+        "left": 0
+      },
+      "clientWidth": 223,
+      "scrollWidth": 223,
+      "clientHeight": 541,
+      "scrollHeight": 541
+    },
+    ".dialog-footer": {
+      "rect": {
+        "x": 0,
+        "y": 597.3333740234375,
+        "width": 986,
+        "height": 66.66667175292969,
+        "top": 597.3333740234375,
+        "right": 986,
+        "bottom": 664.0000457763672,
+        "left": 0
+      },
+      "clientWidth": 986,
+      "scrollWidth": 986,
+      "clientHeight": 66,
+      "scrollHeight": 66
+    }
+  },
+  "searchDirectory": {
+    "focus": "<body>\n    <div class=\"workbench ledger-hidden\" id=\"workbench\" style=\"--sidebar-width: 240px; --inspector-width: 346px;\">\n      <aside aria-label=\"工作区和会话\" class=\"sidebar\" id=\"sidebar\" aria-hidden=\"fal",
+    "details": false,
+    "visible": true,
+    "page": false
+  },
+  "failure": "locator.selectOption: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[aria-label=\"技能来源\"]')\u001b[22m\n\u001b[2m    - locator resolved to <select aria-label=\"技能来源\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - did not find some options\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - did not find some options\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    59 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m       - did not find some options\u001b[22m\n\u001b[2m     - retrying select option action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at D:\\the things of mine\\项目库\\agent\\thinkflow\\temp\\interaction-qa-final-20261111\\probe.cjs:11:162"
+}

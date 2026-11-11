@@ -39,7 +39,7 @@ class ServiceCrossReview(unittest.IsolatedAsyncioTestCase):
                 self.calls.append(prompt)
                 if self.runner:
                     await self.runner(agent, prompt)
-            agent = FakeAgent(**kwargs, runner=run)
+            agent = FakeAgent(config, **kwargs, runner=run)
             agent.executor = Executor(cwd=cwd)
             return agent
         self.create_patch = patch.object(desktop_service, "create_agent", side_effect=create)

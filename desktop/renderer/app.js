@@ -1,7 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 const api = window.thinkflow;
-let state = { config: {}, messages: [], sessions: [], ledger: [], usage: {}, context: {} };
+let state = { config: {}, messages: [], sessions: [], ledger: [], usage: {}, context: {}, thinking: {kind:'openai',setting:'default',label:'模型默认',output_limit:null} };
 let connected = false, busy = false, renderTimer, refreshTimer, toastTimer, lastErrorSeen = '';
 const activeTools = new Map();
 let draftKey = '', queue = [], queuePaused = true, sending = false;
@@ -35,7 +35,7 @@ function acceptProjection(source, snapshot = false) {
   if (!snapshot && source.session_id && source.session_id !== state.session_id) { scheduleRefresh(); return false; }
   projectionSeq = source.seq; return true;
 }
-const policyNames = { balanced: '平衡权限', 'read-only': '只读权限', open: '开放权限' };
+const policyNames = { balanced: '平衡', 'read-only': '只读', open: '开放' };
 const policies = {
   balanced: '文件工具限制在工作区内，并拦截常见敏感文件；命令等高风险操作需要逐次授权。',
   'read-only': '可以读取和检索工作区，阻止文件写入与命令执行。联网与其他工具仍遵循各自规则。',
@@ -84,8 +84,10 @@ function applyState(next, { navigation = false } = {}) {
     $('error-text').textContent = '';
   }
   const nextKey = contextKey(next);
-  if (draftKey !== nextKey) { saveDraft(); draftKey = nextKey; $('prompt').value = readLocal('draft:' + draftKey, ''); resizePrompt(); loadInputContext(); resetWorkspacePanel(); messageContext = ''; }
+  if (draftKey !== nextKey) { saveDraft(); draftKey = nextKey; $('prompt').value = readLocal('draft:' + draftKey, ''); resizePrompt(); loadInputContext(); resetWorkspacePanel({workspaceChanged: state.cwd !== next.cwd}); messageContext = ''; }
+  const previousWorkspace = state.cwd;
   state = next; connected = true; queue = state.input_queue || []; queuePaused = state.queue_paused === true;
+  if (previousWorkspace !== state.cwd) resetTerminalWorkspace(state.cwd || '');
   if (state.navigation_warning) showError(state.navigation_warning);
   if (localWarning) showError(localWarning);
   if (state.settings_warning) showError(state.settings_warning);
@@ -99,9 +101,10 @@ function updateControls() {
   for (const id of ['new-session', 'workspace', 'setup-workspace', 'settings-top', 'settings-side', 'setup-model']) $(id).disabled = busy || active || !connected;
   for (const id of ['fork', 'compact', 'export']) $(id).disabled = busy || active || !connected || !state.session_id || (id === 'fork' && state.recovery_required);
   $('send').disabled = busy || sending || !canRun() || !$('prompt').value.trim() || queue.filter(item => item.status !== 'running').length >= 20 || Boolean(pendingInput);
-  $('send').hidden = false;
-  $('send').textContent = active || queue.some(item => item.status !== 'running') ? '加入队列 ↑' : '发送 ↑';
-  $('stop').hidden = !active;
+  $('send').hidden = active && !$('prompt').value.trim();
+  const sendLabel = sending ? '提交中…' : active || queue.some(item => item.status !== 'running') ? '加入队列' : '发送';
+  $('send').setAttribute('aria-label',sendLabel); $('send').title = sendLabel; $('send').classList.toggle('submitting',sending);
+  $('stop').hidden = !active || Boolean($('prompt').value.trim());
   $('stop').disabled = busy || !connected;
   $('prompt').disabled = false;
   $('approve').disabled = busy || !connected;
@@ -116,8 +119,10 @@ function updateControls() {
   $('resume-queue').disabled = busy || sending || !canRun();
   $('pause-queue').disabled = busy || !connected;
   updateWorkspaceControls();
+  $('new-terminal').disabled = !connected || !state.cwd || terminalCreating;
   const hint = active ? 'Enter 加入队列 · 当前成功完成后继续' : state.recovery_required ? '请先核对上次中断的操作' : !state.cwd ? '请先选择工作区' : !state.config.base_url || !state.config.model ? '请先在设置中连接模型端点' : currentSession()?.archived ? '会话已归档，请先恢复' : 'Enter 发送 · Shift + Enter 换行';
   $('composer-hint').textContent = hint;
+  renderComposerControls();
 }
 function render() {
   const config = state.config || {};
@@ -143,10 +148,14 @@ function render() {
   $('setup-workspace-action').textContent = state.cwd ? '更换 →' : '选择 →';
   $('setup-model-detail').textContent = config.model && config.base_url ? `${config.model} · ${config.provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} 兼容` : '配置兼容接口、模型和密钥';
   $('setup-model-action').textContent = config.model && config.base_url ? '修改 →' : '设置 →';
-  const context = state.context || {};
-  $('context-label').textContent = `上下文 ${number(context.messages)} 条 · ${number(context.chars)} 字符${context.compactions ? ` · 已压缩 ${number(context.compactions)} 次` : ''}`;
-  $('policy-label').textContent = policyNames[config.security_profile] || '平衡权限';
+  const configured = Boolean(state.cwd && config.model && config.base_url);
+  document.querySelector('.setup-steps').hidden = configured;
+  document.querySelector('.welcome h2').textContent = configured ? `在 ${directory} 里继续` : '开始一项任务';
+  document.querySelector('.welcome > p').textContent = configured ? '描述要完成的改动，或引用文件开始。' : '选择工作区，连接您使用的模型。';
+  $('policy-label').textContent = policyNames[config.security_profile] || '平衡';
   $('archived-notice').hidden = !session?.archived;
+  document.querySelector('.runtime-bar').hidden = !session?.archived;
+  $('status-label').hidden = true;
   $('pin-current').textContent = session?.pinned ? '取消置顶' : '置顶会话';
   $('archive-current').textContent = session?.archived ? '恢复会话' : '归档会话';
   renderSessions(); renderMessages(); renderLedger(); renderApproval(); renderQueue(); renderAttachments(); renderInputReceipt(); renderTaskPlan();
@@ -157,10 +166,9 @@ function render() {
     $('usage-input').textContent = usage.reported_turns ? `≥ ${number(usage.prompt_tokens)}` : '—';
     $('usage-output').textContent = usage.reported_turns ? `≥ ${number(usage.completion_tokens)}` : '—';
   }
-  document.querySelector('.usage-note').textContent = `${!usageReported && usage.api_calls ? (usage.reported_turns ? '部分回合未返回用量，仅显示已知下限。' : '端点未返回用量。') : ''}节省调用为估算，并非账单或实测成本。`;
+  document.querySelector('.usage-note').textContent = `${!usageReported && usage.api_calls ? (usage.reported_turns ? '部分回合未返回用量，显示已知下限。' : '端点未返回用量。') : ''}节省调用按成功的流式工具估算。`;
   $('recovery').hidden = !state.recovery_required;
   $('recovery-details').textContent = (state.recovery || []).map(item => `${item.tool || '未知工具'} · ${item.id || '无编号'}\n${item.cmd || item.input_summary || item.path || '请核对工作区实际状态'}${item.input_hash ? `\n输入摘要 ${item.input_hash}` : ''}`).join('\n\n');
-  if (state.transcript_window?.total > state.transcript_window?.shown) $('context-label').textContent += ` · 显示最近 ${state.transcript_window.shown} 条；完整记录在本机，导出上限1600万字符`;
   updateControls();
   return true;
 }
@@ -232,12 +240,18 @@ function renderMessages() {
   if (changedContext) { list.replaceChildren(); messageNodes = []; messageContext = contextKey(state); followBottom = true; }
   const messages = state.messages || [], previous = new Map(messageNodes.map(record => [record.id, record])), nextNodes = [];
   $('welcome').hidden = messages.length > 0;
+  list.hidden = messages.length === 0;
+  const conversation = document.querySelector('.conversation'), isDraft = messages.length === 0 && !running();
+  const composerBefore = $('composer').getBoundingClientRect(), changedPlacement = conversation.classList.contains('draft') !== isDraft;
+  conversation.classList.toggle('draft',isDraft);
+  if (changedPlacement && !changedContext) animateComposerPosition(composerBefore);
   messages.forEach((message, index) => {
     const isUser = message.role === 'user', id = message.id || `legacy-${index}-${message.role}`;
     let record = previous.get(id);
     if (!record || record.role !== message.role) {
       const article = element('article', `message ${isUser ? 'user' : 'assistant'}`), header = element('div', 'message-header');
       article.dataset.messageId = id;
+      if (!changedContext) article.classList.add('message-new');
       header.append(element('span', 'message-role', isUser ? '您' : message.role === 'tool' ? '工具结果' : '续想'));
       const copy = element('button', 'message-copy', '复制'); copy.setAttribute('aria-label', '复制此消息');
       const body = element('div', 'message-body'), stream = element('div', 'stream-label');
@@ -254,12 +268,11 @@ function renderMessages() {
       else { record.body.replaceChildren(); renderContent(record.body, content); }
       record.content = content;
     }
-    record.stream.hidden = isUser || !running() || index !== messages.length - 1;
-    record.stream.textContent = state.status === 'approval' ? '等待本次操作授权' : activeTools.size ? ([...activeTools.values()].some(item => item.flow !== 'delayed') ? '等待工具结果' : '生成继续 · 工具执行中') : '正在输出…';
+    record.stream.hidden = true;
   });
   for (const record of previous.values()) record.article.remove();
   messageNodes = nextNodes; positionBottomButton();
-  if (followBottom) scroller.scrollTop = scroller.scrollHeight;
+  if (followBottom) scroller.scrollTop = messages.length ? scroller.scrollHeight : 0;
   $('back-to-bottom').hidden = followBottom || messages.length === 0;
 }
 function renderLedger() {
@@ -270,8 +283,12 @@ function renderLedger() {
   for (const item of activeTools.values()) if (!ledger.some(record => String(record.id) === String(item.id) && record.tool === item.tool)) ledger.push(item);
   $('ledger-count').textContent = number(ledger.length);
   const latest = ledger.at(-1);
-  $('execution-summary').replaceChildren(document.createTextNode(latest ? `${latest.status === 'running' ? (latest.flow === 'delayed' ? '工具执行中，生成继续' : '等待工具结果') : '最近执行'} · ${latest.tool || '工具'} · ${latest.path || latest.output_summary || ''}` : running() ? '正在生成，尚无工具执行' : '尚无执行记录'), element('span', '', '查看详情 →'));
+  const active = running(), current = [...activeTools.values()].at(-1);
+  const activity = current ? `${current.tool} · ${current.path || current.input_summary || '执行中'}` : active ? (statusNotice || (activityPhase === 'thinking' ? '正在思考' : activityPhase === 'waiting_feedback' ? '等待工具结果' : '正在生成')) : `${ledger.length} 项操作已结束`;
+  const activityText = element('span','activity-text',activity);
+  $('execution-summary').replaceChildren(element('span',`activity-dot${active ? ' active' : ''}`), activityText,element('span','activity-detail',ledger.length ? `${ledger.length} 项操作 ›` : '查看活动 ›'));
   $('execution-summary').title = latest?.output_summary || latest?.path || '打开执行账本';
+  $('execution-summary').hidden = Boolean(state.pending_approval) || (!ledger.length && !active);
   if (!ledger.length) {
     const empty = element('div', 'ledger-empty'); empty.append(element('span', 'empty-ledger-mark', '≡'), element('h3', '', '尚无工具执行'), element('p', '', '文件读写、命令和联网操作将在这里逐条记录。')); list.append(empty); return;
   }
@@ -296,16 +313,35 @@ function renderLedger() {
 function renderApproval() {
   const pending = state.pending_approval;
   $('approval').hidden = !pending;
-  if (pending) { $('approval-tool').textContent = pending.tool; const input = pending.input && typeof pending.input === 'object' ? Object.fromEntries(Object.entries(pending.input).filter(([, value]) => value !== null && value !== undefined)) : pending.input; $('approval-params').textContent = JSON.stringify(input, null, 2); }
+  $('composer').hidden = Boolean(pending);
+  document.querySelector('.context-footer').hidden = Boolean(pending);
+  if (pending) $('execution-summary').hidden = true;
+  if (pending) {
+    if ($('approval').dataset.requestId !== pending.request_id) {
+      closeComposerPopover();
+      $('approval').dataset.requestId = pending.request_id; $('approval-command').classList.remove('expanded'); $('approval-details').open = false;
+      $('expand-approval-command').setAttribute('aria-expanded','false'); $('expand-approval-command').textContent = '展开命令';
+      $('approval').focus({preventScroll:true});
+    }
+    $('approval-tool').textContent = pending.tool;
+    $('approval-title').textContent = ['bash','python'].includes(pending.tool) ? '运行这段命令？' : '允许这次操作？';
+    const input = pending.input, field = ['cmd','command','code','path','url'].find(key => input && typeof input === 'object' && input[key]);
+    $('approval-command').textContent = field ? input[field] : typeof input === 'string' ? input : JSON.stringify(input,null,2);
+    const extras = field ? Object.fromEntries(Object.entries(input).filter(([key,value]) => key !== field && key !== 'cwd' && value !== null)) : {};
+    $('approval-details').hidden = !Object.keys(extras).length; $('approval-params').textContent = JSON.stringify(extras,null,2);
+    $('approval-location').textContent = `工作区 · ${(input?.cwd || state.cwd).split(/[\\/]/).filter(Boolean).pop()}`; $('approval-location').title = input?.cwd || state.cwd;
+    requestAnimationFrame(() => { $('expand-approval-command').hidden = $('approval-command').scrollHeight <= 3*parseFloat(getComputedStyle($('approval-command')).lineHeight)+24; });
+  }
 }
 function scheduleRefresh() {
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(async () => { try { applyState(await api.request('get_state')); } catch (error) { showError(error.message); } }, 100);
 }
-function openSettings() {
+function openSettings(page = 'connection') {
   if (running() || busy || !connected) return;
+  closeComposerPopover();
   const form = $('settings-form');
-  for (const name of ['provider', 'model', 'base_url', 'api_path', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile']) form.elements.namedItem(name).value = state.config[name] ?? '';
+  for (const name of ['provider', 'model', 'base_url', 'api_path', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile', 'thinking_budget']) form.elements.namedItem(name).value = state.config[name] ?? '';
   form.elements.namedItem('thinking_mode').value = state.config.thinking_mode || 'disabled';
   form.elements.namedItem('reasoning_effort').value = state.config.reasoning_effort || 'high';
   form.elements.namedItem('enable_native_tools').checked = state.config.enable_native_tools === true;
@@ -315,21 +351,22 @@ function openSettings() {
   form.elements.namedItem('api_key').value = '';
   form.elements.namedItem('api_key').disabled = false;
   form.elements.namedItem('clear_api_key').checked = false;
-  $('runtime-config-section').open = false;
   const editor = $('runtime-config');
   editor.defaultValue = JSON.stringify(state.runtime_config ?? {}, null, 2);
   editor.value = editor.defaultValue;
   $('runtime-config-fields').textContent = `可用字段：${(state.runtime_config_fields ?? []).join('、')}`;
   $('key-state').textContent = state.settings_warning ? '未解锁 · 请替换或清除密钥' : state.config.has_api_key ? '已加密保存 · 留空保留' : '尚未保存';
   $('settings-error').hidden = true;
-  updatePolicy(); $('settings-dialog').showModal();
+  $('settings-search').value = ''; $('settings-search-results').hidden = true;
+  syncRuntimeFields(); selectSettingsPage(typeof page === 'string' ? page : 'connection');
+  updatePolicy(); updateThinkingSettings(); $('settings-dialog').showModal();
 }
 function closeSettings() { if (!busy) { $('settings-dialog').close(); $('settings-form').elements.namedItem('api_key').value = ''; } }
 function updatePolicy() { $('policy-description').textContent = policies[$('settings-form').elements.namedItem('security_profile').value]; }
 function updateEngineeringGuidance() { $('custom-engineering-guidance').hidden = $('engineering-guidance').value !== 'custom'; }
 async function chooseWorkspace() { await perform(() => api.chooseWorkspace(), { navigation: true }); }
 for (const id of ['workspace', 'setup-workspace']) $(id).addEventListener('click', chooseWorkspace);
-for (const id of ['settings-top', 'settings-side', 'setup-model', 'policy-button']) $(id).addEventListener('click', openSettings);
+for (const id of ['settings-side', 'setup-model']) $(id).addEventListener('click', () => openSettings());
 for (const id of ['close-settings', 'cancel-settings']) $(id).addEventListener('click', closeSettings);
 $('settings-dialog').addEventListener('cancel', event => { if (busy) event.preventDefault(); else $('settings-form').elements.namedItem('api_key').value = ''; });
 $('settings-form').elements.namedItem('security_profile').addEventListener('change', updatePolicy);
@@ -338,7 +375,7 @@ $('settings-form').elements.namedItem('clear_api_key').addEventListener('change'
 $('settings-form').addEventListener('submit', async event => {
   event.preventDefault(); $('settings-error').hidden = true;
   const values = Object.fromEntries(new FormData(event.currentTarget));
-  for (const field of ['max_run_turns', 'max_run_seconds']) values[field] = Number(values[field]);
+  for (const field of ['max_run_turns', 'max_run_seconds', 'thinking_budget']) values[field] = Number(values[field]);
   values.max_tokens = values.max_tokens.trim() === '' ? null : Number(values.max_tokens);
   values.clear_api_key = event.currentTarget.elements.namedItem('clear_api_key').checked;
   values.enable_native_tools = event.currentTarget.elements.namedItem('enable_native_tools').checked;
@@ -354,22 +391,22 @@ $('settings-form').addEventListener('submit', async event => {
     }
     return api.request('configure', values);
   }, { settings: true });
-  if (result) { closeSettings(); $('error-banner').hidden = true; toast('接口与权限设置已保存'); }
+  if (result) { closeSettings(); $('error-banner').hidden = true; toast('设置已保存'); }
 });
 $('new-session').addEventListener('click', () => perform(() => api.request('new_session'), { navigation: true }));
 $('fork').addEventListener('click', () => perform(() => api.request('fork_session'), { notify: '已从当前会话创建分支', navigation: true }));
 $('compact').addEventListener('click', () => perform(() => api.request('compact'), { notify: '上下文压缩已处理' }));
 $('export').addEventListener('click', async () => { const result = await perform(() => api.exportDialog()); if (result?.saved) toast('会话已导出'); });
 function toggleLedger(force) {
-  if (typeof force === 'boolean') $('workbench').classList.toggle('ledger-hidden', !force);
-  else $('workbench').classList.toggle('ledger-hidden');
-  const visible = !$('workbench').classList.contains('ledger-hidden');
-  $('toggle-ledger').setAttribute('aria-expanded', String(visible));
-  $('toggle-ledger').textContent = visible ? '收起工作台' : '工作台';
-  $('inspector').setAttribute('aria-hidden', String(!visible));
+  const visible = typeof force === 'boolean' ? force : $('workbench').classList.contains('ledger-hidden');
+  animatePane('inspector',visible,parseFloat(getComputedStyle($('workbench')).getPropertyValue('--inspector-width')));
+  $('workbench').classList.toggle('ledger-hidden', !visible);
+  constrainPaneWidths();
   if (visible) onWorkspacePanelShown(); else onWorkspacePanelHidden();
+  syncPanelButtons();
+  if (!visible && $('inspector').contains(document.activeElement)) $('toggle-ledger').focus();
 }
-$('toggle-ledger').addEventListener('click', () => toggleLedger());
+$('toggle-ledger').addEventListener('click', () => openWorkspacePane('execution'));
 $('close-ledger').addEventListener('click', () => toggleLedger(false));
 $('execution-summary').addEventListener('click', () => { selectWorkspaceTab('execution'); toggleLedger(true); });
 $('dismiss-error').addEventListener('click', () => { $('error-banner').hidden = true; });
@@ -394,6 +431,9 @@ for (const [id, approved] of [['approve', true], ['reject', false]]) $(id).addEv
 });
 $('acknowledge-recovery').addEventListener('click', async () => { const result = await perform(() => api.request('acknowledge_recovery'), { notify: '已确认恢复；旧操作不会自动重放' }); if (result) $('error-banner').hidden = true; });
 document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !event.isComposing && !composing && running() && !document.querySelector('dialog[open]') && !activeComposerPopover && !$('more-menu').open && !$('terminal-panel').contains(event.target)) {
+    event.preventDefault(); $('stop').click(); return;
+  }
   if (!event.ctrlKey || event.altKey || event.isComposing || composing) return;
   const key = event.key.toLowerCase();
   if (key === 'k') { event.preventDefault(); if (!$('command-dialog').open && !document.querySelector('dialog[open]')) openCommand(); }
@@ -404,6 +444,7 @@ document.addEventListener('keydown', event => {
   else if (key === '/') { event.preventDefault(); $('shortcuts-dialog').showModal(); }
 });
 api.onEvent(event => {
+  if (event.type === 'terminal_output' || event.type === 'terminal_exit') { handleTerminalEvent(event); return; }
   if (event.type === 'backend_error') { connected = false; state.status = 'error'; state.pending_approval = null; activeTools.clear(); render(); showError(`${event.message}。请重新启动续想，再查询未确认提交的回执。`); return; }
   if (event.type === 'state' && event.state) { clearTimeout(renderTimer); renderTimer = null; applyState(event.state); return; }
   if (!acceptProjection(event)) return;
@@ -413,10 +454,10 @@ api.onEvent(event => {
     if (!message || message.role !== 'assistant') { message = { id: event.message_id || `stream-${projectionStream}-${projectionSeq}`, role: 'assistant', content: '' }; state.messages.push(message); }
     message.content += event.text || '';
     if (!renderTimer) renderTimer = setTimeout(() => { renderTimer = null; renderMessages(); }, 64);
-  } else if (event.type === 'reasoning_activity') { activityPhase = 'thinking'; statusNotice = ''; $('run-status').textContent = '正在思考'; }
-  else if (event.type === 'stream_started') { activityPhase = 'generating'; statusNotice = ''; $('run-status').textContent = '正在生成'; }
-  else if (event.type === 'stream_finished') { activityPhase = 'waiting_feedback'; $('run-status').textContent = '等待工具结果，随后继续生成'; }
-  else if (event.type === 'status_notice') { statusNotice = event.message || ''; $('run-status').textContent = statusNotice || '正在运行'; }
+  } else if (event.type === 'reasoning_activity') { activityPhase = 'thinking'; statusNotice = ''; renderLedger(); }
+  else if (event.type === 'stream_started') { activityPhase = 'generating'; statusNotice = ''; renderLedger(); }
+  else if (event.type === 'stream_finished') { activityPhase = 'waiting_feedback'; renderLedger(); }
+  else if (event.type === 'status_notice') { statusNotice = event.message || ''; renderLedger(); }
   else if (event.type === 'error') { showError(event.message || event.error || '本次运行发生错误，请查看执行详情。'); scheduleRefresh(); }
   else if (event.type === 'approval_required') { state.pending_approval = event; state.status = 'approval'; renderApproval(); updateControls(); scheduleRefresh(); }
   else if (event.type === 'tool_started') { activeTools.set(`${event.channel}:${event.id}`, { ...event, status: 'running' }); renderLedger(); scheduleRefresh(); }
@@ -425,16 +466,15 @@ api.onEvent(event => {
   else if (event.type.startsWith('input_') || event.type.startsWith('queue_')) scheduleRefresh();
 });
 function toggleSidebar() {
-  const hidden = $('workbench').classList.toggle('sidebar-hidden');
-  $('toggle-sidebar').setAttribute('aria-expanded', String(!hidden));
-  $('toggle-sidebar').setAttribute('aria-label', hidden ? '展开侧栏' : '收起侧栏');
+  const visible = $('workbench').classList.contains('sidebar-hidden');
+  setSidebarVisible(visible); writeLocal('sidebar-hidden',!visible);
 }
 function openCommand() {
   $('command-search').value = ''; renderCommand(); $('command-dialog').showModal(); $('command-search').focus();
 }
 function renderCommand() {
   const query = $('command-search').value.trim().toLowerCase(), list = $('command-results'); list.replaceChildren();
-  const actions = [['新建会话','new-session'],['设置','settings-top'],['选择工作区','workspace'],['最近工作区','recent-workspaces'],['查看执行账本','execution-summary'],['快捷键','show-shortcuts'],['创建分支','fork'],['压缩上下文','compact'],['导出会话','export']];
+  const actions = [['新建会话','new-session'],['设置','settings-top'],['选择工作区','workspace'],['最近工作区','recent-workspaces'],['查看文件','open-files'],['查看变更','open-changes'],['终端','toggle-terminal'],['查看执行账本','execution-summary'],['快捷键','show-shortcuts'],['创建分支','fork'],['压缩上下文','compact'],['导出会话','export']];
   for (const [title,id] of actions.filter(([title]) => !query || title.includes(query))) {
     const button = element('button','command-result',title); button.disabled = $(id).disabled;
     button.addEventListener('click', () => { $('command-dialog').close(); $(id).click(); }); list.append(button);
@@ -454,6 +494,8 @@ function openRename() {
 function initializeNavigation() {
   $('toggle-sidebar').addEventListener('click', toggleSidebar);
   $('session-search').addEventListener('input', () => { renderSessions(); updateControls(); });
+  $('toggle-session-search').addEventListener('click', () => { const input = $('session-search'); input.hidden = !input.hidden; $('toggle-session-search').setAttribute('aria-expanded',String(!input.hidden)); if (!input.hidden) input.focus(); else { input.value = ''; renderSessions(); } });
+  $('session-search').addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.isComposing){event.preventDefault();$('toggle-session-search').click();$('toggle-session-search').focus();}});
   $('show-archived').addEventListener('click', () => { showArchived = !showArchived; $('show-archived').setAttribute('aria-pressed',String(showArchived)); $('show-archived').textContent = showArchived ? '隐藏归档' : '显示归档'; renderSessions(); updateControls(); });
   $('rename-current').addEventListener('click', openRename);
   $('cancel-rename').addEventListener('click', () => $('rename-dialog').close());
@@ -488,6 +530,12 @@ function initializeNavigation() {
   new ResizeObserver(() => { positionBottomButton(); resizePrompt(); }).observe($('messages-scroll'));
   addEventListener('beforeunload', saveDraft);
 }
+initializeWorkbenchLayout();
+initializeTerminalPanel();
+initializeDeveloperSettings();
+initializeSettingsPanel();
+initializeGitPanel();
+initializeComposerControls();
 initializeNavigation();
 initializeInputController();
 initializeWorkspacePanel();

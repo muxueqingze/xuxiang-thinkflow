@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "checks": [
+    "Permission popover updates mode in place, keeps runtime overrides and returns to draft",
+    "Model picker, explicit catalog retrieval and manual name use no model calls",
+    "Approval shows actual command in the input dock, preserves draft and executes after consent",
+    "Context hover uses last actual request estimate and a separately named compaction threshold; small menus fit 1000×700"
+  ],
+  "errors": [],
+  "modelRequests": 2,
+  "catalogRequests": 1
+}

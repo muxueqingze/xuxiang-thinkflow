@@ -2099,9 +2099,10 @@ def test_slash_model_and_thinking_switch_current_session():
             assert handle_slash_command("/model kimi-k2.7-code", agent) is True
             assert agent.config.provider.model == "kimi-k2.7-code"
             assert handle_slash_command("/thinking medium", agent) is True
-            assert agent.config.provider.thinking_budget == 4096
-            assert handle_slash_command("/thinking 2048", agent) is True
-            assert agent.config.provider.thinking_budget == 2048
+            assert agent.config.provider.thinking_mode == "enabled"
+            assert agent.config.provider.reasoning_effort == "medium"
+            assert handle_slash_command("/thinking default", agent) is True
+            assert agent.config.provider.thinking_mode == "disabled"
         finally:
             renderer.console = old_console
             await agent.close()
@@ -2120,7 +2121,6 @@ def test_selection_items_include_channel_and_session_metadata():
                     model="glm-5.2",
                     available_models=["glm-5.2", "kimi-k2.7-code"],
                     model_source="configured",
-                    thinking_budget=4096,
                 ),
                 cwd=tmp,
             )
@@ -2131,8 +2131,8 @@ def test_selection_items_include_channel_and_session_metadata():
                 assert model_items[0].meta == "current"
                 assert model_items[1].label == "kimi-k2.7-code  - opencode-go"
 
-                thinking_items = build_thinking_selection_items(agent.config.provider.thinking_budget)
-                assert any(item.value == 4096 and item.meta == "current" for item in thinking_items)
+                thinking_items = build_thinking_selection_items(agent.config.provider)
+                assert any(item.value == "default" and item.meta == "current" for item in thinking_items)
 
                 store = SessionStore(os.path.join(tmp, "session.json"), cwd=tmp)
                 store.save({

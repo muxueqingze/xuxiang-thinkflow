@@ -35,7 +35,7 @@ class CommandInboxTests(unittest.IsolatedAsyncioTestCase):
                 self.calls.append(prompt)
                 if self.runner:
                     await self.runner(agent, prompt)
-            return FakeAgent(event_sink, approval_handler, run)
+            return FakeAgent(config, event_sink, approval_handler, run)
 
         self.create_patch = patch.object(desktop_service, "create_agent", side_effect=create)
         self.prompt_patch = patch.object(desktop_service, "resolve_system_prompt", return_value="Local fixture")

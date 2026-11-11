@@ -1,0 +1,57 @@
+diff --git a/packages/desktop/src/main/appARMSBootstrap.ts b/packages/desktop/src/main/appARMSBootstrap.ts
+index 79e212f9..0508ba30 100644
+--- a/packages/desktop/src/main/appARMSBootstrap.ts
++++ b/packages/desktop/src/main/appARMSBootstrap.ts
+@@ -1,3 +1,4 @@
++import { app } from "electron";
+ import { wrapStartupReporterRequest } from "./startupTelemetryDelivery.js";
+ import { randomUUID } from "node:crypto";
+ import { basename } from "node:path";
+@@ -13,7 +14,7 @@ import { ARMS_BROWSER_COLLECTORS, parseArmsViewName } from "../shared/armsRumSha
+ import { redactArmsEventBatch } from "./armsEventRedaction.js";
+ import { ensureDesktopDeviceMidSync } from "./desktopDeviceMid.js";
+ import { ingestArmsApiEventsFromBatch } from "./desktopNetworkTelemetry.js";
+-import { desktopRuntimeEnv, runtimeApplicationName } from "./desktopRuntimeEnv.js";
++import { desktopRuntimeEnv, runtimeApplicationName, runtimeUserDataPath } from "./desktopRuntimeEnv.js";
+ import { summarizeLongTaskAttribution } from "./longTaskAttributionSummary.js";
+ import { logger } from "./logger.js";
+ 
+@@ -236,9 +237,11 @@ armsRum.client.useReporter = (reporter) => {
+   });
+   useReporter(reporter);
+ };
++const isLocalReference = process.env.ZCODE_REFERENCE_SKIP_PROTOCOL_REGISTRATION === "1";
++if (isLocalReference && runtimeUserDataPath) app.setPath("userData", runtimeUserDataPath);
+ export const armsInitPromise = armsRum
+   .init({
+-    enable: ZCODE_ARMS_RUM_ENDPOINT !== "",
++    enable: !isLocalReference && ZCODE_ARMS_RUM_ENDPOINT !== "",
+     version: ZCODE_VERSION,
+     endpoint: ZCODE_ARMS_RUM_ENDPOINT,
+     env: armsRumEnv,
+diff --git a/packages/desktop/src/main/desktopWindowsOpenFolderContextMenu.ts b/packages/desktop/src/main/desktopWindowsOpenFolderContextMenu.ts
+index 5815800a..7da44ea5 100644
+--- a/packages/desktop/src/main/desktopWindowsOpenFolderContextMenu.ts
++++ b/packages/desktop/src/main/desktopWindowsOpenFolderContextMenu.ts
+@@ -84,7 +84,7 @@ export async function installWindowsOpenFolderContextMenu(options: {
+   locale: Locale;
+   logger: Logger;
+ }): Promise<void> {
+-  if (options.platform !== "win32") {
++  if (options.platform !== "win32" || process.env.ZCODE_REFERENCE_SKIP_PROTOCOL_REGISTRATION === "1") {
+     return;
+   }
+ 
+diff --git a/packages/desktop/src/main/index.ts b/packages/desktop/src/main/index.ts
+index 2924a9fd..c571c3d2 100644
+--- a/packages/desktop/src/main/index.ts
++++ b/packages/desktop/src/main/index.ts
+@@ -2165,7 +2165,7 @@ function createWindowInstance(startupBootstrap: StartupWindowBootstrap = {}) {
+   return win;
+ }
+ 
+-registerDeepLinkProtocol(logger, { iconPath: linuxDesktopIntegrationIconPath });
++if (process.env.ZCODE_REFERENCE_SKIP_PROTOCOL_REGISTRATION !== "1") { registerDeepLinkProtocol(logger, { iconPath: linuxDesktopIntegrationIconPath }); }
+ app.on("open-url", (event, url) => {
+   event.preventDefault();
+   const workspacePath = extractOpenWorkspacePathFromDeepLinkUrl(url);

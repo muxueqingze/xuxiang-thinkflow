@@ -20,10 +20,13 @@ from urllib.parse import urlsplit
 import uuid
 
 from .runtime import create_agent, resolve_system_prompt, build_agent_config
-from .provider import normalize_max_tokens
+from .provider import normalize_max_tokens, thinking_kind, thinking_setting, thinking_label, validate_thinking_budget
 from .model_registry import merge_active_provider
 from .configuration import RUNTIME_CONFIG_FIELDS, validate_runtime_settings
+from .desktop_terminal import DesktopTerminals
+from .desktop_catalog import runtime_catalog, read_catalog_skill
 from .session import SessionStore
+from .workspace_git import git_diff, git_status
 
 
 DEFAULT_CONFIG = {
@@ -32,12 +35,14 @@ DEFAULT_CONFIG = {
     "enable_native_tools": False,
     "use_builtin_system_prompt": True, "system_prompt": "",
     "security_profile": "balanced",
-    "thinking_mode": "disabled", "reasoning_effort": "high", "stream_options_include_usage": True,
+    "thinking_budget": 0, "thinking_mode": "disabled", "reasoning_effort": "high", "stream_options_include_usage": True,
 }
 SESSION_ID = re.compile(r"^[a-f0-9]{32}$")
 COMMAND_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 INPUT_PENDING = {"received", "queued"}
 INPUT_TERMINAL = {"completed", "failed", "cancelled", "interrupted"}
+WORKSPACE_TOOLS = {"git_status", "git_diff", "terminal_list", "terminal_create",
+                   "terminal_input", "terminal_resize", "terminal_close"}
 
 
 class DesktopService:
@@ -66,6 +71,7 @@ class DesktopService:
         self._last_event_state = 0.0
         self._shutdown = False
         self._secrets: set[str] = set()
+        self.terminals = DesktopTerminals(self.emit, self._clean, self._secrets.copy)
         self.stream_id = uuid.uuid4().hex
         self.seq = 0
         self.input_commands: list[dict] = []
@@ -277,6 +283,7 @@ class DesktopService:
                 content = "[此条内容较长，界面仅显示末尾32000字符；完整内容保留在本机，导出上限1600万字符。]\n\n" + content[-32000:]
             visible_messages.append({"id": message["id"], "role": message["role"], "content": content,
                                      **({"attachments": message["attachments"]} if message.get("attachments") else {})})
+        provider = self.agent.config.provider if self.agent else build_agent_config(self._config_for_agent(), system_prompt='', cwd=self.cwd or '.').provider
         return self._clean({
             "cwd": self.cwd, "status": self.status, "config": {
                 **{k: v for k, v in self.config.items() if k != "api_key"},
@@ -291,6 +298,8 @@ class DesktopService:
             "messages": visible_messages, "ledger": ledger, "usage": usage,
             "transcript_window": {"total": len(self.transcript), "shown": len(visible_messages)},
             "context": context, "pending_approval": self.pending_approval,
+            "thinking": {"kind": thinking_kind(provider), "setting": thinking_setting(provider),
+                         "label": thinking_label(provider), "output_limit": provider.max_tokens},
             "task_plan": copy.deepcopy(getattr(self.agent, "task_plan", {"explanation": "", "steps": []})),
             "last_error": self.last_error, "recovery_required": bool(self.recovery),
             "recovery": self.recovery,
@@ -304,8 +313,10 @@ class DesktopService:
             raise ValueError("模型协议须为 openai 或 anthropic。")
         if config["security_profile"] not in ("balanced", "read-only", "open"):
             raise ValueError("无效权限模式。")
-        if config["thinking_mode"] not in ("disabled", "enabled") or config["reasoning_effort"] not in ("low", "high", "max"):
+        if config["thinking_mode"] not in ("disabled", "enabled") or config["reasoning_effort"] not in ("none", "minimal", "low", "medium", "high", "xhigh", "max"):
             raise ValueError("无效思考模式或推理强度。")
+        if type(config['thinking_budget']) is not int or config['thinking_budget'] < 0:
+            raise ValueError('思考预算须为非负整数。')
         if type(config["stream_options_include_usage"]) is not bool:
             raise ValueError("用量流选项须为布尔值。")
         if type(config["use_builtin_system_prompt"]) is not bool:
@@ -325,6 +336,8 @@ class DesktopService:
         if config["provider"] == "anthropic" and budget is None:
             raise ValueError("Anthropic 必须设置正整数 max_tokens，不支持省略输出预算。")
         config["max_tokens"] = budget
+        if config['provider'] == 'anthropic':
+            validate_thinking_budget(build_agent_config(config, system_prompt='', cwd='.').provider, config['thinking_budget'])
         for name, maximum in (("max_run_turns", 1000), ("max_run_seconds", 86400)):
             value = config[name]
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not 1 <= value <= maximum:
@@ -482,6 +495,8 @@ class DesktopService:
                 setattr(self, name, value)
 
         async def finish(state):
+            if os.path.normcase(previous_cwd) != os.path.normcase(self.cwd):
+                await self.terminals.close_all()
             previous_agent = previous_runtime["agent"]
             if previous_agent and previous_agent is not self.agent:
                 with contextlib.suppress(Exception):
@@ -837,6 +852,11 @@ class DesktopService:
             raise ValueError("请先初始化服务。")
         if method == "get_state":
             return self.state()
+        if method in ('runtime_catalog', 'read_catalog_skill'):
+            if not self.agent:
+                raise ValueError('请先选择工作区。')
+            return self._clean(runtime_catalog(self.agent) if method == 'runtime_catalog'
+                               else read_catalog_skill(self.agent, params.get('name', '')))
         if method == "submit_input":
             return await self.submit_input(params)
         if method == "get_input_receipt":
@@ -845,6 +865,23 @@ class DesktopService:
             return await self.update_input(params)
         if method in ("resume_queue", "pause_queue"):
             return await self.set_queue_paused(method == "pause_queue")
+        if method in WORKSPACE_TOOLS:
+            if not self.cwd:
+                raise ValueError("请先选择工作区。")
+            if method == "git_status":
+                return self._clean(await asyncio.to_thread(git_status, self.cwd))
+            if method == "git_diff":
+                return self._clean(await asyncio.to_thread(git_diff, self.cwd, params.get("path"), params.get("staged", False)))
+            if method == "terminal_list":
+                return self.terminals.list()
+            if method == "terminal_create":
+                return await self.terminals.create(self.cwd, params.get("cols", 80), params.get("rows", 24))
+            identifier = params.get("id")
+            if method == "terminal_input":
+                return await self.terminals.input(identifier, params.get("data"))
+            if method == "terminal_resize":
+                return await self.terminals.resize(identifier, params.get("cols"), params.get("rows"))
+            return await self.terminals.close(identifier)
         if method in ("workspace_files", "read_workspace_file"):
             if not self.cwd:
                 raise ValueError("请先选择工作区。")
@@ -994,6 +1031,7 @@ class DesktopService:
 
     async def close(self):
         self._closing = True
+        await self.terminals.close_all()
         if self.task and not self.task.done():
             self.task.cancel()
             with contextlib.suppress(asyncio.CancelledError):

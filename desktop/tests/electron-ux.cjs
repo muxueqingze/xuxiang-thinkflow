@@ -76,7 +76,7 @@ async function main() {
   assert.equal(await page.locator('#send').isDisabled(), true);
   assert.equal(await page.locator('#inspector').isVisible(), false);
   await choose(workspace);
-  await page.locator('#settings-top').click();
+  await page.locator('#settings-side').click();
   await page.locator('[name=model]').fill('本地交互测试');
   await page.locator('[name=base_url]').fill(`http://127.0.0.1:${server.address().port}`);
   await page.locator('#save-settings').click();

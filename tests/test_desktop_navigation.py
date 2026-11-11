@@ -32,7 +32,7 @@ class DesktopNavigationTests(unittest.IsolatedAsyncioTestCase):
         self.prompt_patch.start()
 
         def create(config, system, cwd, *, event_sink, approval_handler):
-            agent = FakeAgent(event_sink, approval_handler, self.runner)
+            agent = FakeAgent(config, event_sink, approval_handler, self.runner)
             self.agents.append(agent)
             return agent
 

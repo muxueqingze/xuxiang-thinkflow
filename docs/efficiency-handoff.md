@@ -1,6 +1,6 @@
 # ThinkFlow 执行效率 · 当前接力
 
-更新：2026-11-11。当前新增Pi式配置分层、无模型配置命令、公共运行时工厂、桌面高级设置，以及按实际待发输入触发的可选预算。目标是可组合的基础设施harness，减少重复请求且保持质量；默认工程指引不扩写。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
+更新：2026-11-11。当前新增Pi式配置分层、无模型配置命令、公共运行时工厂，以及按实际待发输入触发的可选预算。最近的 Desktop / CLI 交互节点已实现全屏设置、真实思考档位、工作区终端、Git 行内差异与文件标签，状态和验证集中在[交互接力](interaction-handoff.md)。目标是可组合的基础设施harness，减少重复请求且保持质量；默认工程指引不扩写。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
 
 本轮两个完整单元独立验收通过。[输出留存](output-recall-20261111.md)覆盖取消、恢复、fork、CLI无自动保存和导出索引；[范围读取](read-ranges-20261111.md)将同版本已观察片段与exact edit接起来，整文件操作沿用全文基线。协议1.9由底层注入，工程方法仍可推荐/自定义/关闭。
 

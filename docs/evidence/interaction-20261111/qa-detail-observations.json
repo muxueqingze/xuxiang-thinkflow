@@ -1,0 +1,95 @@
+{
+  "errors": [
+    "InvalidStateError: Failed to execute 'showPopover' on 'HTMLElement': Invalid to show a popover during another show operation\n    at openComposerPopover (file:///D:/the%20things%20of%20mine/%E9%A1%B9%E7%9B%AE%E5%BA%93/agent/thinkflow/desktop/renderer/composer-controls.js:18:46)\n    at HTMLButtonElement.contextOpen (file:///D:/the%20things%20of%20mine/%E9%A1%B9%E7%9B%AE%E5%BA%93/agent/thinkflow/desktop/renderer/composer-controls.js:101:57)\n    at closeComposerPopover (file:///D:/the%20things%20of%20mine/%E9%A1%B9%E7%9B%AE%E5%BA%93/agent/thinkflow/desktop/renderer/composer-controls.js:6:55)\n    at HTMLDivElement.<anonymous> (file:///D:/the%20things%20of%20mine/%E9%A1%B9%E7%9B%AE%E5%BA%93/agent/thinkflow/desktop/renderer/composer-controls.js:76:61)"
+  ],
+  "requests": 2,
+  "policyInitial": "balanced",
+  "policyArrow": "open",
+  "policyEscape": {
+    "open": false,
+    "focus": "prompt"
+  },
+  "contextTab": {
+    "focus": "context-compact",
+    "open": true
+  },
+  "pending": {
+    "contextOpen": true,
+    "composerHidden": true,
+    "focus": "",
+    "draft": "保留  草稿\n第二行",
+    "approval": {
+      "x": 272,
+      "y": 419.2708435058594,
+      "width": 682,
+      "height": 236.7291717529297,
+      "top": 419.2708435058594,
+      "right": 954,
+      "bottom": 656.0000152587891,
+      "left": 272
+    },
+    "actions": {
+      "x": 853.3333740234375,
+      "y": 609.3333740234375,
+      "width": 88,
+      "height": 34,
+      "top": 609.3333740234375,
+      "right": 941.3333740234375,
+      "bottom": 643.3333740234375,
+      "left": 853.3333740234375
+    },
+    "command": "echo 行1：较长命令必须完整阅读，包含参数与空格\necho 行2：较长命令必须完整阅读，包含参数与空格\necho 行3：较长命令必须完整阅读，包含参数与空格\necho 行4：较长命令必须完整阅读，包含参数与空格\necho 行5：较长命令必须完整阅读，包含参数与空格\necho 行6：较长命令必须完整阅读，包含参数与空格\necho 行7：较长命令必须完整阅读，包含参数与空格\necho 行8：较长命令必须完整阅读，包含参数与空格\necho 行9：较长命令必须完整阅读，包含参数与空格\necho 行10：较长命令必须完整阅读，包含参数与空格\necho 行11：较长命令必须完整阅读，包含参数与空格\necho 行12：较长命令必须完整阅读，包含参数与空格\necho 行13：较长命令必须完整阅读，包含参数与空格\necho 行14：较长命令必须完整阅读，包含参数与空格\necho 行15：较长命令必须完整阅读，包含参数与空格\necho 行16：较长命令必须完整阅读，包含参数与空格\necho 行17：较长命令必须完整阅读，包含参数与空格\necho 行18：较长命令必须完整阅读，包含参数与空格\necho 行19：较长命令必须完整阅读，包含参数与空格\necho 行20：较长命令必须完整阅读，包含参数与空格\necho 行21：较长命令必须完整阅读，包含参数与空格\necho 行22：较长命令必须完整阅读，包含参数与空格\necho 行23：较长命令必须完整阅读，包含参数与空格\necho 行24：较长命令必须完整阅读，包含参数与空格"
+  },
+  "expanded": {
+    "approval": {
+      "x": 272,
+      "y": 416.96875,
+      "width": 682,
+      "height": 239.03125,
+      "top": 416.96875,
+      "right": 954,
+      "bottom": 656,
+      "left": 272
+    },
+    "command": {
+      "x": 284.66668701171875,
+      "y": 485.3333435058594,
+      "width": 648.6666870117188,
+      "height": 228,
+      "top": 485.3333435058594,
+      "right": 933.3333740234375,
+      "bottom": 713.3333435058594,
+      "left": 284.66668701171875
+    },
+    "scrollHeight": 514,
+    "clientHeight": 228,
+    "approve": {
+      "x": 853.3333740234375,
+      "y": 609.3333740234375,
+      "width": 88,
+      "height": 34,
+      "top": 609.3333740234375,
+      "right": 941.3333740234375,
+      "bottom": 643.3333740234375,
+      "left": 853.3333740234375
+    },
+    "expand": {
+      "x": 284.66668701171875,
+      "y": 713.3333740234375,
+      "width": 44,
+      "height": 24.5,
+      "top": 713.3333740234375,
+      "right": 328.66668701171875,
+      "bottom": 737.8333740234375,
+      "left": 284.66668701171875
+    }
+  },
+  "draftAfter": "保留  草稿\n第二行",
+  "smallMenu": {
+    "x": 381.59375,
+    "y": 12,
+    "width": 288,
+    "height": 297.28125
+  },
+  "viewportBackground": "rgb(255, 255, 255)"
+}

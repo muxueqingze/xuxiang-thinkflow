@@ -48,7 +48,9 @@ model stream
 
 `read`现在支持行范围；读取目标函数或配置段后，可直接用`edit`精确修改已读部分，连续编辑会维护版本和观察位置。独立文件继续合批读取，整文件覆盖仍要求完整基线。实现、质量验证与反馈大小见[范围读取与连续编辑](docs/read-ranges-20261111.md)，此能力同样属于当前源码。
 
-当前源码也开放共享配置与嵌入入口：CLI支持用户/项目分层、字段来源、按项修改和单次`--set`；桌面「更多运行配置」可调整上下文、工具和执行参数；`create_agent`、`load_configuration`等公开入口可直接作为基础设施使用。输入触发预算与近期token预算均可选，按实际待发请求估算，整理不增加模型调用。[配置与SDK用法](docs/configuration.md)
+当前源码也开放共享配置与嵌入入口：CLI支持用户/项目分层、字段来源、按项修改和单次`--set`；桌面分类设置及「高级配置」可调整上下文、工具和执行参数；`create_agent`、`load_configuration`等公开入口可直接作为基础设施使用。输入触发预算与近期token预算均可选，按实际待发请求估算，整理不增加模型调用。[配置与SDK用法](docs/configuration.md)
+
+当前源码重做了桌面与终端交互：桌面输入区直接切换模型、权限与思考强度，提供上下文浮层、全屏设置与搜索、工具与技能目录、Git 行内差异、多文件标签和持续运行的 PowerShell 终端。左右面板可拖拽，浅色/深色与减少动画统一设置。CLI 与全屏 TUI 共用原文队列、停止和退出收尾逻辑。参考源码与实物对照见 [ZCode 记录](docs/research/zcode-interaction-20261111.md)，实际用法见 [桌面指南](docs/desktop.md)，当前节点见 [交互接力](docs/interaction-handoff.md)。这些改动属于源码，已发布 npm 和旧便携包保持原版本。
 
 ## v0.8：完整任务工作流
 
@@ -202,7 +204,7 @@ thinkflow --print-system-prompt
 thinkflow --config config.json --list-models
 ```
 
-交互会话里可用 `/models`、`/model`、`/thinking`、`/resume` 打开行内选择器，方向键选择、Enter 确认、Esc 取消。
+`thinkflow` 打开默认交互，`thinkflow --tui` 打开全屏界面。Enter 发送，Ctrl+J 或 Alt+Enter 换行。默认入口的 `/model`、`/thinking`、`/resume` 提供行内选择器，`/models` 查看目录。[CLI 交互指南](docs/cli-interaction.md)
 
 ## 常用命令
 
@@ -227,8 +229,10 @@ thinkflow --config config.json --sandbox balanced
 - `/tools`：查看工具分流与风险
 - `/security` / `/sandbox`：查看或切换安全模式
 - `/compact`：手动压缩旧上下文
-- `/btw`：运行中追加旁注
-- `/cancel` 或 `Esc`：请求打断当前模型请求
+- `/btw`：提交一条独立补充消息，运行中按原文排队
+- `/queue`：查看、移除和继续发送待发消息
+- `/cmds`：查看工具详情与已保存的原始输出
+- `/cancel` 或 `Esc`：停止当前任务并暂停后续队列，保留草稿
 
 ## 技术路线
 

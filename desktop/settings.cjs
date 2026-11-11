@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: null, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true, enable_native_tools: false, use_builtin_system_prompt: true, system_prompt: '' });
+const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: null, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_budget: 0, thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true, enable_native_tools: false, use_builtin_system_prompt: true, system_prompt: '' });
 const RUNTIME_CONFIG_FIELDS = Object.freeze([
   'compaction', 'context', 'interfaces', 'tool_protocol', 'max_read_chars', 'max_retries',
   'retry_backoff_seconds', 'max_auto_continues', 'max_consecutive_failures', 'delivery_verify',
@@ -26,6 +26,7 @@ function normalizeConfig(input, runtime = null) {
   if (!['openai', 'anthropic'].includes(config.provider)) throw new Error('请选择支持的接口类型');
   if (!['balanced', 'read-only', 'open'].includes(config.security_profile)) throw new Error('权限策略无效');
   config.thinking_mode = input.thinking_mode ?? 'disabled';
+  config.thinking_budget = input.thinking_budget ?? 0;
   config.reasoning_effort = input.reasoning_effort ?? 'high';
   config.stream_options_include_usage = input.stream_options_include_usage !== false;
   config.enable_native_tools = input.enable_native_tools ?? false;
@@ -33,7 +34,8 @@ function normalizeConfig(input, runtime = null) {
   config.use_builtin_system_prompt = input.use_builtin_system_prompt ?? true;
   config.system_prompt = input.system_prompt ?? '';
   if (typeof config.use_builtin_system_prompt !== 'boolean' || typeof config.system_prompt !== 'string') throw new Error('工程指引设置格式不正确');
-  if (!['disabled', 'enabled'].includes(config.thinking_mode) || !['low', 'high', 'max'].includes(config.reasoning_effort)) throw new Error('思考设置无效');
+  if (!['disabled', 'enabled'].includes(config.thinking_mode) || !['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].includes(config.reasoning_effort)) throw new Error('思考设置无效');
+  if (!Number.isInteger(config.thinking_budget) || config.thinking_budget < 0) throw new Error('思考预算须为非负整数');
   if (config.base_url) {
     let url;
     try { url = new URL(config.base_url); } catch { throw new Error('端点地址必须是完整 URL'); }
@@ -51,6 +53,7 @@ function normalizeConfig(input, runtime = null) {
     config[key] = value;
   }
   if (config.model.length > 512 || config.base_url.length > 4096 || config.api_path.length > 1024) throw new Error('设置字段过长');
+  if (config.provider === 'anthropic' && config.thinking_budget && (config.thinking_budget < 1024 || config.thinking_budget >= config.max_tokens)) throw new Error('Anthropic 思考预算须至少为 1024，并小于输出 token 上限');
   return { ...config, ...(runtime ?? runtimeConfig(input)) };
 }
 class SettingsStore {

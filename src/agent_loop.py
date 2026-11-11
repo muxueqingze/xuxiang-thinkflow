@@ -28,7 +28,8 @@ from .context import ContextManager, _command_hash
 from .conversation import ConversationContext
 from .output_store import OutputStore
 from .streaming import EventType, StreamEvent
-from .provider import ProviderConfig, is_deepseek, openai_thinking_options, output_budget_options
+from .provider import (ProviderConfig, anthropic_thinking_options, is_deepseek,
+                       openai_thinking_options, output_budget_options)
 from .prompts import build_protocol_prompt
 from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
@@ -750,11 +751,7 @@ class AgentLoop:
             tools = self._anthropic_provider_tools()
             if tools:
                 body["tools"] = tools
-            if p.thinking_budget > 0:
-                body["thinking"] = {
-                    "type": "enabled",
-                    "budget_tokens": p.thinking_budget,
-                }
+            body.update(anthropic_thinking_options(p))
             if system:
                 body["system"] = system
             return body

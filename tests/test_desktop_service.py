@@ -69,7 +69,8 @@ class LocalSSE:
 class FakeAgent:
     """Fake scheduling only; desktop persistence, dispatch and approval stay real."""
 
-    def __init__(self, event_sink, approval_handler, runner=None):
+    def __init__(self, config, event_sink, approval_handler, runner=None):
+        self.config = desktop_service.build_agent_config(config, system_prompt='', cwd='.')
         self.sink = event_sink
         self.approval_handler = approval_handler
         self.runner = runner
@@ -138,7 +139,7 @@ class DesktopServiceTests(unittest.IsolatedAsyncioTestCase):
         self.prompt_patch.start()
 
         def create(config, system, cwd, *, event_sink, approval_handler):
-            agent = FakeAgent(event_sink, approval_handler, self.runner)
+            agent = FakeAgent(config, event_sink, approval_handler, self.runner)
             self.agents.append(agent)
             return agent
 

@@ -4,11 +4,16 @@ ThinkFlow Provider — API Provider 适配
 P0 支持 Anthropic 和 OpenAI 兼容格式。
 """
 
-import json
 from dataclasses import dataclass, field
 from typing import Optional
+from urllib.parse import urlsplit
 
 import httpx
+
+
+DEEPSEEK_EFFORTS = ("low", "high", "max")
+OPENAI_EFFORTS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
+DEEPSEEK_EFFORT_ALIASES = {"minimal": "low", "medium": "high", "xhigh": "high", "ultra": "max"}
 
 
 def normalize_max_tokens(value) -> Optional[int]:
@@ -117,11 +122,7 @@ class AnthropicProvider:
             "stream": True,
         }
 
-        if self.config.thinking_budget > 0:
-            body["thinking"] = {
-                "type": "enabled",
-                "budget_tokens": self.config.thinking_budget,
-            }
+        body.update(anthropic_thinking_options(self.config))
 
         if system:
             body["system"] = system
@@ -211,16 +212,62 @@ def create_provider(config: ProviderConfig):
 
 
 def is_deepseek(config: ProviderConfig) -> bool:
-    from urllib.parse import urlsplit
     return urlsplit(config.base_url).hostname == 'api.deepseek.com' or config.model.startswith('deepseek-')
 
 
+def thinking_kind(config: ProviderConfig) -> str:
+    if config.format == "anthropic":
+        return "anthropic"
+    return "deepseek" if is_deepseek(config) else "openai"
+
+
+def thinking_setting(config: ProviderConfig) -> str | int:
+    """Return the budget or effort that applies to the selected wire format."""
+    kind = thinking_kind(config)
+    if kind == "anthropic":
+        return config.thinking_budget
+    if kind == "deepseek":
+        if config.thinking_mode == "disabled":
+            return "off"
+        if config.thinking_mode != "enabled":
+            return config.thinking_mode
+        effort = config.reasoning_effort
+        return DEEPSEEK_EFFORT_ALIASES.get(effort, effort)
+    return config.reasoning_effort if config.thinking_mode == "enabled" else "default"
+
+
+def thinking_label(config: ProviderConfig) -> str:
+    setting = thinking_setting(config)
+    if setting == 0 or setting == "off":
+        return "关闭"
+    if setting == "default":
+        return "模型默认"
+    if isinstance(setting, int):
+        return f"{setting:,} tokens"
+    return setting
+
+
+def validate_thinking_budget(config: ProviderConfig, budget: int) -> None:
+    if budget == 0:
+        return
+    if budget < 1024:
+        raise ValueError("Anthropic 思考预算至少为 1024 tokens，关闭时使用 0")
+    if config.max_tokens is None or budget >= config.max_tokens:
+        raise ValueError("Anthropic 思考预算必须小于 max_tokens")
+
+
+def anthropic_thinking_options(config: ProviderConfig) -> dict:
+    budget = config.thinking_budget
+    validate_thinking_budget(config, budget)
+    return {"thinking": {"type": "enabled", "budget_tokens": budget}} if budget else {}
+
+
 def openai_thinking_options(config: ProviderConfig) -> dict:
-    # DeepSeek defaults to thinking; other compatible APIs must not receive
-    # vendor-only options just because the desktop has a thinking selector.
+    enabled = config.thinking_mode == "enabled"
     if is_deepseek(config):
-        options = {'thinking': {'type': config.thinking_mode}}
-        if config.thinking_mode == 'enabled':
-            options['reasoning_effort'] = config.reasoning_effort
-        return options
-    return {}
+        options = {"thinking": {"type": config.thinking_mode}}
+    else:
+        options = {}
+    if enabled:
+        options["reasoning_effort"] = config.reasoning_effort
+    return options

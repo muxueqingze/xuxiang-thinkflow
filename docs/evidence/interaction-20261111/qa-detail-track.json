@@ -1,0 +1,683 @@
+{
+  "errors": [],
+  "1380-draft": {
+    ".conversation": {
+      "rect": {
+        "x": 240,
+        "y": 0,
+        "width": 1126,
+        "height": 864,
+        "top": 0,
+        "right": 1366,
+        "bottom": 864,
+        "left": 240
+      },
+      "scrollWidth": 1126,
+      "clientWidth": 1126
+    },
+    ".message-list": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "scrollWidth": 0,
+      "clientWidth": 0
+    },
+    ".composer": {
+      "rect": {
+        "x": 467,
+        "y": 453.22918701171875,
+        "width": 672,
+        "height": 113.33333587646484,
+        "top": 453.22918701171875,
+        "right": 1139,
+        "bottom": 566.5625228881836,
+        "left": 467
+      },
+      "scrollWidth": 671,
+      "clientWidth": 671
+    },
+    ".composer-footer": {
+      "rect": {
+        "x": 479.66668701171875,
+        "y": 525.8958740234375,
+        "width": 646.6666870117188,
+        "height": 28,
+        "top": 525.8958740234375,
+        "right": 1126.3333740234375,
+        "bottom": 553.8958740234375,
+        "left": 479.66668701171875
+      },
+      "scrollWidth": 647,
+      "clientWidth": 647
+    },
+    ".composer-options": {
+      "rect": {
+        "x": 479.66668701171875,
+        "y": 525.8958740234375,
+        "width": 82.64583587646484,
+        "height": 28,
+        "top": 525.8958740234375,
+        "right": 562.3125228881836,
+        "bottom": 553.8958740234375,
+        "left": 479.66668701171875
+      },
+      "scrollWidth": 83,
+      "clientWidth": 83
+    },
+    ".composer-actions": {
+      "rect": {
+        "x": 997.21875,
+        "y": 525.8958740234375,
+        "width": 129.11459350585938,
+        "height": 28,
+        "top": 525.8958740234375,
+        "right": 1126.3333435058594,
+        "bottom": 553.8958740234375,
+        "left": 997.21875
+      },
+      "scrollWidth": 129,
+      "clientWidth": 129
+    },
+    "#policy-button": {
+      "rect": {
+        "x": 511.66668701171875,
+        "y": 525.8958740234375,
+        "width": 50.645835876464844,
+        "height": 28,
+        "top": 525.8958740234375,
+        "right": 562.3125228881836,
+        "bottom": 553.8958740234375,
+        "left": 511.66668701171875
+      },
+      "scrollWidth": 51,
+      "clientWidth": 51
+    },
+    "#context-label": {
+      "rect": {
+        "x": 997.21875,
+        "y": 525.8958740234375,
+        "width": 28,
+        "height": 28,
+        "top": 525.8958740234375,
+        "right": 1025.21875,
+        "bottom": 553.8958740234375,
+        "left": 997.21875
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    "#settings-top": {
+      "rect": {
+        "x": 1029.21875,
+        "y": 525.8958740234375,
+        "width": 65.11458587646484,
+        "height": 28,
+        "top": 525.8958740234375,
+        "right": 1094.3333358764648,
+        "bottom": 553.8958740234375,
+        "left": 1029.21875
+      },
+      "scrollWidth": 65,
+      "clientWidth": 65
+    },
+    "#send": {
+      "rect": {
+        "x": 1098.3333740234375,
+        "y": 525.8958740234375,
+        "width": 28,
+        "height": 28,
+        "top": 525.8958740234375,
+        "right": 1126.3333740234375,
+        "bottom": 553.8958740234375,
+        "left": 1098.3333740234375
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    ".welcome": {
+      "rect": {
+        "x": 463,
+        "y": 345.4375,
+        "width": 672,
+        "height": 107.79167175292969,
+        "top": 345.4375,
+        "right": 1135,
+        "bottom": 453.2291717529297,
+        "left": 463
+      },
+      "scrollWidth": 672,
+      "clientWidth": 672
+    },
+    "#terminal-panel": {
+      "rect": {
+        "x": 240,
+        "y": 864,
+        "width": 1126,
+        "height": 0.6666666865348816,
+        "top": 864,
+        "right": 1366,
+        "bottom": 864.6666666865349,
+        "left": 240
+      },
+      "scrollWidth": 1126,
+      "clientWidth": 1126
+    }
+  },
+  "1000-all": {
+    ".conversation": {
+      "rect": {
+        "x": 240,
+        "y": 0,
+        "width": 400,
+        "height": 416,
+        "top": 0,
+        "right": 640,
+        "bottom": 416,
+        "left": 240
+      },
+      "scrollWidth": 400,
+      "clientWidth": 400
+    },
+    ".message-list": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "scrollWidth": 0,
+      "clientWidth": 0
+    },
+    ".composer": {
+      "rect": {
+        "x": 256,
+        "y": 210.7291717529297,
+        "width": 368,
+        "height": 113.33333587646484,
+        "top": 210.7291717529297,
+        "right": 624,
+        "bottom": 324.06250762939453,
+        "left": 256
+      },
+      "scrollWidth": 367,
+      "clientWidth": 367
+    },
+    ".composer-footer": {
+      "rect": {
+        "x": 268.66668701171875,
+        "y": 283.3958435058594,
+        "width": 342.66668701171875,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333740234375,
+        "bottom": 311.3958435058594,
+        "left": 268.66668701171875
+      },
+      "scrollWidth": 343,
+      "clientWidth": 343
+    },
+    ".composer-options": {
+      "rect": {
+        "x": 268.66668701171875,
+        "y": 283.3958435058594,
+        "width": 78.64583587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 347.3125228881836,
+        "bottom": 311.3958435058594,
+        "left": 268.66668701171875
+      },
+      "scrollWidth": 79,
+      "clientWidth": 79
+    },
+    ".composer-actions": {
+      "rect": {
+        "x": 486.21875,
+        "y": 283.3958435058594,
+        "width": 125.11458587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333358764648,
+        "bottom": 311.3958435058594,
+        "left": 486.21875
+      },
+      "scrollWidth": 125,
+      "clientWidth": 125
+    },
+    "#policy-button": {
+      "rect": {
+        "x": 296.66668701171875,
+        "y": 283.3958435058594,
+        "width": 50.645835876464844,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 347.3125228881836,
+        "bottom": 311.3958435058594,
+        "left": 296.66668701171875
+      },
+      "scrollWidth": 51,
+      "clientWidth": 51
+    },
+    "#context-label": {
+      "rect": {
+        "x": 486.21875,
+        "y": 283.3958435058594,
+        "width": 28,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 514.21875,
+        "bottom": 311.3958435058594,
+        "left": 486.21875
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    "#settings-top": {
+      "rect": {
+        "x": 516.21875,
+        "y": 283.3958435058594,
+        "width": 65.11458587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 581.3333358764648,
+        "bottom": 311.3958435058594,
+        "left": 516.21875
+      },
+      "scrollWidth": 65,
+      "clientWidth": 65
+    },
+    "#send": {
+      "rect": {
+        "x": 583.3333740234375,
+        "y": 283.3958435058594,
+        "width": 28,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333740234375,
+        "bottom": 311.3958435058594,
+        "left": 583.3333740234375
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    ".welcome": {
+      "rect": {
+        "x": 256,
+        "y": 139.9375,
+        "width": 360,
+        "height": 70.79167175292969,
+        "top": 139.9375,
+        "right": 616,
+        "bottom": 210.7291717529297,
+        "left": 256
+      },
+      "scrollWidth": 360,
+      "clientWidth": 360
+    },
+    "#terminal-panel": {
+      "rect": {
+        "x": 240,
+        "y": 416,
+        "width": 746,
+        "height": 248,
+        "top": 416,
+        "right": 986,
+        "bottom": 664,
+        "left": 240
+      },
+      "scrollWidth": 746,
+      "clientWidth": 746
+    }
+  },
+  "1000-policy": {
+    ".conversation": {
+      "rect": {
+        "x": 240,
+        "y": 0,
+        "width": 400,
+        "height": 416,
+        "top": 0,
+        "right": 640,
+        "bottom": 416,
+        "left": 240
+      },
+      "scrollWidth": 400,
+      "clientWidth": 400
+    },
+    ".message-list": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "scrollWidth": 0,
+      "clientWidth": 0
+    },
+    ".composer": {
+      "rect": {
+        "x": 256,
+        "y": 210.7291717529297,
+        "width": 368,
+        "height": 113.33333587646484,
+        "top": 210.7291717529297,
+        "right": 624,
+        "bottom": 324.06250762939453,
+        "left": 256
+      },
+      "scrollWidth": 367,
+      "clientWidth": 367
+    },
+    ".composer-footer": {
+      "rect": {
+        "x": 268.66668701171875,
+        "y": 283.3958435058594,
+        "width": 342.66668701171875,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333740234375,
+        "bottom": 311.3958435058594,
+        "left": 268.66668701171875
+      },
+      "scrollWidth": 343,
+      "clientWidth": 343
+    },
+    ".composer-options": {
+      "rect": {
+        "x": 268.66668701171875,
+        "y": 283.3958435058594,
+        "width": 78.64583587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 347.3125228881836,
+        "bottom": 311.3958435058594,
+        "left": 268.66668701171875
+      },
+      "scrollWidth": 79,
+      "clientWidth": 79
+    },
+    ".composer-actions": {
+      "rect": {
+        "x": 486.21875,
+        "y": 283.3958435058594,
+        "width": 125.11458587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333358764648,
+        "bottom": 311.3958435058594,
+        "left": 486.21875
+      },
+      "scrollWidth": 125,
+      "clientWidth": 125
+    },
+    "#policy-button": {
+      "rect": {
+        "x": 296.66668701171875,
+        "y": 283.3958435058594,
+        "width": 50.645835876464844,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 347.3125228881836,
+        "bottom": 311.3958435058594,
+        "left": 296.66668701171875
+      },
+      "scrollWidth": 51,
+      "clientWidth": 51
+    },
+    "#context-label": {
+      "rect": {
+        "x": 486.21875,
+        "y": 283.3958435058594,
+        "width": 28,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 514.21875,
+        "bottom": 311.3958435058594,
+        "left": 486.21875
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    "#settings-top": {
+      "rect": {
+        "x": 516.21875,
+        "y": 283.3958435058594,
+        "width": 65.11458587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 581.3333358764648,
+        "bottom": 311.3958435058594,
+        "left": 516.21875
+      },
+      "scrollWidth": 65,
+      "clientWidth": 65
+    },
+    "#send": {
+      "rect": {
+        "x": 583.3333740234375,
+        "y": 283.3958435058594,
+        "width": 28,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333740234375,
+        "bottom": 311.3958435058594,
+        "left": 583.3333740234375
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    ".welcome": {
+      "rect": {
+        "x": 256,
+        "y": 139.9375,
+        "width": 360,
+        "height": 70.79167175292969,
+        "top": 139.9375,
+        "right": 616,
+        "bottom": 210.7291717529297,
+        "left": 256
+      },
+      "scrollWidth": 360,
+      "clientWidth": 360
+    },
+    "#terminal-panel": {
+      "rect": {
+        "x": 240,
+        "y": 416,
+        "width": 746,
+        "height": 248,
+        "top": 416,
+        "right": 986,
+        "bottom": 664,
+        "left": 240
+      },
+      "scrollWidth": 746,
+      "clientWidth": 746
+    }
+  },
+  "1000-model": {
+    ".conversation": {
+      "rect": {
+        "x": 240,
+        "y": 0,
+        "width": 400,
+        "height": 416,
+        "top": 0,
+        "right": 640,
+        "bottom": 416,
+        "left": 240
+      },
+      "scrollWidth": 400,
+      "clientWidth": 400
+    },
+    ".message-list": {
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "scrollWidth": 0,
+      "clientWidth": 0
+    },
+    ".composer": {
+      "rect": {
+        "x": 256,
+        "y": 210.7291717529297,
+        "width": 368,
+        "height": 113.33333587646484,
+        "top": 210.7291717529297,
+        "right": 624,
+        "bottom": 324.06250762939453,
+        "left": 256
+      },
+      "scrollWidth": 367,
+      "clientWidth": 367
+    },
+    ".composer-footer": {
+      "rect": {
+        "x": 268.66668701171875,
+        "y": 283.3958435058594,
+        "width": 342.66668701171875,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333740234375,
+        "bottom": 311.3958435058594,
+        "left": 268.66668701171875
+      },
+      "scrollWidth": 343,
+      "clientWidth": 343
+    },
+    ".composer-options": {
+      "rect": {
+        "x": 268.66668701171875,
+        "y": 283.3958435058594,
+        "width": 78.64583587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 347.3125228881836,
+        "bottom": 311.3958435058594,
+        "left": 268.66668701171875
+      },
+      "scrollWidth": 79,
+      "clientWidth": 79
+    },
+    ".composer-actions": {
+      "rect": {
+        "x": 486.21875,
+        "y": 283.3958435058594,
+        "width": 125.11458587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333358764648,
+        "bottom": 311.3958435058594,
+        "left": 486.21875
+      },
+      "scrollWidth": 125,
+      "clientWidth": 125
+    },
+    "#policy-button": {
+      "rect": {
+        "x": 296.66668701171875,
+        "y": 283.3958435058594,
+        "width": 50.645835876464844,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 347.3125228881836,
+        "bottom": 311.3958435058594,
+        "left": 296.66668701171875
+      },
+      "scrollWidth": 51,
+      "clientWidth": 51
+    },
+    "#context-label": {
+      "rect": {
+        "x": 486.21875,
+        "y": 283.3958435058594,
+        "width": 28,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 514.21875,
+        "bottom": 311.3958435058594,
+        "left": 486.21875
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    "#settings-top": {
+      "rect": {
+        "x": 516.21875,
+        "y": 283.3958435058594,
+        "width": 65.11458587646484,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 581.3333358764648,
+        "bottom": 311.3958435058594,
+        "left": 516.21875
+      },
+      "scrollWidth": 65,
+      "clientWidth": 65
+    },
+    "#send": {
+      "rect": {
+        "x": 583.3333740234375,
+        "y": 283.3958435058594,
+        "width": 28,
+        "height": 28,
+        "top": 283.3958435058594,
+        "right": 611.3333740234375,
+        "bottom": 311.3958435058594,
+        "left": 583.3333740234375
+      },
+      "scrollWidth": 28,
+      "clientWidth": 28
+    },
+    ".welcome": {
+      "rect": {
+        "x": 256,
+        "y": 139.9375,
+        "width": 360,
+        "height": 70.79167175292969,
+        "top": 139.9375,
+        "right": 616,
+        "bottom": 210.7291717529297,
+        "left": 256
+      },
+      "scrollWidth": 360,
+      "clientWidth": 360
+    },
+    "#terminal-panel": {
+      "rect": {
+        "x": 240,
+        "y": 416,
+        "width": 746,
+        "height": 248,
+        "top": 416,
+        "right": 986,
+        "bottom": 664,
+        "left": 240
+      },
+      "scrollWidth": 746,
+      "clientWidth": 746
+    }
+  }
+}

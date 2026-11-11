@@ -9,19 +9,17 @@ ThinkFlow CLI — 命令行入口
 
 import argparse
 import asyncio
-import contextlib
 import html
 import json
 import os
-import shutil
 import sys
-import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from .agent_loop import AgentLoop, AgentConfig
 from .compaction import CompactionConfig
 from .interfaces import InterfaceConfig
+from .interactive_controller import InteractiveController, add_input_bindings, slash_parts
 from .model_registry import (
     choose_model,
     discover_openai_models,
@@ -29,7 +27,8 @@ from .model_registry import (
     provider_catalog,
     resolve_auto_model,
 )
-from .provider import ProviderConfig, ProviderProfileConfig
+from .provider import (DEEPSEEK_EFFORTS, OPENAI_EFFORTS, ProviderConfig, ProviderProfileConfig,
+                       thinking_kind, thinking_label, thinking_setting, validate_thinking_budget)
 from .prompts import BUILTIN_SYSTEM_PROMPT
 from .security import SecurityPolicy, normalize_security_profile
 from .session import SessionStore
@@ -76,9 +75,10 @@ SLASH_COMMAND_SPECS = (
     SlashCommandSpec("/ctx", "显示当前上下文状态", "status"),
     SlashCommandSpec("/model", "选择模型：/model [provider/model|model]", "model", selectable=True),
     SlashCommandSpec("/models", "列出 provider 模型；/models refresh 重新拉取 active provider", "model"),
-    SlashCommandSpec("/thinking", "选择思考强度：/thinking off|light|medium|deep|数字", "model", selectable=True),
-    SlashCommandSpec("/btw", "运行中追加一条旁注；当前轮结束后自动继续处理", "runtime"),
+    SlashCommandSpec("/thinking", "查看或选择当前模型的思考档位：/thinking [档位|预算]", "model", selectable=True),
+    SlashCommandSpec("/btw", "作为独立消息追加一条补充", "runtime"),
     SlashCommandSpec("/cancel", "打断当前正在运行的模型请求", "runtime"),
+    SlashCommandSpec("/queue", "查看待发消息：/queue [resume|remove 编号]", "runtime"),
     SlashCommandSpec("/tools", "显示可用工具", "inspect"),
     SlashCommandSpec("/interfaces", "显示开放接口状态", "inspect"),
     SlashCommandSpec("/skills", "列出可用 skills，可加关键词过滤", "inspect"),
@@ -89,14 +89,14 @@ SLASH_COMMAND_SPECS = (
     SlashCommandSpec("/verbose", "切换 thinking 流显示", "runtime"),
     SlashCommandSpec("/save", "保存当前会话快照", "session"),
     SlashCommandSpec("/stamps", "显示当前戳记状态", "inspect"),
-    SlashCommandSpec("/cmds", "显示本轮执行的命令列表", "inspect"),
+    SlashCommandSpec("/cmds", "查看工具记录：/cmds [编号 [输出名 [偏移]]]", "inspect"),
 )
 
 SLASH_COMMANDS = {spec.name: spec.description for spec in SLASH_COMMAND_SPECS}
 
 
 THINKING_PRESETS = [
-    ("off", 0, "关闭 provider-specific thinking budget"),
+    ("off", 0, "关闭手动思考预算"),
     ("light", 1024, "轻量思考"),
     ("medium", 4096, "中等思考"),
     ("deep", 8192, "深度思考"),
@@ -206,19 +206,21 @@ def build_model_selection_items(agent: AgentLoop) -> list[SelectionItem]:
     return items
 
 
-def build_thinking_selection_items(current: int = 0) -> list[SelectionItem]:
-    items = []
-    for name, value, desc in THINKING_PRESETS:
-        current_label = "current" if value == current else ""
-        items.append(
-            SelectionItem(
-                value=value,
-                label=f"{name}  {value} tokens",
-                meta=current_label,
-                detail=desc,
-            )
-        )
-    return items
+def build_thinking_selection_items(provider: ProviderConfig) -> list[SelectionItem]:
+    current = thinking_setting(provider)
+    kind = thinking_kind(provider)
+    if kind == "anthropic":
+        items = [SelectionItem(value, f"{name}  {value:,} tokens", "current" if current == value else "", desc)
+                 for name, value, desc in THINKING_PRESETS
+                 if value == 0 or provider.max_tokens is not None and value < provider.max_tokens]
+        if current and not any(item.value == current for item in items):
+            items.append(SelectionItem(current, f"{current:,} tokens", "current", "已配置预算"))
+        return items
+    levels = ("off", *DEEPSEEK_EFFORTS) if kind == "deepseek" else ("default", *OPENAI_EFFORTS)
+    return [SelectionItem(level, level, "current" if current == level else "", {
+        "off": "关闭思考",
+        "default": "使用模型默认设置",
+    }.get(level, "")) for level in levels]
 
 
 def build_resume_selection_items(store: SessionStore, sessions: list[Path]) -> list[SelectionItem]:
@@ -264,7 +266,7 @@ def switch_model(agent: AgentLoop, selection):
             renderer.render_error(f"未知 provider: {selection.provider_name}")
             return
         apply_provider_profile(agent, profile, selection.model)
-        renderer.render_info(f"model switched to {profile.name}/{selection.model}")
+        renderer.render_info(f"model switched to {profile.name}/{selection.model} · 思考 {thinking_label(agent.config.provider)}")
         return
 
     text = str(selection or "").strip()
@@ -283,10 +285,17 @@ def switch_model(agent: AgentLoop, selection):
             renderer.render_error(f"未知 provider: {provider_name.strip()}")
             return
         apply_provider_profile(agent, profile, model.strip())
-        renderer.render_info(f"model switched to {profile.name}/{model.strip()}")
+        renderer.render_info(f"model switched to {profile.name}/{model.strip()} · 思考 {thinking_label(agent.config.provider)}")
         return
-    agent.config.provider.model = model
-    renderer.render_info(f"model switched to {model}")
+    provider = agent.config.provider
+    if provider.model != model:
+        profile = find_provider_profile(provider, provider.profile_name or "default")
+        if profile is not None:
+            provider.thinking_budget = profile.thinking_budget
+            provider.thinking_mode = profile.thinking_mode
+            provider.reasoning_effort = profile.reasoning_effort
+        provider.model = model
+    renderer.render_info(f"model switched to {model} · 思考 {thinking_label(provider)}")
 
 
 def thinking_preset_value(name: str) -> int | None:
@@ -300,11 +309,33 @@ def thinking_preset_value(name: str) -> int | None:
         return None
 
 
-def set_thinking_budget(agent: AgentLoop, value: int):
-    value = max(0, int(value))
-    agent.config.provider.thinking_budget = value
-    label = "off" if value == 0 else f"{value} tokens"
-    renderer.render_info(f"thinking budget: {label}")
+def set_thinking(agent: AgentLoop, value: str | int):
+    provider = agent.config.provider
+    kind = thinking_kind(provider)
+    if kind == "anthropic":
+        budget = value if isinstance(value, int) else thinking_preset_value(value)
+        if budget is None:
+            renderer.render_error("用法：/thinking off|light|medium|deep|max|预算数字")
+            return
+        try:
+            validate_thinking_budget(provider, budget)
+        except ValueError as exc:
+            renderer.render_error(str(exc))
+            return
+        provider.thinking_budget = budget
+    else:
+        mode_off = "off" if kind == "deepseek" else "default"
+        efforts = DEEPSEEK_EFFORTS if kind == "deepseek" else OPENAI_EFFORTS
+        level = str(value).strip().lower()
+        if level == mode_off:
+            provider.thinking_mode = "disabled"
+        elif level in efforts:
+            provider.thinking_mode = "enabled"
+            provider.reasoning_effort = level
+        else:
+            renderer.render_error("用法：/thinking " + "|".join((mode_off, *efforts)))
+            return
+    renderer.render_info(f"思考：{thinking_label(provider)}")
 
 
 def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None) -> bool:
@@ -401,18 +432,15 @@ def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None)
 
     elif command == "/thinking":
         if arg:
-            value = thinking_preset_value(arg)
-            if value is None:
-                renderer.render_error(f"未知 thinking 预设: {arg}")
-            else:
-                set_thinking_budget(agent, value)
+            set_thinking(agent, arg)
         else:
-            renderer.console.print("\n[bold]Thinking Budget[/bold]")
-            current = agent.config.provider.thinking_budget
-            for name, value, desc in THINKING_PRESETS:
-                mark = "*" if value == current else " "
-                renderer.console.print(f"  {mark} {name:6s} {value:5d}  [dim]{desc}[/dim]")
-            renderer.console.print("[dim]使用 /thinking off|light|medium|deep|max|数字 设置。[/dim]\n")
+            provider = agent.config.provider
+            renderer.render_info(f"思考：{thinking_label(provider)}")
+            for item in build_thinking_selection_items(provider):
+                mark = "*" if item.meta == "current" else " "
+                renderer.console.print(f"  {mark} {item.label}  [dim]{item.detail}[/dim]")
+            if thinking_kind(provider) == "anthropic":
+                renderer.render_info("使用 /thinking 预算数字 设置自定 token 预算")
 
     elif command == "/tools":
         renderer.console.print("\n[bold]Tools[/bold]")
@@ -489,18 +517,7 @@ def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None)
         renderer.render_info(f"未注入命令: {len(pending)}")
 
     elif command == "/cmds":
-        if not agent.context.records:
-            renderer.render_info("暂无命令记录")
-        else:
-            renderer.console.print("\n[bold]命令记录:[/bold]")
-            for r in agent.context.records:
-                status = "[green]✓[/green]" if r.status == "success" else "[red]✗[/red]"
-                inj = "[dim](已注入)[/dim]" if r.injected else "[yellow](未注入)[/yellow]"
-                path = r.path or r.cmd or ""
-                renderer.console.print(
-                    f"  {status} {r.tool}#{r.id} {path} {inj}"
-                )
-            renderer.console.print()
+        renderer.render_tool_details(agent.context, arg)
 
     else:
         renderer.render_error(f"未知命令: {command}（输入 /help 查看可用命令）")
@@ -515,12 +532,13 @@ def build_slash_completer(agent: AgentLoop | None = None, store: SessionStore | 
     class SlashCommandCompleter(Completer):
         def get_completions(self, document, complete_event):
             text = document.text_before_cursor
-            stripped = text.strip()
+            stripped = text.lstrip()
             if not stripped.startswith("/"):
                 return
 
-            if " " in stripped:
-                command, arg_prefix = stripped.split(maxsplit=1)
+            command, arg_prefix = slash_parts(stripped)
+            if command != stripped.lower():
+                arg_prefix = arg_prefix.lstrip()
                 if command.lower() == "/sandbox":
                     for option in ("read-only", "workspace-write", "danger-full-access", "locked", "balanced", "open"):
                         if option.startswith(arg_prefix.lower()):
@@ -530,12 +548,14 @@ def build_slash_completer(agent: AgentLoop | None = None, store: SessionStore | 
                                 display_meta="切换当前会话沙箱",
                             )
                 elif command.lower() == "/thinking":
-                    for name, value, desc in THINKING_PRESETS:
+                    provider = agent.config.provider if agent is not None else ProviderConfig()
+                    for item in build_thinking_selection_items(provider):
+                        name = item.label.split(maxsplit=1)[0]
                         if name.startswith(arg_prefix.lower()):
                             yield Completion(
                                 name,
                                 start_position=-len(arg_prefix),
-                                display_meta=f"{value} tokens · {desc}",
+                                display_meta=item.detail,
                             )
                 elif command.lower() == "/model" and agent is not None:
                     for item in build_model_selection_items(agent):
@@ -640,6 +660,7 @@ def render_status(agent: AgentLoop, store: SessionStore = None):
     renderer.console.print(f"  provider   {agent.config.provider.format}")
     renderer.console.print(f"  channel    {provider_channel_label(agent.config.provider)}")
     renderer.console.print(f"  model      {agent.config.provider.model}")
+    renderer.console.print(f"  思考       {thinking_label(agent.config.provider)}")
     renderer.console.print(f"  base_url   {agent.config.provider.base_url}")
     renderer.console.print(f"  cwd        {agent.executor.cwd}")
     if store:
@@ -927,7 +948,7 @@ async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosav
     from prompt_toolkit.styles import Style
     from prompt_toolkit.key_binding import KeyBindings
 
-    renderer.render_banner(agent.config.provider.model)
+    renderer.render_banner(agent.config.provider.model, legacy=True)
 
     history = InMemoryHistory()
     slash_completer = build_slash_completer(agent, store)
@@ -1018,8 +1039,7 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
 
     history = InMemoryHistory()
     slash_completer = build_slash_completer(agent, store)
-    running_task: asyncio.Task | None = None
-    pending_btw: list[str] = []
+    controller = InteractiveController(agent, store, autosave, lambda: session.app.invalidate())
 
     @dataclass
     class InlineSelector:
@@ -1055,43 +1075,14 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
         "prompt-status": "bg:#0b2239 #9cdcfe",
     })
 
-    def is_running() -> bool:
-        return running_task is not None and not running_task.done()
-
-    def activity_text() -> str:
-        tool = agent.current_text_tool_activity() if hasattr(agent, "current_text_tool_activity") else ""
-        if tool:
-            phase = int(time.monotonic() * 4) % 6
-            dots = "".join("*" if index == phase else "." for index in range(6))
-            suffix = f" btw {len(pending_btw)}" if pending_btw else ""
-            return f"流式工具调用：{tool} {dots}{suffix}"
-        if is_running():
-            suffix = f" btw {len(pending_btw)}" if pending_btw else ""
-            return f"thinking{suffix}"
-        return "ready"
-
     def prompt_message():
-        stats = agent.message_stats()
-        provider = agent.config.provider
-        ctx = f"{stats['chars']:,} chars / {stats['messages']} msgs"
-        calls = agent.usage.api_calls
-        cache = agent.usage.total_cached_tokens
-        perm = current_permission_mode(agent)
-        activity = activity_text()
-        width = max(40, shutil.get_terminal_size((100, 24)).columns - 1)
-        segments = [f"ThinkFlow", provider.model, f"ctx {ctx}", f"api {calls}"]
-        if not activity.startswith("流式工具调用"):
-            segments.append(f"cache {cache:,}")
-        segments.extend([f"perm {perm}", activity, "Esc cancel", "/help"])
-        status = " | ".join(segments)
-        if len(status) > width:
-            keep = max(12, width - 1)
-            status = status[:keep] + "…"
+        size = session.app.output.get_size()
+        width = size.columns
+        status = controller.status_line(width, current_permission_mode(agent))
         selector_html = ""
         if selector.active:
             items = selector.items or []
-            terminal_height = shutil.get_terminal_size((100, 24)).lines
-            window = max(8, min(12, terminal_height - 10, len(items)))
+            window = max(1, min(12, size.rows - 8, len(items)))
             half = window // 2
             start = max(0, selector.index - half)
             end = min(len(items), start + window)
@@ -1126,10 +1117,8 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
             else:
                 rows.append("<style fg='#8a8a8a'>    Up/Down/Left/Right  Enter  Esc</style>")
             selector_html = "\n" + "\n".join(rows)
-        leading_gap = "" if selector.active else "\n\n\n\n"
         return HTML(
             "\n"
-            f"{leading_gap}"
             "<style bg='#0b2239' fg='#9cdcfe'> "
             f"{html.escape(status)}"
             "</style>"
@@ -1141,12 +1130,15 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
 
     @key_bindings.add("s-tab")
     def _cycle_permission(event):
+        if controller.handle_command("/sandbox", ""):
+            return
         next_mode = cycle_permission_mode(agent)
         event.app.invalidate()
         renderer.render_info(f"permission mode: {next_mode}")
 
     selector_active = Condition(lambda: selector.active)
     selector_inactive = Condition(lambda: not selector.active)
+    add_input_bindings(key_bindings, selector_inactive)
 
     @key_bindings.add("up", filter=selector_active, eager=True)
     @key_bindings.add("left", filter=selector_active, eager=True)
@@ -1160,23 +1152,29 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
         selector.move(1)
         event.app.invalidate()
 
-    @key_bindings.add("enter", filter=selector_active, eager=True)
+    @key_bindings.add("c-m", filter=selector_active, eager=True)
     def _selector_accept(event):
         item = selector.selected()
         selector.clear()
         event.app.exit(result=item.value if item else None)
 
     @key_bindings.add("escape", filter=selector_active, eager=True)
+    @key_bindings.add("c-c", filter=selector_active, eager=True)
     def _selector_cancel(event):
         selector.clear()
         event.app.exit(result=None)
 
     @key_bindings.add("escape", filter=selector_inactive)
     def _cancel_running(event):
-        if is_running():
-            running_task.cancel()
-            event.app.invalidate()
-            renderer.render_info("已请求打断当前思考")
+        if event.current_buffer.complete_state is not None:
+            event.current_buffer.cancel_completion()
+        else:
+            controller.cancel()
+
+    @key_bindings.add("c-c", filter=selector_inactive)
+    def _interrupt_or_exit(event):
+        if not controller.cancel():
+            event.app.exit(exception=KeyboardInterrupt())
 
     session = PromptSession(
         history=history,
@@ -1186,57 +1184,9 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
         prompt_continuation="  ",
         key_bindings=key_bindings,
         refresh_interval=0.25,
+        multiline=True,
+        erase_when_done=True,
     )
-
-    async def start_agent_task(user_input: str):
-        nonlocal running_task
-        if is_running():
-            pending_btw.append(user_input)
-            renderer.render_info("当前仍在运行，已作为 /btw 暂存")
-            return
-        running_task = asyncio.create_task(agent.run(user_input))
-        asyncio.create_task(finalize_task(running_task))
-        with contextlib.suppress(Exception):
-            session.app.invalidate()
-
-    async def finalize_task(task: asyncio.Task):
-        nonlocal running_task
-        try:
-            await task
-        except asyncio.CancelledError:
-            renderer.reset_transient_ui()
-            renderer.render_info("当前思考已打断")
-        except Exception as exc:
-            renderer.reset_transient_ui()
-            renderer.render_error(f"运行失败: {exc}")
-        finally:
-            if hasattr(agent, "active_text_tool_count"):
-                if hasattr(agent, "clear_text_tool_activity"):
-                    agent.clear_text_tool_activity()
-                else:
-                    agent.active_text_tool_count = 0
-            if running_task is task:
-                running_task = None
-            if autosave and store:
-                store.save(agent.to_snapshot())
-            with contextlib.suppress(Exception):
-                session.app.invalidate()
-
-        if pending_btw and not is_running():
-            notes = pending_btw[:]
-            pending_btw.clear()
-            text = "用户在上一轮运行期间补充了旁注：\n" + "\n".join(
-                f"- {item}" for item in notes
-            )
-            await start_agent_task(text)
-
-    def cancel_running() -> bool:
-        if is_running():
-            running_task.cancel()
-            with contextlib.suppress(Exception):
-                session.app.invalidate()
-            return True
-        return False
 
     async def choose_inline(title: str, hint: str, items: list[SelectionItem], default_value=None):
         if not items:
@@ -1250,8 +1200,7 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
                 if item.value == default_value:
                     selector.index = index
                     break
-        with patch_stdout(raw=True):
-            result = await session.prompt_async(prompt_message, default="")
+        result = await session.prompt_async(prompt_message, default="")
         selector.clear()
         return result
 
@@ -1291,16 +1240,17 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
         return True
 
     async def choose_thinking() -> bool:
-        current = agent.config.provider.thinking_budget
-        items = build_thinking_selection_items(current)
+        provider = agent.config.provider
+        current = thinking_setting(provider)
+        items = build_thinking_selection_items(provider)
         selected = await choose_inline(
             "选择思考强度",
-            "Enter 应用，Esc 取消。",
+            f"当前 {thinking_label(provider)}。Enter 应用，Esc 取消。",
             items,
             default_value=current,
         )
         if selected is not None:
-            set_thinking_budget(agent, int(selected))
+            set_thinking(agent, selected)
         return True
 
     async def handle_interactive_slash(stripped: str) -> bool:
@@ -1315,52 +1265,24 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
             return await choose_thinking()
         return handle_slash_command(stripped, agent, store)
 
-    while True:
+    with patch_stdout(raw=True):
         try:
-            renderer.console.print()
-            with patch_stdout(raw=True):
+            while True:
                 user_input = await session.prompt_async(prompt_message)
-            if not user_input.strip():
-                continue
-
-            if user_input.strip().startswith("/"):
-                stripped = user_input.strip()
-                if stripped.startswith("/btw"):
-                    note = stripped[4:].strip()
-                    if not note:
-                        renderer.render_error("用法: /btw 旁注内容")
-                    elif is_running():
-                        pending_btw.append(note)
-                        renderer.render_info("已加入旁注，当前轮结束后会自动继续处理")
-                    else:
-                        agent.messages.append({
-                            "role": "user",
-                            "content": f"用户旁注：{note}",
-                        })
-                        renderer.render_info("已加入上下文")
+                if not user_input.strip():
                     continue
-                if stripped == "/cancel":
-                    if cancel_running():
-                        renderer.render_info("已请求打断当前思考")
-                    else:
-                        renderer.render_info("当前没有正在运行的请求")
-                    continue
-                should_continue = await handle_interactive_slash(stripped)
-                if not should_continue:
-                    cancel_running()
-                    break
-                continue
-
-            if is_running():
-                pending_btw.append(user_input)
-                renderer.render_info("模型仍在运行，这条输入已作为 /btw 暂存")
-                continue
-
-            await start_agent_task(user_input)
+                if user_input.lstrip().startswith("/"):
+                    command, arg = slash_parts(user_input)
+                    if controller.handle_command(command, arg):
+                        continue
+                    if not await handle_interactive_slash(user_input.strip()):
+                        break
+                else:
+                    controller.submit(user_input)
         except (EOFError, KeyboardInterrupt):
-            cancel_running()
-            renderer.console.print("\n[dim]ThinkFlow 已退出。[/dim]")
-            break
+            pass
+        finally:
+            await controller.close()
 
 
 async def single_run(agent: AgentLoop, prompt: str, store: SessionStore = None, autosave: bool = True):
@@ -1735,6 +1657,7 @@ def main():
                     autosave=autosave,
                     handle_slash=handle_slash_command,
                     current_permission_mode=current_permission_mode,
+                    completer=build_slash_completer(agent, store),
                 )
             elif args.legacy_ui:
                 await interactive_loop(agent, store=store, autosave=autosave)

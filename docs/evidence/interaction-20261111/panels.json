@@ -1,0 +1,60 @@
+{
+  "passed": true,
+  "checks": [
+    "Settings categories and JSON share one saved configuration",
+    "Invalid JSON preserves editor and saved configuration",
+    "Hiding panes preserves file preview",
+    "Staged, unstaged and untracked Git patches",
+    "Real xterm input, persistent terminal across hiding and new sessions",
+    "Natural exit keeps its tab and exit code until explicit close",
+    "Pointer resizing and rapid toggle reversal preserve width",
+    "1000×700 panes and composer fit; reduced motion and dark theme",
+    "Closed panes leave keyboard navigation"
+  ],
+  "errors": [],
+  "geometry": {
+    "width": 986,
+    "height": 664,
+    "scroll": 986,
+    "composer": {
+      "x": 16,
+      "y": 229.2291717529297,
+      "width": 518,
+      "height": 113.33333587646484,
+      "top": 229.2291717529297,
+      "right": 534,
+      "bottom": 342.56250762939453,
+      "left": 16
+    },
+    "terminal": {
+      "x": 0,
+      "y": 416,
+      "width": 986,
+      "height": 248,
+      "top": 416,
+      "right": 986,
+      "bottom": 664,
+      "left": 0
+    },
+    "inspector": {
+      "x": 550,
+      "y": 0,
+      "width": 436,
+      "height": 416,
+      "top": 0,
+      "right": 986,
+      "bottom": 416,
+      "left": 550
+    },
+    "messages": {
+      "x": 0,
+      "y": 121.4375,
+      "width": 550,
+      "height": 107.79167175292969,
+      "top": 121.4375,
+      "right": 550,
+      "bottom": 229.2291717529297,
+      "left": 0
+    }
+  }
+}

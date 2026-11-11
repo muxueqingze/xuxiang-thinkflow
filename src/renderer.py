@@ -5,6 +5,9 @@ ThinkFlow Renderer — 终端渲染
 正文用 rich Markdown 渲染，thinking 用 dim 色。
 """
 
+from collections import Counter
+from contextlib import contextmanager
+from contextvars import ContextVar
 import time
 from typing import Optional
 
@@ -189,6 +192,28 @@ def reset_transient_ui():
     _in_thinking = False
 
 
+_compact_tools: ContextVar[Counter[str] | None] = ContextVar("compact_tools", default=None)
+
+
+@contextmanager
+def compact_tool_output():
+    token = _compact_tools.set(Counter())
+    try:
+        yield
+    finally:
+        _flush_compact_tools()
+        _compact_tools.reset(token)
+
+
+def _flush_compact_tools():
+    tools = _compact_tools.get()
+    if not tools:
+        return
+    summary = " · ".join(f"{tool} ×{count}" if count > 1 else tool for tool, count in tools.items())
+    console.print(Text(f"  已完成 {summary}  /cmds 查看", style="tag"))
+    tools.clear()
+
+
 def render_command_start(
     tool: str,
     id: str,
@@ -201,6 +226,8 @@ def render_command_start(
         end_thinking()
     flush_text()
     _stop_activity()
+    if _compact_tools.get() is not None:
+        return
 
     color, label = TOOL_LABELS.get(tool, ("white", tool.upper()))
     badges = _tool_badges(tool, need_result)
@@ -227,6 +254,14 @@ def render_command_exec(
     if _in_thinking:
         end_thinking()
     flush_text()
+    tools = _compact_tools.get()
+    if tools is not None:
+        if success:
+            tools[tool] += 1
+        else:
+            _flush_compact_tools()
+            console.print(Text(f"  失败 {tool}#{id} {detail} {extra}".rstrip(), style="fail"))
+        return
 
     color, label = TOOL_LABELS.get(tool, ("white", tool.upper()))
 
@@ -249,6 +284,9 @@ def render_command_exec(
 def render_tool_summary(records: list):
     """Render a deterministic end-of-turn command summary."""
     if not records:
+        return
+    if _compact_tools.get() is not None:
+        _flush_compact_tools()
         return
     global _in_thinking
     _stop_activity()
@@ -287,8 +325,55 @@ def _record_detail(rec) -> str:
     return getattr(rec, "path", None) or getattr(rec, "dest", None) or getattr(rec, "cmd", None) or ""
 
 
+def render_tool_details(context, argument: str):
+    if not argument:
+        if not context.records:
+            render_info("暂无工具记录")
+            return
+        for record in context.records:
+            style = "ok" if record.status == "success" else "fail"
+            detail = _record_detail(record)
+            console.print(Text(f"  {record.status}  {record.tool}#{record.id}  {detail}".rstrip(), style=style))
+        render_info("/cmds 编号 查看记录及输出引用")
+        return
+
+    args = argument.split()
+    if len(args) > 3:
+        render_error("用法：/cmds 编号 [输出名 [偏移]]")
+        return
+    command_id = args[0].removeprefix("#")
+    record = next((item for item in reversed(context.records) if item.id == command_id), None)
+    if record is None:
+        render_error(f"没有工具记录 #{command_id}")
+        return
+    if len(args) == 1:
+        detail = _record_detail(record)
+        console.print(Text(f"{record.tool}#{record.id}  {record.status}  {detail}".rstrip()))
+        if record.error:
+            console.print(Text(record.error, style="fail"))
+        if record.output_summary:
+            console.print(Text(record.output_summary))
+        for name, ref in record.output_refs.items():
+            console.print(Text(f"  {name} · {ref} · /cmds {record.id} {name}", style="tag"))
+        return
+
+    name = args[1]
+    ref = record.output_refs.get(name)
+    if ref is None:
+        render_error(f"工具 #{command_id} 没有输出 {name}")
+        return
+    try:
+        offset = int(args[2]) if len(args) == 3 else 0
+        output = context.recall(ref, offset=offset)
+    except (OSError, ValueError) as exc:
+        render_error(str(exc))
+    else:
+        console.print(Text(output))
+
+
 def render_need_result_return(tool: str = "", id: str = ""):
     """渲染 need_result 打断后返回给模型的事件。"""
+    _flush_compact_tools()
     suffix = f" {tool}#{id}" if tool and id else ""
     console.print(f"  [warn]工具结果已注入[/warn][tag]{suffix} 下一轮会继续[/tag]", highlight=False)
 
@@ -410,6 +495,7 @@ def render_text_chunk(text: str):
     global _text_buffer, _text_streamed, _in_thinking, _text_live, _last_live_update
     if not text:
         return
+    _flush_compact_tools()
     _stop_activity()
     if _in_thinking:
         end_thinking()
@@ -479,6 +565,8 @@ def render_tool_call(name: str, args: dict):
     if _in_thinking:
         end_thinking()
     flush_text()
+    if _compact_tools.get() is not None:
+        return
 
     color = TOOL_LABELS.get(name, ("tool.native", name.upper()))[0]
     badges = _tool_badges(name)
@@ -496,6 +584,14 @@ def render_tool_result(name: str, result: str, max_lines: int = 8):
     _stop_activity()
     badges = _tool_badges(name)
     lines = result.strip().split("\n")
+    tools = _compact_tools.get()
+    if tools is not None:
+        if lines[0].startswith("[THINKFLOW RECEIPT ") and ' status="success"]' in lines[0]:
+            tools[name] += 1
+        else:
+            _flush_compact_tools()
+            console.print(Text(f"  失败 {name}\n" + "\n".join(lines[:max_lines]), style="fail"))
+        return
     if len(lines) > max_lines:
         shown = lines[:max_lines]
         shown.append(f"... ({len(lines) - max_lines} more lines)")
@@ -564,6 +660,7 @@ def render_context_compact(agent):
 
 
 def render_error(msg: str):
+    _flush_compact_tools()
     console.print(f"\n[fail]✗ {msg}[/fail]\n", highlight=False)
 
 
@@ -571,7 +668,7 @@ def render_info(msg: str):
     console.print(f"[info]{msg}[/info]", highlight=False)
 
 
-def render_banner(model: str = ""):
+def render_banner(model: str = "", *, legacy: bool = False):
     """渲染启动 banner。"""
     from . import __version__
 
@@ -583,7 +680,8 @@ def render_banner(model: str = ""):
         if model:
             body.append("\n模型 ", style="tag")
             body.append(model, style="bytes")
-        body.append("\n/help 命令    Esc 打断    Shift+Tab 权限", style="tag")
+        keys = "Shift+Tab 权限" if legacy else "Ctrl+J 换行    Esc 停止"
+        body.append(f"\n/help 命令    {keys}", style="tag")
         return Panel.fit(
             body,
             title="续想 agent",

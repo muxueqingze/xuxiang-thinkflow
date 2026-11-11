@@ -1,70 +1,1277 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>续想 ThinkFlow</title>
-  <link rel="stylesheet" href="styles.css">
-  <script defer src="input-controller.js"></script>
-  <script defer src="workspace-panel.js"></script>
-  <script defer src="model-tools.js"></script>
-  <script defer src="app.js"></script>
-</head>
-<body>
-  <div class="workbench ledger-hidden" id="workbench">
-    <aside class="sidebar" aria-label="工作区和会话">
-      <div class="brand"><span class="brand-mark" aria-hidden="true">续</span><div><strong>续想</strong><span class="brand-name">本地工作台</span></div><span class="version">0.8</span></div>
-      <button class="new-session" id="new-session"><span aria-hidden="true">＋</span> 新建会话 <kbd>Ctrl N</kbd></button>
-      <button class="search-launch" id="open-command">搜索会话与操作 <kbd>Ctrl K</kbd></button><div class="side-heading"><h2>会话</h2><span id="session-count">0</span><button id="show-archived" class="text-button" aria-pressed="false">显示归档</button></div><label class="visually-hidden" for="session-search">搜索当前工作区会话</label><input id="session-search" class="session-search" placeholder="搜索会话">
-      <div class="session-list" id="session-list"><p class="muted side-empty">还没有会话</p></div>
-      <div class="workspace-block"><span class="eyebrow">当前工作区</span><button class="workspace-button" id="workspace" title="选择工作区"><span class="workspace-name" id="workspace-name">尚未选择</span><span aria-hidden="true">↗</span></button><p id="workspace-path" class="workspace-path">文件操作将在您选择的目录内进行。</p><button class="text-button" id="recent-workspaces">最近工作区</button><button class="text-button" id="settings-side">设置</button></div>
-      <div class="sidebar-footer"><span class="connection-dot" id="connection-dot"></span><span id="connection-label">正在连接本地后端</span></div>
-    </aside>
-    <main class="conversation">
-      <header class="conversation-header"><button id="toggle-sidebar" class="icon-button" aria-label="收起侧栏" aria-expanded="true">☰</button><div class="session-heading"><div class="eyebrow" id="session-caption">新的会话</div><h1 id="session-title">新会话</h1></div><div class="header-actions"><button class="quiet-button" id="toggle-ledger" aria-expanded="false" aria-controls="inspector">工作台</button><details class="more-menu" id="more-menu"><summary aria-label="更多会话操作">更多 ···</summary><div class="menu-body"><button id="rename-current">重命名</button><button id="pin-current">置顶会话</button><button id="archive-current">归档会话</button><hr><button class="quiet-button" id="fork">创建分支</button><button class="quiet-button" id="compact">压缩上下文</button><button class="quiet-button" id="export">导出会话</button><hr><button id="show-shortcuts">快捷键</button></div></details></div></header>
-      <div class="runtime-bar"><div class="status-label" id="status-label"><span class="status-dot"></span><span id="run-status">准备就绪</span></div><span id="archived-notice" hidden>已归档 · 恢复后可继续</span></div>
-      <div class="error-banner" id="error-banner" role="alert" hidden><span id="error-text"></span><button id="dismiss-error" aria-label="关闭错误提示">×</button></div>
-      <div class="messages-scroll" id="messages-scroll">
-        <section class="welcome" id="welcome"><h2>从这里开始续想</h2><p>描述任务，在当前工作区继续。</p><div class="setup-steps"><button id="setup-workspace"><span><strong>选择工作区</strong><small id="setup-workspace-detail">指定任务使用的目录</small></span><span class="step-action" id="setup-workspace-action">选择 →</span></button><button id="setup-model"><span><strong>连接模型</strong><small id="setup-model-detail">设置端点、模型与密钥</small></span><span class="step-action" id="setup-model-action">设置 →</span></button></div></section>
-        <div class="message-list" id="message-list" role="log" aria-label="会话消息"></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width,initial-scale=1" name="viewport" />
+    <link href="../node_modules/@xterm/xterm/css/xterm.css" rel="stylesheet" />
+    <meta
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+      http-equiv="Content-Security-Policy"
+    />
+    <title>续想 ThinkFlow</title>
+    <link href="styles.css" rel="stylesheet" />
+    <script defer="" src="input-controller.js"></script>
+    <script defer="" src="workspace-panel.js"></script>
+    <script defer="" src="model-tools.js"></script>
+    <script defer="" src="../node_modules/@xterm/xterm/lib/xterm.js"></script>
+    <script defer="" src="../node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+    <script defer="" src="workbench-layout.js"></script>
+    <script defer="" src="settings-panel.js"></script>
+    <script defer="" src="terminal-panel.js"></script>
+    <script defer="" src="git-panel.js"></script>
+    <script defer="" src="composer-controls.js"></script>
+    <script defer="" src="developer-settings.js"></script>
+    <script defer="" src="app.js"></script>
+  </head>
+  <body>
+    <div class="workbench ledger-hidden" id="workbench">
+      <aside aria-label="工作区和会话" class="sidebar" id="sidebar">
+        <button class="new-session" id="new-session">
+          <span aria-hidden="true">＋</span> 新建任务 <kbd>Ctrl N</kbd>
+        </button>
+        <button class="search-launch" id="open-command">搜索会话与操作 <kbd>Ctrl K</kbd></button>
+        <div class="workspace-block">
+          <div class="workspace-heading">
+            <span>工作区</span><button class="text-button" id="recent-workspaces">切换</button>
+          </div>
+          <button class="workspace-button" id="workspace" title="选择工作区">
+            <span class="workspace-name" id="workspace-name">尚未选择</span
+            ><span aria-hidden="true">⌄</span>
+          </button>
+          <p class="workspace-path visually-hidden" id="workspace-path">
+            文件操作将在您选择的目录内进行。
+          </p>
+        </div>
+        <div class="side-heading">
+          <h2>会话</h2>
+          <span id="session-count">0</span
+          ><button aria-pressed="false" class="text-button" id="show-archived">显示归档</button
+          ><button
+            aria-expanded="false"
+            aria-label="筛选当前会话"
+            class="text-button"
+            id="toggle-session-search"
+            title="筛选当前会话"
+          >
+            <svg
+              aria-hidden="true"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              stroke-width="1.6"
+              viewbox="0 0 24 24"
+              width="14"
+            >
+              <circle cx="10" cy="10" r="6"></circle>
+              <path d="m15 15 5 5"></path>
+            </svg>
+          </button>
+        </div>
+        <label class="visually-hidden" for="session-search">搜索当前工作区会话</label
+        ><input class="session-search" hidden="" id="session-search" placeholder="搜索会话" />
+        <div class="session-list" id="session-list"><p class="muted side-empty">还没有会话</p></div>
+        <button class="text-button" id="settings-side">设置</button>
+        <div class="sidebar-footer">
+          <span class="connection-dot" id="connection-dot"></span
+          ><span id="connection-label">正在连接本地后端</span>
+        </div>
+        <div
+          aria-label="调整侧栏宽度"
+          aria-orientation="vertical"
+          class="resize-handle resize-horizontal"
+          id="sidebar-resize"
+          role="separator"
+          tabindex="0"
+        ></div>
+      </aside>
+      <div class="workspace-center terminal-hidden" id="workspace-center">
+        <div class="workspace-upper" id="workspace-upper">
+          <main class="conversation">
+            <header class="conversation-header">
+              <button
+                aria-expanded="true"
+                aria-label="收起侧栏"
+                class="icon-button"
+                id="toggle-sidebar"
+              >
+                <svg
+                  aria-hidden="true"
+                  fill="none"
+                  height="18"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  viewbox="0 0 24 24"
+                  width="18"
+                >
+                  <rect height="16" rx="2" width="18" x="3" y="4"></rect>
+                  <path d="M9 4v16"></path>
+                </svg>
+              </button>
+              <div class="session-heading">
+                <div class="eyebrow" hidden="" id="session-caption">新的会话</div>
+                <h1 id="session-title">新会话</h1>
+              </div>
+              <div class="header-actions">
+                <button
+                  aria-label="文件"
+                  aria-pressed="false"
+                  class="icon-button panel-toggle"
+                  id="open-files"
+                  title="文件 · Ctrl+Shift+E"
+                >
+                  <svg
+                    aria-hidden="true"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.6"
+                    viewbox="0 0 24 24"
+                    width="16"
+                  >
+                    <path
+                      d="M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7Z"
+                    ></path>
+                  </svg></button
+                ><button
+                  aria-label="变更"
+                  aria-pressed="false"
+                  class="icon-button panel-toggle"
+                  id="open-changes"
+                  title="变更 · Ctrl+Shift+G"
+                >
+                  <svg
+                    aria-hidden="true"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.6"
+                    viewbox="0 0 24 24"
+                    width="16"
+                  >
+                    <circle cx="6" cy="5" r="2"></circle>
+                    <circle cx="6" cy="19" r="2"></circle>
+                    <circle cx="18" cy="5" r="2"></circle>
+                    <path d="M6 7v10m12-10c0 7-12 3-12 10"></path>
+                  </svg></button
+                ><button
+                  aria-controls="inspector"
+                  aria-expanded="false"
+                  aria-label="活动"
+                  class="icon-button panel-toggle"
+                  id="toggle-ledger"
+                  title="执行与任务"
+                >
+                  <svg
+                    aria-hidden="true"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.6"
+                    viewbox="0 0 24 24"
+                    width="16"
+                  >
+                    <path d="M9 6h12M9 12h12M9 18h12M3 6h1m-1 6h1m-1 6h1"></path>
+                  </svg></button
+                ><button
+                  aria-controls="terminal-panel"
+                  aria-expanded="false"
+                  aria-label="终端"
+                  class="icon-button panel-toggle"
+                  id="toggle-terminal"
+                  title="终端 · Ctrl+`"
+                >
+                  <svg
+                    aria-hidden="true"
+                    fill="none"
+                    height="16"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.6"
+                    viewbox="0 0 24 24"
+                    width="16"
+                  >
+                    <rect height="16" rx="2" width="18" x="3" y="4"></rect>
+                    <path d="m7 9 3 3-3 3m6 0h4"></path>
+                  </svg>
+                </button>
+                <details class="more-menu" id="more-menu">
+                  <summary aria-label="更多会话操作">···</summary>
+                  <div class="menu-body">
+                    <button id="rename-current">重命名</button
+                    ><button id="pin-current">置顶会话</button
+                    ><button id="archive-current">归档会话</button>
+                    <hr />
+                    <button class="quiet-button" id="fork">创建分支</button
+                    ><button class="quiet-button" id="compact">压缩上下文</button
+                    ><button class="quiet-button" id="export">导出会话</button>
+                    <hr />
+                    <button id="show-shortcuts">快捷键</button>
+                  </div>
+                </details>
+              </div>
+            </header>
+            <div class="runtime-bar">
+              <div class="status-label" id="status-label">
+                <span class="status-dot"></span><span id="run-status">准备就绪</span>
+              </div>
+              <span hidden="" id="archived-notice">已归档 · 恢复后可继续</span>
+            </div>
+            <div class="error-banner" hidden="" id="error-banner" role="alert">
+              <span id="error-text"></span
+              ><button aria-label="关闭错误提示" id="dismiss-error">×</button>
+            </div>
+            <div class="messages-scroll" id="messages-scroll">
+              <section class="welcome" id="welcome">
+                <h2>今天继续做什么？</h2>
+                <p>从一个任务开始，让想法在工作区里落地。</p>
+                <div class="setup-steps">
+                  <button id="setup-workspace">
+                    <span
+                      ><strong>选择工作区</strong
+                      ><small id="setup-workspace-detail">选择项目目录</small></span
+                    ><span class="step-action" id="setup-workspace-action">选择 →</span></button
+                  ><button id="setup-model">
+                    <span
+                      ><strong>连接模型</strong
+                      ><small id="setup-model-detail">连接您使用的模型</small></span
+                    ><span class="step-action" id="setup-model-action">设置 →</span>
+                  </button>
+                </div>
+              </section>
+              <div aria-label="会话消息" class="message-list" id="message-list" role="log"></div>
+            </div>
+            <button class="back-to-bottom" hidden="" id="back-to-bottom">回到底部 ↓</button>
+            <button aria-controls="inspector" class="execution-summary" id="execution-summary">
+              尚无执行记录 <span>查看账本 →</span>
+            </button>
+            <section class="recovery-banner" hidden="" id="recovery">
+              <strong>上次执行意外中断，请核对文件后继续</strong>
+              <p>以下操作的最终状态不确定，续想不会自动重放。</p>
+              <pre id="recovery-details"></pre>
+              <button class="primary-button" id="acknowledge-recovery">已核对，继续会话</button>
+            </section>
+            <section
+              aria-labelledby="approval-title"
+              class="approval-panel"
+              hidden=""
+              id="approval"
+              tabindex="-1"
+            >
+              <div class="approval-heading">
+                <h2 id="approval-title">运行这条命令？</h2>
+                <span class="muted" id="approval-tool"></span>
+              </div>
+              <p class="approval-location" id="approval-location"></p>
+              <div class="approval-command-wrap"><pre id="approval-command"></pre></div>
+              <button
+                aria-expanded="false"
+                class="text-button"
+                hidden=""
+                id="expand-approval-command"
+                type="button"
+              >
+                展开命令
+              </button>
+              <details id="approval-details">
+                <summary>其他参数</summary>
+                <pre id="approval-params"></pre>
+              </details>
+              <div class="approval-actions">
+                <button class="quiet-button" id="reject">拒绝</button
+                ><button class="primary-button" id="approve">允许一次</button>
+              </div>
+            </section>
+            <div class="input-extras" id="input-extras">
+              <section aria-label="待发队列" class="queue-panel" hidden="" id="queue-panel">
+                <div class="queue-heading">
+                  <span id="queue-status"></span>
+                  <div>
+                    <button class="text-button" id="pause-queue">暂停队列</button
+                    ><button class="text-button" id="resume-queue">继续队列</button>
+                  </div>
+                </div>
+                <ol id="queue-list"></ol>
+                <p id="queue-reason">当前任务成功完成后，按顺序继续。</p>
+              </section>
+              <section aria-live="polite" class="input-notice" hidden="" id="input-receipt-panel">
+                <span id="input-receipt-status"></span>
+                <div>
+                  <button class="text-button" id="query-input-receipt">查询回执</button
+                  ><button class="text-button" hidden="" id="retry-input">重试同一提交</button
+                  ><button class="text-button" hidden="" id="restore-unreceived-input">
+                    返回草稿</button
+                  ><button class="text-button" id="edit-pending-input">查看内容</button>
+                </div>
+              </section>
+              <button class="legacy-input-notice" hidden="" id="legacy-input-notice">
+                发现旧版待发内容，请手动核对迁移 →
+              </button>
+              <div
+                aria-label="已引用文件"
+                class="attachment-chips"
+                hidden=""
+                id="attachment-chips"
+              ></div>
+            </div>
+            <form class="composer" id="composer">
+              <label class="visually-hidden" for="prompt">描述任务</label
+              ><textarea
+                aria-describedby="composer-hint"
+                id="prompt"
+                maxlength="200000"
+                placeholder="描述任务，或引用文件开始…"
+                rows="2"
+              ></textarea>
+              <div class="composer-footer">
+                <div class="composer-options">
+                  <button
+                    aria-label="引用工作区文件"
+                    class="text-button"
+                    id="attach-file"
+                    title="引用文件"
+                    type="button"
+                  >
+                    ＋</button
+                  ><button
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    class="text-button"
+                    id="policy-button"
+                    type="button"
+                  >
+                    <span id="policy-label">平衡权限</span>⌄
+                  </button>
+                </div>
+                <div class="composer-actions">
+                  <button
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    aria-label="查看上下文"
+                    class="context-trigger"
+                    id="context-label"
+                    type="button"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="16"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      viewbox="0 0 24 24"
+                      width="16"
+                    >
+                      <circle cx="12" cy="12" r="8.5"></circle>
+                      <path d="M12 3.5v4"></path></svg
+                    ><span id="context-compact-value"></span></button
+                  ><button
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    class="text-button"
+                    id="settings-top"
+                    type="button"
+                  >
+                    <span id="model-label">尚未配置模型</span>⌄</button
+                  ><button
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    aria-label="思考强度"
+                    class="text-button thinking-button"
+                    id="thinking-button"
+                    type="button"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="16"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-width="1.5"
+                      viewbox="0 0 24 24"
+                      width="16"
+                    >
+                      <path
+                        d="M12 4c-4-3-7 0-6 3-4 1-4 6-1 7-2 4 2 7 5 6l2-2m0-14c4-3 7 0 6 3 4 1 4 6 1 7 2 4-2 7-5 6l-2-2V4M6 7l2 2m10-2-2 2M5 14l3-1m11 1-3-1"
+                      ></path></svg
+                    ><span id="thinking-label"></span><span aria-hidden="true">⌄</span></button
+                  ><button
+                    aria-label="停止"
+                    class="stop-button"
+                    hidden=""
+                    id="stop"
+                    title="停止"
+                    type="button"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="16"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.8"
+                      viewbox="0 0 24 24"
+                      width="16"
+                    >
+                      <rect
+                        fill="currentColor"
+                        height="12"
+                        rx="1"
+                        stroke="none"
+                        width="12"
+                        x="6"
+                        y="6"
+                      ></rect>
+                    </svg></button
+                  ><button
+                    aria-label="发送"
+                    class="primary-button"
+                    id="send"
+                    title="发送"
+                    type="submit"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="16"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="1.8"
+                      viewbox="0 0 24 24"
+                      width="16"
+                    >
+                      <path d="M12 19V5m-6 6 6-6 6 6"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </form>
+            <footer class="context-footer">
+              <span id="composer-hint">Enter 发送 · Shift + Enter 换行</span>
+            </footer>
+          </main>
+          <aside
+            aria-hidden="true"
+            aria-label="工作区工作台"
+            class="inspector"
+            id="inspector"
+            inert=""
+          >
+            <header>
+              <h2 id="inspector-title">工作区</h2>
+              <div>
+                <button aria-pressed="false" class="text-button" id="expand-inspector">
+                  展开阅读</button
+                ><button aria-label="收起侧面板" class="close-button" id="close-ledger">×</button>
+              </div>
+            </header>
+            <div aria-label="工作台视图" class="inspector-tabs" role="tablist">
+              <button
+                aria-controls="panel-execution"
+                aria-selected="true"
+                id="tab-execution"
+                role="tab"
+              >
+                执行 <span id="ledger-count">0</span></button
+              ><button aria-controls="panel-tasks" aria-selected="false" id="tab-tasks" role="tab">
+                任务</button
+              ><button aria-controls="panel-files" aria-selected="false" id="tab-files" role="tab">
+                文件</button
+              ><button
+                aria-controls="panel-changes"
+                aria-selected="false"
+                id="tab-changes"
+                role="tab"
+              >
+                变更 <span id="changes-count">0</span>
+              </button>
+            </div>
+            <section
+              aria-labelledby="tab-execution"
+              class="inspector-panel"
+              id="panel-execution"
+              role="tabpanel"
+            >
+              <div class="ledger-list" id="ledger-list">
+                <div class="ledger-empty">
+                  <span aria-hidden="true" class="empty-ledger-mark">≡</span>
+                  <h3>尚无工具执行</h3>
+                  <p>文件读写、命令和联网操作将在这里逐条记录。</p>
+                </div>
+              </div>
+              <section class="usage-section">
+                <div class="section-title">
+                  <h3>本次会话用量</h3>
+                  <span class="subtle-label">累计</span>
+                </div>
+                <dl class="usage-grid">
+                  <div>
+                    <dt>模型调用</dt>
+                    <dd id="usage-calls">0</dd>
+                  </div>
+                  <div>
+                    <dt>执行命令</dt>
+                    <dd id="usage-commands">0</dd>
+                  </div>
+                  <div>
+                    <dt>输入 token</dt>
+                    <dd id="usage-input">0</dd>
+                  </div>
+                  <div>
+                    <dt>输出 token</dt>
+                    <dd id="usage-output">0</dd>
+                  </div>
+                </dl>
+                <div class="savings">
+                  <span>节省模型调用 <small>估算</small></span
+                  ><strong id="usage-saved">0</strong>
+                </div>
+                <p class="usage-note">按成功的可预测工具调用估算，并非账单或实测成本。</p>
+              </section>
+            </section>
+            <section
+              aria-labelledby="tab-tasks"
+              class="inspector-panel"
+              hidden=""
+              id="panel-tasks"
+              role="tabpanel"
+            >
+              <p class="panel-feedback" id="task-plan-explanation"></p>
+              <div class="task-plan-list" id="task-plan-list"></div>
+              <p class="task-plan-note">点击工具回执，查看每一步的执行结果。</p>
+            </section>
+            <section
+              aria-labelledby="tab-files"
+              class="inspector-panel"
+              hidden=""
+              id="panel-files"
+              role="tabpanel"
+            >
+              <div class="panel-toolbar">
+                <button class="text-button" id="files-up">上一级</button
+                ><span id="files-path">工作区</span
+                ><button class="text-button" id="refresh-files">刷新</button>
+              </div>
+              <form class="file-search-form" id="file-search-form">
+                <label class="visually-hidden" for="file-search">搜索当前目录及子目录</label
+                ><input
+                  id="file-search"
+                  maxlength="200"
+                  placeholder="搜索当前目录及子目录"
+                /><button class="quiet-button" type="submit">查找</button>
+              </form>
+              <p class="panel-feedback" id="files-feedback" role="status"></p>
+              <div class="files-list" id="files-list"></div>
+              <section class="file-preview" hidden="" id="file-preview">
+                <div class="panel-toolbar">
+                  <button class="text-button" id="close-file-preview">返回文件列表</button
+                  ><button class="quiet-button" id="attach-preview-file">引用到任务</button>
+                </div>
+                <h3 id="preview-file-name"></h3>
+                <p class="panel-feedback" id="preview-file-info"></p>
+                <pre aria-label="只读文件内容" id="preview-file-content" tabindex="0"></pre>
+              </section>
+            </section>
+            <section
+              aria-labelledby="tab-changes"
+              class="inspector-panel"
+              hidden=""
+              id="panel-changes"
+              role="tabpanel"
+            >
+              <div aria-label="变更来源" class="source-switch" role="group">
+                <button aria-pressed="true" id="source-git">Git 工作区</button
+                ><button aria-pressed="false" id="source-agent">本会话</button>
+              </div>
+              <div class="changes-source" id="git-changes">
+                <div class="panel-toolbar">
+                  <span id="git-branch">Git 工作区</span
+                  ><button class="text-button" id="refresh-git">刷新</button>
+                </div>
+                <p class="panel-feedback" id="git-feedback" role="status"></p>
+                <div class="files-list" id="git-file-list"></div>
+              </div>
+              <div class="changes-source" hidden="" id="agent-changes">
+                <div class="panel-toolbar">
+                  <span>本会话的文件变更</span
+                  ><button class="text-button" id="refresh-changes">刷新</button>
+                </div>
+                <p class="panel-feedback" id="changes-feedback" role="status"></p>
+                <div class="changes-list" id="changes-list"></div>
+                <section class="change-preview" hidden="" id="change-preview">
+                  <div class="panel-toolbar">
+                    <button class="text-button" id="close-change-preview">返回变更列表</button
+                    ><button class="quiet-button" id="open-revert">回退这次变更</button>
+                  </div>
+                  <h3 id="change-file-name"></h3>
+                  <p class="panel-feedback" id="change-file-info"></p>
+                  <pre aria-label="文件变更差异" id="change-diff" tabindex="0"></pre>
+                </section>
+              </div>
+            </section>
+            <div
+              aria-label="调整侧面板宽度"
+              aria-orientation="vertical"
+              class="resize-handle resize-horizontal"
+              id="inspector-resize"
+              role="separator"
+              tabindex="0"
+            ></div>
+          </aside>
+        </div>
+        <section
+          aria-hidden="true"
+          aria-label="工作区终端"
+          class="terminal-panel"
+          id="terminal-panel"
+          inert=""
+        >
+          <div
+            aria-label="调整终端高度"
+            aria-orientation="horizontal"
+            class="resize-handle resize-vertical"
+            id="terminal-resize"
+            role="separator"
+            tabindex="0"
+          ></div>
+          <header class="terminal-header">
+            <span class="terminal-heading">终端</span>
+            <div aria-label="终端会话" id="terminal-tabs" role="tablist"></div>
+            <button aria-label="新建终端" class="icon-button" id="new-terminal" title="新建终端">
+              ＋</button
+            ><button
+              aria-label="收起终端"
+              class="icon-button"
+              id="close-terminal-panel"
+              title="收起终端"
+            >
+              ×
+            </button>
+          </header>
+          <p class="panel-feedback" id="terminal-feedback" role="status"></p>
+          <div id="terminal-views"></div>
+        </section>
       </div>
-      <button id="back-to-bottom" class="back-to-bottom" hidden>回到底部 ↓</button>
-      <button id="execution-summary" class="execution-summary" aria-controls="inspector">尚无执行记录 <span>查看账本 →</span></button>
-      <section class="recovery-banner" id="recovery" hidden><strong>上次执行意外中断，请核对文件后继续</strong><p>以下操作的最终状态不确定，续想不会自动重放。</p><pre id="recovery-details"></pre><button class="primary-button" id="acknowledge-recovery">已核对，继续会话</button></section>
-      <section class="approval-panel" id="approval" aria-labelledby="approval-title" hidden><div class="approval-heading"><span class="approval-symbol" aria-hidden="true">!</span><h2 id="approval-title">需要您的授权</h2><span class="muted" id="approval-tool"></span></div><p>请核对这次操作的具体参数。授权只适用于本次请求。</p><pre id="approval-params"></pre><div class="approval-actions"><button class="quiet-button" id="reject">拒绝</button><button class="primary-button" id="approve">允许一次</button></div></section>
-      <div class="input-extras" id="input-extras">
-      <section id="queue-panel" class="queue-panel" aria-label="待发队列" hidden><div class="queue-heading"><span id="queue-status"></span><div><button id="pause-queue" class="text-button">暂停队列</button><button id="resume-queue" class="text-button">继续队列</button></div></div><ol id="queue-list"></ol><p id="queue-reason">后续任务由本地后端保存；重启后暂停。</p></section>
-      <section id="input-receipt-panel" class="input-notice" aria-live="polite" hidden><span id="input-receipt-status"></span><div><button id="query-input-receipt" class="text-button">查询回执</button><button id="retry-input" class="text-button" hidden>重试同一提交</button><button id="restore-unreceived-input" class="text-button" hidden>返回草稿</button><button id="edit-pending-input" class="text-button">查看内容</button></div></section>
-      <button id="legacy-input-notice" class="legacy-input-notice" hidden>发现旧版待发内容，请手动核对迁移 →</button>
-      <div id="attachment-chips" class="attachment-chips" aria-label="已引用文件" hidden></div>
+    </div>
+    <dialog aria-labelledby="settings-title" id="settings-dialog">
+      <form id="settings-form">
+        <div class="dialog-header">
+          <button aria-label="关闭设置" class="settings-back" id="close-settings" type="button">
+            ← 返回工作区
+          </button>
+          <div><h2 id="settings-title">设置</h2></div>
+          <div class="settings-search-wrap">
+            <input
+              aria-label="搜索设置"
+              autocomplete="off"
+              id="settings-search"
+              placeholder="搜索设置"
+              type="search"
+            />
+            <div class="settings-search-results" hidden="" id="settings-search-results"></div>
+          </div>
+        </div>
+        <div class="settings-layout">
+          <nav
+            aria-label="设置分类"
+            aria-orientation="vertical"
+            class="settings-nav"
+            role="tablist"
+          >
+            <button
+              aria-controls="settings-connection"
+              aria-selected="true"
+              data-settings-page="connection"
+              id="settings-nav-connection"
+              role="tab"
+              type="button"
+            >
+              模型连接</button
+            ><button
+              aria-controls="settings-context"
+              aria-selected="false"
+              data-settings-page="context"
+              id="settings-nav-context"
+              role="tab"
+              type="button"
+            >
+              上下文与运行</button
+            ><button
+              aria-controls="settings-tools"
+              aria-selected="false"
+              data-settings-page="tools"
+              id="settings-nav-tools"
+              role="tab"
+              type="button"
+            >
+              工程与权限</button
+            ><button
+              aria-controls="settings-appearance"
+              aria-selected="false"
+              data-settings-page="appearance"
+              id="settings-nav-appearance"
+              role="tab"
+              type="button"
+            >
+              外观</button
+            ><button
+              aria-controls="settings-advanced"
+              aria-selected="false"
+              data-settings-page="advanced"
+              id="settings-nav-advanced"
+              role="tab"
+              type="button"
+            >
+              高级配置
+            </button>
+          </nav>
+          <div class="settings-content">
+            <section
+              aria-labelledby="settings-nav-connection"
+              class="settings-page"
+              id="settings-connection"
+              role="tabpanel"
+            >
+              <div class="settings-page-heading">
+                <h2>模型连接</h2>
+                <p>连接自己的模型</p>
+              </div>
+              <div class="model-tools">
+                <button class="quiet-button" id="deepseek-preset" type="button">
+                  填写 DeepSeek 配置
+                </button>
+                <p>填入常用配置后，请保存设置，再测试连接。</p>
+              </div>
+              <div class="form-grid">
+                <label
+                  >接口类型<select name="provider">
+                    <option value="openai">OpenAI 兼容</option>
+                    <option value="anthropic">Anthropic 兼容</option>
+                  </select></label
+                ><label
+                  >模型名称<input
+                    maxlength="512"
+                    name="model"
+                    placeholder="填写端点支持的模型名"
+                    required="" /></label
+                ><label class="wide"
+                  >端点地址<input
+                    maxlength="4096"
+                    name="base_url"
+                    placeholder="https://api.example.com"
+                    required=""
+                    type="url"
+                  /><span class="field-hint">填写基础地址，具体接口路径可在下方覆盖。</span></label
+                ><label class="wide"
+                  >接口路径 <span class="optional">可选</span
+                  ><input
+                    maxlength="1024"
+                    name="api_path"
+                    placeholder="留空使用该接口类型的默认路径" /></label
+                ><label class="wide"
+                  >API 密钥 <span class="optional" id="key-state">尚未保存</span
+                  ><input
+                    autocomplete="off"
+                    maxlength="16384"
+                    name="api_key"
+                    placeholder="填写密钥；留空保留已保存的密钥"
+                    type="password"
+                  /><span class="field-hint"
+                    >仅保存在本机，使用 Windows 系统加密；界面不会回读密钥。</span
+                  ></label
+                >
+              </div>
+              <label class="checkbox-label"
+                ><input name="clear_api_key" type="checkbox" /> 清除已保存的密钥</label
+              >
+              <div class="form-grid model-thinking" id="thinking-settings-fields">
+                <label
+                  ><span id="thinking-mode-label">思考模式</span
+                  ><select name="thinking_mode">
+                    <option value="disabled">关闭（默认）</option>
+                    <option value="enabled">启用</option>
+                  </select></label
+                ><label
+                  ><span id="thinking-effort-label">思考强度</span
+                  ><select name="reasoning_effort">
+                    <option value="none">不推理</option>
+                    <option value="minimal">极低</option>
+                    <option value="low">低</option>
+                    <option value="medium">中</option>
+                    <option value="high">高</option>
+                    <option value="xhigh">极高</option>
+                    <option value="max">最高</option>
+                  </select></label
+                >
+              </div>
+              <label hidden="" id="thinking-budget-field"
+                >思考预算（token）<input
+                  min="0"
+                  name="thinking_budget"
+                  placeholder="0 关闭思考"
+                  type="number"
+                  value="0"
+              /></label>
+              <p class="field-hint" id="thinking-settings-hint">
+                跟随模型默认，或明确指定请求的思考强度。
+              </p>
+              <div class="model-probe-tools">
+                <button class="quiet-button" id="model-probe" type="button">测试已保存连接</button
+                ><button class="quiet-button" id="model-catalog" type="button">
+                  获取已保存端点的模型列表
+                </button>
+                <p id="model-probe-result" role="status">
+                  测试仅使用已保存设置，会发送一次小请求（最多64输出token）；获取列表也只使用已保存端点。修改后请先保存。
+                </p>
+                <div id="model-catalog-list"></div>
+              </div>
+            </section>
+            <section
+              aria-labelledby="settings-nav-context"
+              class="settings-page"
+              hidden=""
+              id="settings-context"
+              role="tabpanel"
+            >
+              <div class="settings-page-heading">
+                <h2>上下文与运行</h2>
+                <p>按任务调整运行方式</p>
+              </div>
+              <div class="form-section">
+                <h3>运行限制</h3>
+                <div class="form-grid three">
+                  <label
+                    >输出 token 上限（可选）<input
+                      max="1000000"
+                      min="1"
+                      name="max_tokens"
+                      placeholder="留空跟随服务商，不额外限额"
+                      type="number" /></label
+                  ><label
+                    >最多模型回合<input
+                      max="1000"
+                      min="1"
+                      name="max_run_turns"
+                      required=""
+                      type="number" /></label
+                  ><label
+                    >最长运行时间（秒）<input
+                      max="86400"
+                      min="1"
+                      name="max_run_seconds"
+                      required=""
+                      type="number"
+                  /></label>
+                </div>
+              </div>
+              <div class="form-section">
+                <h3>上下文整理</h3>
+                <p class="field-hint">整理在本地完成。留空沿用默认值，修改会同步到高级配置。</p>
+                <div class="form-grid">
+                  <label
+                    >自动整理<select data-kind="boolean" data-runtime-path="compaction.enabled">
+                      <option value="">默认 · 启用</option>
+                      <option value="true">启用</option>
+                      <option value="false">关闭</option>
+                    </select></label
+                  >
+                  <label
+                    >输入 token 触发预算<input
+                      data-runtime-path="compaction.max_input_tokens"
+                      min="0"
+                      placeholder="默认 0 · 不启用 token 阈值"
+                      type="number"
+                  /></label>
+                  <label
+                    >近期保留 token<input
+                      data-runtime-path="compaction.keep_recent_tokens"
+                      min="0"
+                      placeholder="默认 0 · 按消息数保留"
+                      type="number"
+                  /></label>
+                  <label
+                    >消息数触发阈值<input
+                      data-runtime-path="compaction.max_messages"
+                      min="0"
+                      placeholder="默认 80"
+                      type="number"
+                  /></label>
+                  <label
+                    >近期保留消息数<input
+                      data-runtime-path="compaction.keep_recent_messages"
+                      min="0"
+                      placeholder="默认 30"
+                      type="number"
+                  /></label>
+                  <label
+                    >单次读取字符数<input
+                      data-runtime-path="max_read_chars"
+                      min="1"
+                      placeholder="沿用默认值"
+                      type="number"
+                  /></label>
+                </div>
+              </div>
+            </section>
+            <section
+              aria-labelledby="settings-nav-tools"
+              class="settings-page"
+              hidden=""
+              id="settings-tools"
+              role="tabpanel"
+            >
+              <div class="settings-page-heading">
+                <h2>工程与权限</h2>
+                <p>工具、权限与工程指引</p>
+              </div>
+              <div class="form-section">
+                <h3>工程指引</h3>
+                <label for="engineering-guidance">指引方式</label
+                ><select id="engineering-guidance">
+                  <option value="recommended">推荐 · 内置工程指引</option>
+                  <option value="custom">自定义</option>
+                  <option value="off">关闭</option></select
+                ><label hidden="" id="custom-engineering-guidance"
+                  >自定义工程指引<textarea name="system_prompt" rows="8"></textarea>
+                </label>
+                <p class="field-hint">
+                  推荐保留内置工程指引；自定义只替换工程指引，工具协议由框架自动注入。
+                </p>
+              </div>
+              <div class="form-section">
+                <h3>工具调用</h3>
+                <label class="checkbox-label"
+                  ><input name="enable_native_tools" type="checkbox" /> 启用原生工具调用</label
+                >
+                <p class="field-hint">默认使用流式工具；需要扩展工具或兼容原生工具调用时开启。</p>
+              </div>
+              <div class="form-section">
+                <h3>执行权限</h3>
+                <label
+                  >权限策略<select name="security_profile">
+                    <option value="balanced">平衡 · 工作区内读写，高风险需授权</option>
+                    <option value="read-only">只读 · 阻止文件写入和命令执行</option>
+                    <option value="open">开放 · 放宽命令与敏感读取</option>
+                  </select></label
+                >
+                <p class="policy-description" id="policy-description"></p>
+              </div>
+            </section>
+            <section
+              aria-labelledby="settings-nav-appearance"
+              class="settings-page"
+              hidden=""
+              id="settings-appearance"
+              role="tabpanel"
+            >
+              <div class="settings-page-heading">
+                <h2>外观</h2>
+                <p>适合您的工作方式</p>
+              </div>
+              <div class="form-section">
+                <h3>主题</h3>
+                <div aria-label="界面主题" class="theme-options" role="group">
+                  <button data-theme-choice="system" type="button">跟随系统</button
+                  ><button data-theme-choice="light" type="button">浅色</button
+                  ><button data-theme-choice="dark" type="button">深色</button>
+                </div>
+                <p class="field-hint">外观即时生效，仅保存在当前设备。</p>
+              </div>
+              <div class="form-section">
+                <h3>交互动效</h3>
+                <label class="checkbox-label"
+                  ><input id="reduce-motion" type="checkbox" /> 减少动画</label
+                >
+                <p class="field-hint">
+                  面板拖拽始终跟随指针。系统开启减少动态效果时，也会自动关闭过渡。
+                </p>
+              </div>
+            </section>
+            <section
+              aria-labelledby="settings-nav-advanced"
+              class="settings-page"
+              hidden=""
+              id="settings-advanced"
+              role="tabpanel"
+            >
+              <div class="settings-page-heading">
+                <h2>高级配置</h2>
+                <p>直接编辑运行配置</p>
+              </div>
+              <div class="form-section runtime-config" id="runtime-config-section">
+                <h3>更多运行配置</h3>
+                <label class="visually-hidden" for="runtime-config">运行配置 JSON 对象</label>
+                <p class="field-hint" id="runtime-config-hint">
+                  只填写需要覆盖的字段。删除字段恢复默认，填写 {} 恢复全部默认。
+                </p>
+                <textarea
+                  aria-describedby="runtime-config-hint runtime-config-fields"
+                  id="runtime-config"
+                  placeholder='{"compaction":{"enabled":false}}'
+                  rows="8"
+                  spellcheck="false"
+                ></textarea>
+                <p class="field-hint" id="runtime-config-fields"></p>
+              </div>
+            </section>
+          </div>
+        </div>
+        <p class="form-error" hidden="" id="settings-error" role="alert"></p>
+        <div class="dialog-footer">
+          <span>连接与运行配置保存在本机</span
+          ><button class="quiet-button" id="cancel-settings" type="button">取消修改</button
+          ><button class="primary-button" id="save-settings" type="submit">保存设置</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog aria-labelledby="command-title" id="command-dialog">
+      <div class="dialog-header">
+        <h2 id="command-title">搜索会话与操作</h2>
+        <button aria-label="关闭搜索" class="close-button" id="close-command">×</button>
       </div>
-      <form class="composer" id="composer"><label class="visually-hidden" for="prompt">描述任务</label><textarea id="prompt" rows="2" maxlength="200000" placeholder="描述任务，或继续思考…"></textarea><div class="composer-footer"><div class="composer-options"><button type="button" class="text-button" id="attach-file">引用文件</button><button type="button" class="text-button" id="settings-top"><span id="model-label">尚未配置模型</span>⌄</button><button type="button" class="text-button" id="policy-button"><span id="policy-label">平衡权限</span>⌄</button></div><button type="button" id="stop" class="stop-button" hidden>■ 停止</button><button type="submit" class="primary-button" id="send">发送 ↑</button></div></form>
-      <footer class="context-footer"><span id="context-label">上下文 0 条 · 0 字符</span><span id="composer-hint">Enter 发送 · Shift + Enter 换行</span></footer>
-    </main>
-    <aside class="inspector" id="inspector" aria-label="工作区工作台"><header><h2 id="inspector-title">工作台</h2><div><button id="expand-inspector" class="text-button" aria-pressed="false">展开阅读</button><button id="close-ledger" class="close-button" aria-label="收起工作台">×</button></div></header><div class="inspector-tabs" role="tablist" aria-label="工作台视图"><button id="tab-execution" role="tab" aria-selected="true" aria-controls="panel-execution">执行 <span id="ledger-count">0</span></button><button id="tab-tasks" role="tab" aria-selected="false" aria-controls="panel-tasks">任务</button><button id="tab-files" role="tab" aria-selected="false" aria-controls="panel-files">文件</button><button id="tab-changes" role="tab" aria-selected="false" aria-controls="panel-changes">变更 <span id="changes-count">0</span></button></div>
-      <section id="panel-execution" class="inspector-panel" role="tabpanel" aria-labelledby="tab-execution"><div class="ledger-list" id="ledger-list"><div class="ledger-empty"><span class="empty-ledger-mark" aria-hidden="true">≡</span><h3>尚无工具执行</h3><p>文件读写、命令和联网操作将在这里逐条记录。</p></div></div><section class="usage-section"><div class="section-title"><h3>本次会话用量</h3><span class="subtle-label">累计</span></div><dl class="usage-grid"><div><dt>模型调用</dt><dd id="usage-calls">0</dd></div><div><dt>执行命令</dt><dd id="usage-commands">0</dd></div><div><dt>输入 token</dt><dd id="usage-input">0</dd></div><div><dt>输出 token</dt><dd id="usage-output">0</dd></div></dl><div class="savings"><span>节省模型调用 <small>估算</small></span><strong id="usage-saved">0</strong></div><p class="usage-note">按成功的可预测工具调用估算，并非账单或实测成本。</p></section></section>
-<section id="panel-tasks" class="inspector-panel" role="tabpanel" aria-labelledby="tab-tasks" hidden><p id="task-plan-explanation" class="panel-feedback"></p><div id="task-plan-list" class="task-plan-list"></div><p class="task-plan-note">完成由模型标记。成功工具回执可核查操作结果，不代表验收条件已自动满足。</p></section>
-      <section id="panel-files" class="inspector-panel" role="tabpanel" aria-labelledby="tab-files" hidden><div class="panel-toolbar"><button id="files-up" class="text-button">上一级</button><span id="files-path">工作区</span><button id="refresh-files" class="text-button">刷新</button></div><form id="file-search-form" class="file-search-form"><label class="visually-hidden" for="file-search">搜索当前目录及子目录</label><input id="file-search" maxlength="200" placeholder="搜索当前目录及子目录"><button type="submit" class="quiet-button">查找</button></form><p id="files-feedback" class="panel-feedback" role="status"></p><div id="files-list" class="files-list"></div><section id="file-preview" class="file-preview" hidden><div class="panel-toolbar"><button id="close-file-preview" class="text-button">返回文件列表</button><button id="attach-preview-file" class="quiet-button">引用到任务</button></div><h3 id="preview-file-name"></h3><p id="preview-file-info" class="panel-feedback"></p><pre id="preview-file-content" tabindex="0" aria-label="只读文件内容"></pre></section></section>
-      <section id="panel-changes" class="inspector-panel" role="tabpanel" aria-labelledby="tab-changes" hidden><div class="panel-toolbar"><span>本会话的文件变更</span><button id="refresh-changes" class="text-button">刷新</button></div><p id="changes-feedback" class="panel-feedback" role="status"></p><div id="changes-list" class="changes-list"></div><section id="change-preview" class="change-preview" hidden><div class="panel-toolbar"><button id="close-change-preview" class="text-button">返回变更列表</button><button id="open-revert" class="quiet-button">回退这次变更</button></div><h3 id="change-file-name"></h3><p id="change-file-info" class="panel-feedback"></p><pre id="change-diff" tabindex="0" aria-label="文件变更差异"></pre></section></section>
-    </aside>
-  </div>
-  <dialog id="settings-dialog" aria-labelledby="settings-title"><form id="settings-form"><div class="dialog-header"><div><div class="eyebrow">本机配置</div><h2 id="settings-title">接口与权限</h2></div><button type="button" class="close-button" id="close-settings" aria-label="关闭设置">×</button></div><div class="dialog-body"><div class="model-tools"><button id="deepseek-preset" type="button" class="quiet-button">填写 DeepSeek 配置</button><p>填入常用配置后，请保存设置，再测试连接。</p></div><div class="form-grid"><label>接口类型<select name="provider"><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic 兼容</option></select></label><label>模型名称<input name="model" placeholder="填写端点支持的模型名" maxlength="512" required></label><label class="wide">端点地址<input name="base_url" type="url" placeholder="https://api.example.com" required maxlength="4096"><span class="field-hint">填写基础地址，具体接口路径可在下方覆盖。</span></label><label class="wide">接口路径 <span class="optional">可选</span><input name="api_path" placeholder="留空使用该接口类型的默认路径" maxlength="1024"></label><label class="wide">API 密钥 <span class="optional" id="key-state">尚未保存</span><input name="api_key" type="password" autocomplete="off" placeholder="填写密钥；留空保留已保存的密钥" maxlength="16384"><span class="field-hint">仅保存在本机，使用 Windows 系统加密；界面不会回读密钥。</span></label></div><label class="checkbox-label"><input type="checkbox" name="clear_api_key"> 清除已保存的密钥</label><div class="form-grid model-thinking"><label>DeepSeek 思考<select name="thinking_mode"><option value="disabled">关闭（默认）</option><option value="enabled">启用</option></select></label><label>DeepSeek 思考强度<select name="reasoning_effort"><option value="low">低</option><option value="high">高</option><option value="max">最高</option></select></label></div><p class="field-hint">思考参数仅用于兼容接口中的 DeepSeek 模型；其他模型和接口使用各自默认行为。</p><div class="model-probe-tools"><button id="model-probe" type="button" class="quiet-button">测试已保存连接</button><button id="model-catalog" type="button" class="quiet-button">获取已保存端点的模型列表</button><p id="model-probe-result" role="status">测试仅使用已保存设置，会发送一次小请求（最多64输出token）；获取列表也只使用已保存端点。修改后请先保存。</p><div id="model-catalog-list"></div></div><div class="form-section"><h3>运行限制</h3><div class="form-grid three"><label>输出 token 上限（可选）<input name="max_tokens" type="number" min="1" max="1000000" placeholder="留空跟随服务商，不额外限额"></label><label>最多模型回合<input name="max_run_turns" type="number" min="1" max="1000" required></label><label>最长运行时间（秒）<input name="max_run_seconds" type="number" min="1" max="86400" required></label></div></div><div class="form-section"><h3>工程指引</h3><label for="engineering-guidance">指引方式</label><select id="engineering-guidance"><option value="recommended">推荐 · 内置工程指引</option><option value="custom">自定义</option><option value="off">关闭</option></select><label id="custom-engineering-guidance" hidden>自定义工程指引<textarea name="system_prompt" rows="8"></textarea></label><p class="field-hint">推荐保留内置工程指引；自定义只替换工程指引，工具协议由框架自动注入。</p></div><div class="form-section"><h3>工具调用</h3><label class="checkbox-label"><input type="checkbox" name="enable_native_tools"> 启用原生工具调用</label><p class="field-hint">默认使用流式工具；需要扩展工具或兼容原生工具调用时开启。</p></div><div class="form-section"><h3>执行权限</h3><label>权限策略<select name="security_profile"><option value="balanced">平衡 · 工作区内读写，高风险需授权</option><option value="read-only">只读 · 阻止文件写入和命令执行</option><option value="open">开放 · 放宽命令与敏感读取</option></select></label><p class="policy-description" id="policy-description"></p><p class="field-hint">这些是续想的工具规则过滤，并非操作系统沙箱。开放策略可读取工作区外内容；带变更记录的文件写入仍限当前工作区。</p></div>
-        <details class="form-section runtime-config" id="runtime-config-section">
-          <summary>更多运行配置</summary>
-          <label class="visually-hidden" for="runtime-config">运行配置 JSON 对象</label>
-          <p class="field-hint" id="runtime-config-hint">只填写需要覆盖的字段。删除字段恢复默认，填写 {} 恢复全部默认。</p>
-          <textarea id="runtime-config" rows="8" spellcheck="false" aria-describedby="runtime-config-hint runtime-config-fields" placeholder='{"compaction":{"enabled":false}}'></textarea>
-          <p class="field-hint" id="runtime-config-fields"></p>
-        </details>
-        <p class="form-error" id="settings-error" role="alert" hidden></p></div><div class="dialog-footer"><span>保存不会调用远程模型</span><button type="button" class="quiet-button" id="cancel-settings">取消</button><button class="primary-button" id="save-settings" type="submit">保存设置</button></div></form></dialog>
-  <dialog id="command-dialog" aria-labelledby="command-title"><div class="dialog-header"><h2 id="command-title">搜索会话与操作</h2><button class="close-button" id="close-command" aria-label="关闭搜索">×</button></div><div class="command-body"><label class="visually-hidden" for="command-search">搜索关键词</label><input id="command-search" placeholder="搜索会话，或输入操作名称" autocomplete="off"><div id="command-results"></div></div></dialog>
-  <dialog id="rename-dialog" aria-labelledby="rename-title"><form id="rename-form"><div class="dialog-header"><h2 id="rename-title">重命名会话</h2></div><div class="dialog-body"><label>会话名称<input id="rename-input" maxlength="120" required></label></div><div class="dialog-footer"><button type="button" id="cancel-rename">取消</button><button type="submit" class="primary-button">保存</button></div></form></dialog>
-  <dialog id="workspace-dialog" aria-labelledby="recent-title"><div class="dialog-header"><h2 id="recent-title">最近工作区</h2><button class="close-button" id="close-recent" aria-label="关闭最近工作区">×</button></div><div class="dialog-body" id="recent-list"></div></dialog>
-  <dialog id="shortcuts-dialog" aria-labelledby="shortcuts-title"><div class="dialog-header"><h2 id="shortcuts-title">快捷键</h2><button class="close-button" id="close-shortcuts" aria-label="关闭快捷键">×</button></div><div class="dialog-body"><dl class="shortcut-list"><dt>搜索会话与操作</dt><dd>Ctrl + K</dd><dt>新建会话</dt><dd>Ctrl + N</dd><dt>收起 / 展开侧栏</dt><dd>Ctrl + B</dd><dt>设置</dt><dd>Ctrl + ,</dd><dt>快捷键帮助</dt><dd>Ctrl + /</dd><dt>发送 / 加入队列</dt><dd>Enter 或 Ctrl + Enter</dd><dt>换行</dt><dd>Shift + Enter</dd></dl><p class="field-hint">运行中不能切换会话或工作区。后续任务加入队列，当前任务成功完成后才继续。</p></div></dialog>
-  <dialog id="queue-edit-dialog" aria-labelledby="queue-edit-title"><form id="queue-edit-form"><div class="dialog-header"><h2 id="queue-edit-title">编辑待发任务</h2><button type="button" id="close-queue-edit" class="close-button" aria-label="关闭任务编辑">×</button></div><div class="dialog-body"><label for="queue-edit-prompt">任务内容</label><textarea id="queue-edit-prompt" maxlength="200000" rows="8" required></textarea><p id="queue-edit-note" class="field-hint">只修改尚未运行的任务；文件引用保持不变。</p><p id="queue-edit-error" class="form-error" hidden></p></div><div class="dialog-footer"><button id="cancel-queue-edit" type="button" class="quiet-button">取消</button><button id="save-queue-edit" type="submit" class="primary-button">保存任务</button></div></form></dialog>
-  <dialog id="legacy-input-dialog" aria-labelledby="legacy-input-title"><div class="dialog-header"><h2 id="legacy-input-title">旧版待发内容</h2><button id="close-legacy-input" class="close-button" aria-label="关闭旧版内容">×</button></div><div class="dialog-body"><p class="field-hint">这些内容来自0.7本机队列，未导入后端。请核对会话记录，手动复制或取回草稿；不会自动发送，也不会清除原记录。</p><div id="legacy-input-list"></div></div></dialog>
-  <dialog id="revert-dialog" aria-labelledby="revert-title"><form id="revert-form"><div class="dialog-header"><h2 id="revert-title">确认回退文件变更</h2><button id="close-revert" type="button" class="close-button" aria-label="取消回退">×</button></div><div class="dialog-body"><p>将按已预览的版本回退以下文件；文件已被其他操作修改时会拒绝回退。</p><strong id="revert-path"></strong><pre id="revert-diff" tabindex="0"></pre><p id="revert-error" class="form-error" hidden></p></div><div class="dialog-footer"><button id="cancel-revert" type="button" class="quiet-button">取消</button><button id="confirm-revert" type="submit" class="primary-button">确认回退</button></div></form></dialog>
-  <div class="toast" id="toast" role="status" hidden></div>
-</body>
+      <div class="command-body">
+        <label class="visually-hidden" for="command-search">搜索关键词</label
+        ><input autocomplete="off" id="command-search" placeholder="搜索会话，或输入操作名称" />
+        <div id="command-results"></div>
+      </div>
+    </dialog>
+    <dialog aria-labelledby="rename-title" id="rename-dialog">
+      <form id="rename-form">
+        <div class="dialog-header"><h2 id="rename-title">重命名会话</h2></div>
+        <div class="dialog-body">
+          <label>会话名称<input id="rename-input" maxlength="120" required="" /></label>
+        </div>
+        <div class="dialog-footer">
+          <button id="cancel-rename" type="button">取消</button
+          ><button class="primary-button" type="submit">保存</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog aria-labelledby="recent-title" id="workspace-dialog">
+      <div class="dialog-header">
+        <h2 id="recent-title">最近工作区</h2>
+        <button aria-label="关闭最近工作区" class="close-button" id="close-recent">×</button>
+      </div>
+      <div class="dialog-body" id="recent-list"></div>
+    </dialog>
+    <dialog aria-labelledby="shortcuts-title" id="shortcuts-dialog">
+      <div class="dialog-header">
+        <h2 id="shortcuts-title">快捷键</h2>
+        <button aria-label="关闭快捷键" class="close-button" id="close-shortcuts">×</button>
+      </div>
+      <div class="dialog-body">
+        <dl class="shortcut-list">
+          <dt>搜索会话与操作</dt>
+          <dd>Ctrl + K</dd>
+          <dt>新建会话</dt>
+          <dd>Ctrl + N</dd>
+          <dt>收起 / 展开侧栏</dt>
+          <dd>Ctrl + B</dd>
+          <dt>设置</dt>
+          <dd>Ctrl + ,</dd>
+          <dt>快捷键帮助</dt>
+          <dd>Ctrl + /</dd>
+          <dt>发送 / 加入队列</dt>
+          <dd>Enter 或 Ctrl + Enter</dd>
+          <dt>换行</dt>
+          <dd>Shift + Enter</dd>
+          <dt>文件面板</dt>
+          <dd>Ctrl + Shift + E</dd>
+          <dt>变更面板</dt>
+          <dd>Ctrl + Shift + G</dd>
+          <dt>终端</dt>
+          <dd>Ctrl + `</dd>
+        </dl>
+        <p class="field-hint">
+          运行中不能切换会话或工作区。后续任务加入队列，当前任务成功完成后才继续。
+        </p>
+      </div>
+    </dialog>
+    <dialog aria-labelledby="queue-edit-title" id="queue-edit-dialog">
+      <form id="queue-edit-form">
+        <div class="dialog-header">
+          <h2 id="queue-edit-title">编辑待发任务</h2>
+          <button
+            aria-label="关闭任务编辑"
+            class="close-button"
+            id="close-queue-edit"
+            type="button"
+          >
+            ×
+          </button>
+        </div>
+        <div class="dialog-body">
+          <label for="queue-edit-prompt">任务内容</label
+          ><textarea id="queue-edit-prompt" maxlength="200000" required="" rows="8"></textarea>
+          <p class="field-hint" id="queue-edit-note">只修改尚未运行的任务；文件引用保持不变。</p>
+          <p class="form-error" hidden="" id="queue-edit-error"></p>
+        </div>
+        <div class="dialog-footer">
+          <button class="quiet-button" id="cancel-queue-edit" type="button">取消</button
+          ><button class="primary-button" id="save-queue-edit" type="submit">保存任务</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog aria-labelledby="legacy-input-title" id="legacy-input-dialog">
+      <div class="dialog-header">
+        <h2 id="legacy-input-title">旧版待发内容</h2>
+        <button aria-label="关闭旧版内容" class="close-button" id="close-legacy-input">×</button>
+      </div>
+      <div class="dialog-body">
+        <p class="field-hint">
+          这些内容来自0.7本机队列，未导入后端。请核对会话记录，手动复制或取回草稿；不会自动发送，也不会清除原记录。
+        </p>
+        <div id="legacy-input-list"></div>
+      </div>
+    </dialog>
+    <dialog aria-labelledby="revert-title" id="revert-dialog">
+      <form id="revert-form">
+        <div class="dialog-header">
+          <h2 id="revert-title">确认回退文件变更</h2>
+          <button aria-label="取消回退" class="close-button" id="close-revert" type="button">
+            ×
+          </button>
+        </div>
+        <div class="dialog-body">
+          <p>将按已预览的版本回退以下文件；文件已被其他操作修改时会拒绝回退。</p>
+          <strong id="revert-path"></strong>
+          <pre id="revert-diff" tabindex="0"></pre>
+          <p class="form-error" hidden="" id="revert-error"></p>
+        </div>
+        <div class="dialog-footer">
+          <button class="quiet-button" id="cancel-revert" type="button">取消</button
+          ><button class="primary-button" id="confirm-revert" type="submit">确认回退</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="toast" hidden="" id="toast" role="status"></div>
+    <div
+      aria-labelledby="policy-popover-title"
+      class="composer-popover"
+      id="policy-popover"
+      popover=""
+    >
+      <div class="popover-heading"><h2 id="policy-popover-title">执行权限</h2></div>
+      <div aria-label="权限模式" role="group">
+        <button class="choice-row" data-policy-choice="read-only">
+          <svg
+            aria-hidden="true"
+            fill="none"
+            height="18"
+            stroke="currentColor"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            viewbox="0 0 24 24"
+            width="18"
+          >
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+            <circle cx="12" cy="12" r="3"></circle></svg
+          ><span><strong>只读</strong><small>阅读、搜索，不修改文件</small></span
+          ><span aria-hidden="true" class="choice-check">✓</span>
+        </button>
+        <button class="choice-row" data-policy-choice="balanced">
+          <svg
+            aria-hidden="true"
+            fill="none"
+            height="18"
+            stroke="currentColor"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            viewbox="0 0 24 24"
+            width="18"
+          >
+            <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"></path>
+            <path d="m8 12 3 3 5-6"></path></svg
+          ><span><strong>平衡</strong><small>读写工作区，执行命令时询问</small></span
+          ><span aria-hidden="true" class="choice-check">✓</span>
+        </button>
+        <button class="choice-row" data-policy-choice="open">
+          <svg
+            aria-hidden="true"
+            fill="none"
+            height="18"
+            stroke="currentColor"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            viewbox="0 0 24 24"
+            width="18"
+          >
+            <rect height="11" rx="2" width="16" x="4" y="10"></rect>
+            <path d="M8 10V6a4 4 0 0 1 8 0"></path></svg
+          ><span><strong>开放</strong><small>允许工具直接执行命令和读写</small></span
+          ><span aria-hidden="true" class="choice-check">✓</span>
+        </button>
+      </div>
+      <button class="popover-link" id="permission-settings">工具与工程指引 <span>→</span></button>
+    </div>
+    <div
+      aria-labelledby="model-popover-title"
+      class="composer-popover model-popover"
+      id="model-popover"
+      popover=""
+    >
+      <div class="popover-heading">
+        <h2 id="model-popover-title">选择模型</h2>
+        <button class="text-button" id="model-connection-settings">连接设置</button>
+      </div>
+      <label class="visually-hidden" for="model-picker-search">搜索或输入模型名称</label
+      ><input
+        autocomplete="off"
+        id="model-picker-search"
+        maxlength="512"
+        placeholder="搜索或输入模型名称"
+      />
+      <div class="model-picker-list" id="model-picker-list"></div>
+      <button class="choice-row" hidden="" id="model-picker-custom"></button>
+      <p class="popover-feedback" id="model-picker-feedback" role="status"></p>
+      <button class="popover-link" id="refresh-model-picker">
+        获取端点的模型列表 <span>↻</span>
+      </button>
+    </div>
+    <div
+      aria-labelledby="context-popover-title"
+      class="composer-popover context-popover"
+      id="context-popover"
+      popover=""
+    >
+      <div class="popover-heading">
+        <h2 id="context-popover-title">上下文</h2>
+        <span id="context-token-value">—</span>
+      </div>
+      <span class="popover-feedback" id="context-estimate-label">最近一次输入</span>
+      <dl class="context-details">
+        <div>
+          <dt>当前保留</dt>
+          <dd id="context-retained"></dd>
+        </div>
+        <div>
+          <dt>已整理</dt>
+          <dd id="context-compactions"></dd>
+        </div>
+        <div>
+          <dt>自动整理</dt>
+          <dd id="context-budget"></dd>
+        </div>
+      </dl>
+      <p class="popover-feedback" hidden="" id="context-window-note"></p>
+      <div class="context-popover-actions">
+        <button class="text-button" id="context-compact">整理上下文</button
+        ><button class="text-button" id="context-settings">调整策略 →</button>
+      </div>
+    </div>
+    <div
+      aria-label="思考强度"
+      class="composer-popover thinking-popover"
+      id="thinking-popover"
+      popover=""
+    ></div>
+  </body>
 </html>

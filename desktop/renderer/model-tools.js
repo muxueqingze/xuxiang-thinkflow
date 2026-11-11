@@ -29,11 +29,12 @@ function renderModelToolResult(result, method) {
     return;
   }
   const list = $('model-catalog-list'); list.replaceChildren();
+  rememberCatalog(result);
   for (const item of result.models || []) {
     const name = typeof item === 'string' ? item : item.id || item.name;
     if (!name) continue;
-    const button = element('button','model-option',name);
-    button.addEventListener('click', () => { $('settings-form').elements.namedItem('model').value = name; $('model-probe-result').textContent = `已选择 ${name}，请保存后使用。`; }); list.append(button);
+    const button = element('button','model-option',name); button.type = 'button';
+    button.addEventListener('click', () => { $('settings-form').elements.namedItem('model').value = name; updateThinkingSettings(); $('model-probe-result').textContent = `已选择 ${name}，请保存后使用。`; }); list.append(button);
   }
   if (!list.childElementCount && result.ok !== false) list.append(element('p','field-hint','端点没有返回可选模型。可手动填写模型名称。'));
 }

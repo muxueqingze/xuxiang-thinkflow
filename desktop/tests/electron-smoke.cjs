@@ -112,7 +112,7 @@ async function main() {
   await page.locator('#approval').waitFor({ state: 'visible' });
   await checkApprovalLayout(page);
   await page.screenshot({ path: path.join(directory, 'approval-1000.png') });
-  assert.match(await page.locator('#approval-params').textContent(), /THINKFLOW_SMOKE/);
+  assert.match(await page.locator('#approval-command').textContent(), /THINKFLOW_SMOKE/);
   await page.locator('#reject').click(); await waitIdle(page);
   await page.locator('#new-session').click(); await page.waitForFunction(() => document.querySelectorAll('.message').length === 0);
   await page.locator('#prompt').fill('等待停止'); await page.locator('#send').click();
@@ -137,7 +137,7 @@ async function main() {
   await page.screenshot({ path: path.join(directory, 'recovery-1000.png') });
   await page.locator('#acknowledge-recovery').click(); await page.locator('#recovery').waitFor({ state: 'hidden' });
   assert.equal((await state(page)).recovery_required, false); assert.equal(fs.existsSync(path.join(workspace, 'check.txt')), false);
-  await page.locator('#settings-top').click();
+  await page.locator('#settings-side').click();
   await page.locator('[name=clear_api_key]').check(); await page.locator('#save-settings').click();
   await page.waitForFunction(() => !document.getElementById('settings-dialog').open);
   assert.equal((await state(page)).config.has_api_key, false);
