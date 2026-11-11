@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-11",
+  "kind": "temporary wheel, imported directly as packaged thinkflow; no model calls",
+  "wheel_version": "0.8.0",
+  "new_modules_present": [
+    "thinkflow/configuration.py",
+    "thinkflow/config_cli.py",
+    "thinkflow/runtime.py",
+    "thinkflow/context_budget.py"
+  ],
+  "sdk_import_and_registered_tool_passed": true,
+  "packaged_config_cli_passed": true,
+  "model_requests": 0,
+  "new_dependencies": [],
+  "temporary_workspace_removed": true
+}

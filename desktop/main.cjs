@@ -3,7 +3,7 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const { pathToFileURL } = require('node:url');
 const { BackendClient } = require('./backend.cjs');
-const { SettingsStore } = require('./settings.cjs');
+const { SettingsStore, RUNTIME_CONFIG_FIELDS, runtimeConfig } = require('./settings.cjs');
 const { NavigationStore, openWorkspace, openRecentWorkspace, restoreWorkspace } = require('./navigation.cjs');
 const PUBLIC_METHODS = new Set(['get_state', 'configure', 'new_session', 'resume_session', 'fork_session', 'update_session', 'run', 'cancel', 'approve', 'compact', 'acknowledge_recovery', 'submit_input', 'get_input_receipt', 'update_input', 'resume_queue', 'pause_queue', 'workspace_files', 'read_workspace_file', 'workspace_changes', 'workspace_diff', 'revert_workspace_change', 'model_probe', 'model_catalog']);
 let window, backend, store, navigation, initialized, quitting = false, settingsWarning = '', navigationWarning = '';
@@ -16,7 +16,7 @@ function validateSender(event) {
 }
 function validateParams(method, params) {
   if (!params || typeof params !== 'object' || Array.isArray(params) || JSON.stringify(params).length > 1024 * 1024) throw new Error('请求参数无效或过大');
-  const fields = { get_state: [], configure: ['provider', 'base_url', 'api_path', 'model', 'api_key', 'clear_api_key', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile', 'thinking_mode', 'reasoning_effort', 'stream_options_include_usage', 'enable_native_tools', 'use_builtin_system_prompt', 'system_prompt'], new_session: [], resume_session: ['session_id'], fork_session: [], update_session: ['session_id', 'title', 'pinned', 'archived'], run: ['prompt'], cancel: [], approve: ['request_id', 'approved'], compact: [], acknowledge_recovery: [], submit_input: ['command_id', 'prompt', 'session_id', 'attachments'], get_input_receipt: ['command_id', 'session_id'], update_input: ['command_id', 'action', 'prompt'], resume_queue: [], pause_queue: [], workspace_files: ['path', 'query'], read_workspace_file: ['path'], workspace_changes: [], workspace_diff: ['change_id'], revert_workspace_change: ['change_id', 'expected_revision'], model_probe: [], model_catalog: [] }[method];
+  const fields = { get_state: [], configure: ['provider', 'base_url', 'api_path', 'model', 'api_key', 'clear_api_key', 'max_tokens', 'max_run_turns', 'max_run_seconds', 'security_profile', 'thinking_mode', 'reasoning_effort', 'stream_options_include_usage', 'enable_native_tools', 'use_builtin_system_prompt', 'system_prompt', 'runtime_config', ...RUNTIME_CONFIG_FIELDS], new_session: [], resume_session: ['session_id'], fork_session: [], update_session: ['session_id', 'title', 'pinned', 'archived'], run: ['prompt'], cancel: [], approve: ['request_id', 'approved'], compact: [], acknowledge_recovery: [], submit_input: ['command_id', 'prompt', 'session_id', 'attachments'], get_input_receipt: ['command_id', 'session_id'], update_input: ['command_id', 'action', 'prompt'], resume_queue: [], pause_queue: [], workspace_files: ['path', 'query'], read_workspace_file: ['path'], workspace_changes: [], workspace_diff: ['change_id'], revert_workspace_change: ['change_id', 'expected_revision'], model_probe: [], model_catalog: [] }[method];
   if (!fields || Object.keys(params).some(key => !fields.includes(key))) throw new Error('不支持的请求参数');
   if (['run', 'submit_input'].includes(method) && (typeof params.prompt !== 'string' || !params.prompt.trim() || params.prompt.length > 200000)) throw new Error('请输入有效任务，最多 20 万字符');
   if (['submit_input', 'get_input_receipt', 'update_input'].includes(method) && (typeof params.command_id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(params.command_id))) throw new Error('输入命令编号无效');
@@ -47,6 +47,8 @@ async function wrapped(event, action) {
 function decorateState(state) {
   if (state?.state) state.state = decorateState(state.state);
   if (!state?.messages) return state;
+  state.runtime_config = runtimeConfig(store.current.config);
+  state.runtime_config_fields = RUNTIME_CONFIG_FIELDS;
   if (settingsWarning) state.settings_warning = settingsWarning;
   state.recent_workspaces = navigation.recent();
   state.navigation_warning = [navigationWarning, state.navigation_warning].filter(Boolean).join(' ');
@@ -77,9 +79,9 @@ function registerIPC() {
     const prepared = store.prepare(params);
     let previous;
     try { previous = store.backendConfig(); } catch { previous = { ...store.current.config, api_key: '' }; }
-    const result = await backend.request('configure', { ...prepared.backend, clear_api_key: params.clear_api_key === true });
+    const result = await backend.request('configure', { ...prepared.backend, clear_api_key: params.clear_api_key === true, replace_runtime_config: true });
     try { store.save(prepared); }
-    catch { await backend.request('configure', { ...previous, clear_api_key: !previous.api_key }).catch(() => {}); throw new Error('设置未保存，请检查用户目录写入权限'); }
+    catch { await backend.request('configure', { ...previous, clear_api_key: !previous.api_key, replace_runtime_config: true }).catch(() => {}); throw new Error('设置未保存，请检查用户目录写入权限'); }
     settingsWarning = '';
     return result;
   }));

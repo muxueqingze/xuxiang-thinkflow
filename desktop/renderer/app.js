@@ -66,7 +66,11 @@ async function perform(action, { notify, settings = false, navigation = false } 
     if (notify) toast(notify);
     return result;
   } catch (error) {
-    if (settings) { $('settings-error').textContent = error.message; $('settings-error').hidden = false; }
+    if (settings) {
+      const warning = $('settings-error');
+      warning.textContent = error.message; warning.hidden = false;
+      warning.scrollIntoView({ block: 'nearest' });
+    }
     else showError(error.message);
     return null;
   } finally { busy = false; updateControls(); }
@@ -311,6 +315,11 @@ function openSettings() {
   form.elements.namedItem('api_key').value = '';
   form.elements.namedItem('api_key').disabled = false;
   form.elements.namedItem('clear_api_key').checked = false;
+  $('runtime-config-section').open = false;
+  const editor = $('runtime-config');
+  editor.defaultValue = JSON.stringify(state.runtime_config ?? {}, null, 2);
+  editor.value = editor.defaultValue;
+  $('runtime-config-fields').textContent = `可用字段：${(state.runtime_config_fields ?? []).join('、')}`;
   $('key-state').textContent = state.settings_warning ? '未解锁 · 请替换或清除密钥' : state.config.has_api_key ? '已加密保存 · 留空保留' : '尚未保存';
   $('settings-error').hidden = true;
   updatePolicy(); $('settings-dialog').showModal();
@@ -337,7 +346,14 @@ $('settings-form').addEventListener('submit', async event => {
   values.system_prompt = $('engineering-guidance').value === 'custom' ? event.currentTarget.elements.namedItem('system_prompt').value : '';
   values.thinking_mode = event.currentTarget.elements.namedItem('thinking_mode').value;
   values.reasoning_effort = event.currentTarget.elements.namedItem('reasoning_effort').value;
-  const result = await perform(() => api.request('configure', values), { settings: true });
+  const result = await perform(() => {
+    const editor = $('runtime-config');
+    if (editor.value !== editor.defaultValue) {
+      try { values.runtime_config = JSON.parse(editor.value); }
+      catch { throw new Error('更多运行配置不是有效的 JSON。请检查引号、逗号和括号。'); }
+    }
+    return api.request('configure', values);
+  }, { settings: true });
   if (result) { closeSettings(); $('error-banner').hidden = true; toast('接口与权限设置已保存'); }
 });
 $('new-session').addEventListener('click', () => perform(() => api.request('new_session'), { navigation: true }));

@@ -33,6 +33,7 @@ from .prompts import build_protocol_prompt
 from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
 from .compaction import CompactionConfig, CompactionStats, compact_messages, estimate_message_chars
+from .context_budget import estimate_request_tokens
 from .text_filter import MarkdownFenceCommandGate, SafeTextStreamFilter
 from .interfaces import ExternalInterfaces, InterfaceConfig
 from .skills import SkillConfig, SkillManager
@@ -299,6 +300,7 @@ class AgentLoop:
         self._delivery_fix_count = 0
         self.compaction_count = 0
         self.last_compaction: Optional[CompactionStats] = None
+        self.last_input_tokens_estimate = 0
         self.last_error: str = ""
 
     def bind_output_store(self, directory):
@@ -329,6 +331,7 @@ class AgentLoop:
         self._turn_count = self._auto_continue_count = self._delivery_fix_count = 0
         self.compaction_count = 0
         self.last_compaction = None
+        self.last_input_tokens_estimate = 0
         self.last_error = self.stopped_reason = ""
         self._last_turn_failed = self._replayed_unknown_effect = False
         self.session_id = uuid.uuid4().hex
@@ -931,6 +934,7 @@ class AgentLoop:
             "messages": len(self.messages),
             "chars": estimate_message_chars(self.messages),
             "compactions": self.compaction_count,
+            "last_input_tokens_estimate": self.last_input_tokens_estimate,
         }
 
     async def _run_one_turn(self) -> bool:
@@ -956,12 +960,26 @@ class AgentLoop:
         # Deduplicate against the history that will actually reach the provider.
         # Pending receipt payloads survive compact_history until this injection.
         self._append_pending_injection()
-        record_start_index = len(self.context.records)
         if compact_stats.changed:
             turn_usage.abort_reason = "context_compacted"
 
         system = self.build_system_prompt()
         body = self.build_request_body(system)
+        input_estimate = estimate_request_tokens(body)
+        budget = self.config.compaction.max_input_tokens
+        if self.config.compaction.enabled and budget > 0 and input_estimate > budget:
+            budget_stats = self.compact(force=True)
+            if budget_stats.changed:
+                system = self.build_system_prompt()
+                body = self.build_request_body(system)
+                turn_usage.abort_reason = "context_compacted"
+            after_estimate = estimate_request_tokens(body)
+            self.events.emit('context_budget', before_tokens_estimate=input_estimate,
+                             after_tokens_estimate=after_estimate, max_input_tokens=budget,
+                             changed=budget_stats.changed)
+            input_estimate = after_estimate
+        self.last_input_tokens_estimate = input_estimate
+        record_start_index = len(self.context.records)
         path = self.get_request_path()
 
         if self.config.verbose:

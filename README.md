@@ -48,6 +48,8 @@ model stream
 
 `read`现在支持行范围；读取目标函数或配置段后，可直接用`edit`精确修改已读部分，连续编辑会维护版本和观察位置。独立文件继续合批读取，整文件覆盖仍要求完整基线。实现、质量验证与反馈大小见[范围读取与连续编辑](docs/read-ranges-20261111.md)，此能力同样属于当前源码。
 
+当前源码也开放共享配置与嵌入入口：CLI支持用户/项目分层、字段来源、按项修改和单次`--set`；桌面「更多运行配置」可调整上下文、工具和执行参数；`create_agent`、`load_configuration`等公开入口可直接作为基础设施使用。输入触发预算与近期token预算均可选，按实际待发请求估算，整理不增加模型调用。[配置与SDK用法](docs/configuration.md)
+
 ## v0.8：完整任务工作流
 
 这一版把输入接收、文件变更和失败恢复连成完整工作流：
@@ -119,6 +121,15 @@ thinkflow --help
 thinkflow --version
 thinkflow --init-config
 thinkflow --doctor --config config.json
+```
+
+按项修改当前源码的配置，不需要调用模型：
+
+```bash
+thinkflow config get compaction.max_chars --sources
+thinkflow config set compaction.max_chars 120000 --project
+thinkflow config unset compaction.max_chars --project
+thinkflow --set max_run_turns=null
 ```
 
 OpenAI-compatible 示例：

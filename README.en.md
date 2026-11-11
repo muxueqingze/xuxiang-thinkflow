@@ -50,6 +50,8 @@ Tool output is also retained with its session. Long process output keeps a bound
 
 `read` now accepts line ranges. A function or configuration section can be edited exactly after reading that section; consecutive edits update its version and observed positions. Independent reads stay batched, and whole-file replacement keeps the complete-read contract. See [range reads and continuous editing](docs/read-ranges-20261111.md) for implementation and validation. This is also a source-only update.
 
+Current source also exposes layered user/project configuration, setting origins, `thinkflow config show|get|set|unset|path`, and invocation-only `--set` overrides. Desktop settings include an advanced runtime editor. Public `create_agent` and `load_configuration` APIs share the core without importing the CLI. Optional input and recent-history token budgets use the prepared request and local compaction. See [configuration and embedding](docs/configuration.md).
+
 ## Installation
 
 The **0.8.0 CLI preview** uses the npm `next` channel:

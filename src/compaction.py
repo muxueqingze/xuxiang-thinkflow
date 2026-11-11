@@ -11,6 +11,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
+from .context_budget import estimate_message_tokens
 from .conversation import ConversationContext
 
 
@@ -25,6 +26,8 @@ class CompactionConfig:
     keep_recent_messages: int = 30
     max_summary_chars: int = 16_000
     max_item_chars: int = 900
+    max_input_tokens: int = 0
+    keep_recent_tokens: int = 0
 
     @classmethod
     def from_config(cls, config: dict) -> "CompactionConfig":
@@ -36,6 +39,8 @@ class CompactionConfig:
             keep_recent_messages=int(raw.get("keep_recent_messages", 30)),
             max_summary_chars=int(raw.get("max_summary_chars", 16_000)),
             max_item_chars=int(raw.get("max_item_chars", 900)),
+            max_input_tokens=int(raw.get("max_input_tokens", 0)),
+            keep_recent_tokens=int(raw.get("keep_recent_tokens", 0)),
         )
 
 
@@ -86,8 +91,11 @@ def compact_messages(
     if not force and not (over_messages or over_chars):
         return list(messages), stats
 
-    keep_count = max(1, min(config.keep_recent_messages, before_messages - 1))
-    split_at = max(1, before_messages - keep_count)
+    if config.keep_recent_tokens > 0:
+        split_at = _split_for_recent_tokens(messages, config.keep_recent_tokens)
+    else:
+        keep_count = max(1, min(config.keep_recent_messages, before_messages - 1))
+        split_at = max(1, before_messages - keep_count)
     split_at = _adjust_split_for_tool_messages(messages, split_at)
 
     older = messages[:split_at]
@@ -144,6 +152,17 @@ def compact_messages(
         compacted_messages=len(older),
         summary_chars=len(summary),
     )
+
+
+def _split_for_recent_tokens(messages: list[dict[str, Any]], budget: int) -> int:
+    """Find the longest suffix within budget, always keeping the last message."""
+    last = len(messages) - 1
+    remaining = budget - estimate_message_tokens(messages[last])
+    for position in range(last - 1, -1, -1):
+        remaining -= estimate_message_tokens(messages[position])
+        if remaining < 0:
+            return position + 1
+    return 0
 
 
 def _adjust_split_for_tool_messages(messages: list[dict[str, Any]], split_at: int) -> int:

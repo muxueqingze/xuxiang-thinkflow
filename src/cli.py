@@ -36,6 +36,10 @@ from .session import SessionStore
 from .runtime_context import build_context_prompt, thinkflow_home
 from .skills import SkillConfig
 from .tui import run_tui
+from .runtime import resolve_system_prompt, build_provider_profiles, create_agent
+from .configuration import (load_configuration, apply_env_defaults, looks_like_thinkflow_config,
+                            read_config as load_config, merge_settings, parse_setting_value,
+                            set_setting, validate_runtime_settings)
 from . import renderer
 
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
@@ -46,40 +50,6 @@ if hasattr(sys.stderr, "reconfigure"):
 renderer.console = renderer.Console(theme=renderer.THEME)
 
 
-def resolve_system_prompt(
-    config: dict,
-    system_prompt_path: str = None,
-    use_builtin: bool = False,
-    disable_system_prompt: bool = False,
-    cwd: str = ".",
-) -> str:
-    """Resolve optional engineering/user guidance and workspace context.
-
-    AgentLoop injects its own protocol independently. Custom content replaces
-    only the recommended engineering guidance, never the execution contract.
-    """
-    disabled = disable_system_prompt or bool(config.get("disable_system_prompt", False))
-    parts = []
-    if not disabled:
-        if system_prompt_path:
-            with open(system_prompt_path, "r", encoding="utf-8") as f:
-                parts.append(f.read())
-        elif config.get("system_prompt"):
-            parts.append(str(config["system_prompt"]))
-        elif use_builtin or config.get("use_builtin_system_prompt", True):
-            parts.append(BUILTIN_SYSTEM_PROMPT)
-
-    context_config = config.get("context", {}) or {}
-    if bool(context_config.get("enabled", True)):
-        context_text = build_context_prompt(
-            cwd,
-            extra_paths=list(context_config.get("files", []) or []),
-            max_chars=int(context_config.get("max_chars", 80_000)),
-        )
-        if context_text:
-            parts.append(context_text)
-
-    return "\n\n".join(part for part in parts if part and part.strip())
 
 
 # ===== Slash Commands =====
@@ -156,102 +126,10 @@ def provider_channel_label(provider: ProviderConfig) -> str:
     return provider.format or "provider"
 
 
-def _as_config_dict(value) -> dict:
-    return value if isinstance(value, dict) else {}
 
 
-def _config_bool(value, default: bool = False) -> bool:
-    if value is None:
-        return default
-    return bool(value)
 
 
-def build_provider_profiles(config: dict) -> list[ProviderProfileConfig]:
-    providers = _as_config_dict(config.get("providers"))
-    active = str(config.get("active_provider", "") or "")
-    profiles: list[ProviderProfileConfig] = []
-
-    if providers:
-        for name, raw_profile in providers.items():
-            profile = _as_config_dict(raw_profile)
-            effective = dict(profile)
-            if str(name) == active:
-                for key in (
-                    "provider",
-                    "base_url",
-                    "api_path",
-                    "api_key",
-                    "model",
-                    "thinking_budget",
-                    "max_tokens",
-                    "stream_options_include_usage",
-                    "enable_native_tools",
-                    "native_tools",
-                    "disabled_native_tools",
-                    "model_discovery",
-                ):
-                    value = config.get(key)
-                    if (key == "max_tokens" and key in config) or value not in ("", None, [], {}):
-                        effective[key] = value
-                models = _config_list(config.get("_resolved_models") or config.get("models") or profile.get("models"))
-                source = str(config.get("_resolved_model_source", "") or "configured")
-            else:
-                if not effective.get("api_key") and config.get("api_key"):
-                    effective["api_key"] = config.get("api_key")
-                models = _config_list(profile.get("models"))
-                source = "configured"
-
-            discovery = _as_config_dict(effective.get("model_discovery"))
-            model = str(effective.get("model", "") or "")
-            if model.lower() == "auto":
-                model = choose_model(models)
-            profiles.append(
-                ProviderProfileConfig(
-                    name=str(name),
-                    format=str(effective.get("provider", "openai") or "openai"),
-                    base_url=str(effective.get("base_url", "") or ""),
-                    api_path=str(effective.get("api_path", "") or ""),
-                    api_key=str(effective.get("api_key", "") or ""),
-                    model=model,
-                    thinking_budget=int(effective.get("thinking_budget", 0) or 0),
-                    thinking_mode=effective.get('thinking_mode', 'disabled'),
-                    reasoning_effort=effective.get('reasoning_effort', 'high'),
-                    max_tokens=effective.get("max_tokens"),
-                    stream_options_include_usage=_config_bool(effective.get("stream_options_include_usage"), False),
-                    enable_native_tools=_config_bool(effective.get("enable_native_tools"), False),
-                    native_tools=_config_list(effective.get("native_tools")),
-                    disabled_native_tools=_config_list(effective.get("disabled_native_tools")),
-                    models=models,
-                    model_source=source,
-                    model_discovery_enabled=bool(discovery.get("enabled", False)),
-                    model_discovery_path=str(discovery.get("path", "") or ""),
-                )
-            )
-
-    if not profiles:
-        profiles.append(
-            ProviderProfileConfig(
-                name=active or "default",
-                format=str(config.get("provider", "openai") or "openai"),
-                base_url=str(config.get("base_url", "") or ""),
-                api_path=str(config.get("api_path", "") or ""),
-                api_key=str(config.get("api_key", "") or ""),
-                model=str(config.get("model", "") or ""),
-                thinking_budget=int(config.get("thinking_budget", 0) or 0),
-                thinking_mode=config.get('thinking_mode', 'disabled'),
-                reasoning_effort=config.get('reasoning_effort', 'high'),
-                max_tokens=config.get("max_tokens"),
-                stream_options_include_usage=bool(config.get("stream_options_include_usage", False)),
-                enable_native_tools=bool(config.get("enable_native_tools", False)),
-                native_tools=_config_list(config.get("native_tools")),
-                disabled_native_tools=_config_list(config.get("disabled_native_tools")),
-                models=_config_list(config.get("_resolved_models") or config.get("models")),
-                model_source=str(config.get("_resolved_model_source", "") or "configured"),
-                model_discovery_enabled=bool((config.get("model_discovery", {}) or {}).get("enabled", False)),
-                model_discovery_path=str((config.get("model_discovery", {}) or {}).get("path", "") or ""),
-            )
-        )
-    return profiles
 
 
 def apply_provider_profile(agent: AgentLoop, profile: ProviderProfileConfig, model: str):
@@ -768,6 +646,7 @@ def render_status(agent: AgentLoop, store: SessionStore = None):
         renderer.console.print(f"  session    {store.path}")
     renderer.console.print(f"  messages   {stats['messages']} ({stats['chars']:,} chars)")
     renderer.console.print(f"  compact    enabled={compaction.enabled} count={stats['compactions']}")
+    renderer.console.print(f"  input est. last={stats['last_input_tokens_estimate']} trigger={compaction.max_input_tokens or 'off'} tokens")
     renderer.console.print(f"  security   bash={security.bash_policy} approval={security.approval_mode} roots={security.allowed_roots}")
     renderer.console.print()
 
@@ -926,6 +805,8 @@ def write_config_template(path: str):
             "keep_recent_messages": 30,
             "max_summary_chars": 16000,
             "max_item_chars": 900,
+            "max_input_tokens": 0,
+            "keep_recent_tokens": 0,
         },
         "tool_protocol": {
             "allow_legacy_tags": False,
@@ -1006,27 +887,8 @@ def render_doctor(config: dict, cwd: str, store: SessionStore):
     return 0
 
 
-def load_config(config_path: str) -> dict:
-    with open(config_path, "r", encoding="utf-8-sig") as f:
-        return json.load(f)
 
 
-def looks_like_thinkflow_config(config: dict) -> bool:
-    if not isinstance(config, dict):
-        return False
-    markers = {
-        "api_key",
-        "base_url",
-        "model",
-        "provider",
-        "providers",
-        "active_provider",
-        "thinking_budget",
-        "max_tokens",
-        "security",
-        "compaction",
-    }
-    return any(key in config for key in markers)
 
 
 def load_discovered_config(config_candidates: list[tuple[str, bool]]) -> dict:
@@ -1051,85 +913,10 @@ def load_discovered_config(config_candidates: list[tuple[str, bool]]) -> dict:
     return {}
 
 
-def apply_env_defaults(config: dict) -> dict:
-    """用环境变量补齐配置，不覆盖显式 config。"""
-    env_map = {
-        "api_key": ("THINKFLOW_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY"),
-        "base_url": ("THINKFLOW_BASE_URL", "OPENAI_BASE_URL", "ANTHROPIC_BASE_URL"),
-        "api_path": ("THINKFLOW_API_PATH", "OPENAI_API_PATH", "ANTHROPIC_API_PATH"),
-        "model": ("THINKFLOW_MODEL", "OPENAI_MODEL", "ANTHROPIC_MODEL"),
-        "provider": ("THINKFLOW_PROVIDER",),
-        "active_provider": ("THINKFLOW_ACTIVE_PROVIDER",),
-    }
-    merged = dict(config)
-    for key, names in env_map.items():
-        if merged.get(key):
-            continue
-        for name in names:
-            value = os.environ.get(name)
-            if value:
-                merged[key] = value
-                break
-    return merged
 
 
-def _config_list(value) -> list[str]:
-    if not value:
-        return []
-    if isinstance(value, str):
-        return [value]
-    if isinstance(value, (list, tuple)):
-        return [str(item) for item in value if item]
-    return [str(value)]
 
 
-def create_agent(config: dict, system_prompt: str, cwd: str = None, *, event_sink=None, approval_handler=None) -> AgentLoop:
-    effective_cwd = cwd or config.get("cwd", ".")
-    provider_config = ProviderConfig(
-        profile_name=str(config.get("active_provider", "") or ""),
-        base_url=config.get("base_url", ""),
-        api_path=config.get("api_path", ""),
-        api_key=config.get("api_key", ""),
-        model=config.get("model", ""),
-        format=config.get("provider", "openai"),
-        thinking_budget=config.get("thinking_budget", 0),
-        thinking_mode=config.get("thinking_mode", "disabled"),
-        reasoning_effort=config.get("reasoning_effort", "high"),
-        max_tokens=config.get("max_tokens"),
-        stream_options_include_usage=bool(config.get("stream_options_include_usage", False)),
-        enable_native_tools=bool(config.get("enable_native_tools", False)),
-        native_tools=_config_list(config.get("native_tools")),
-        disabled_native_tools=_config_list(config.get("disabled_native_tools")),
-        available_models=_config_list(config.get("_resolved_models") or config.get("models")),
-        model_source=config.get("_resolved_model_source", ""),
-        model_discovery_enabled=bool((config.get("model_discovery", {}) or {}).get("enabled", False)),
-        model_discovery_path=str((config.get("model_discovery", {}) or {}).get("path", "")),
-        provider_profiles=build_provider_profiles(config),
-    )
-
-    agent_config = AgentConfig(
-        provider=provider_config,
-        system_prompt=system_prompt,
-        cwd=effective_cwd,
-        verbose=config.get("verbose", False),
-        max_read_chars=config.get("max_read_chars", 200_000),
-        security=SecurityPolicy.from_config(config, effective_cwd),
-        compaction=CompactionConfig.from_config(config),
-        interfaces=InterfaceConfig.from_config(config),
-        skills=SkillConfig.from_config(config),
-        allow_legacy_tool_tags=bool((config.get("tool_protocol", {}) or {}).get("allow_legacy_tags", False)),
-        max_retries=int(config.get("max_retries", 2)),
-        retry_backoff_seconds=float(config.get("retry_backoff_seconds", 1.0)),
-        max_auto_continues=(None if config.get("max_auto_continues", 8) is None else int(config.get("max_auto_continues", 8))),
-        delivery_verify=bool(config.get("delivery_verify", False)),
-        auto_verify_runnable_artifacts=bool(config.get("auto_verify_runnable_artifacts", False)),
-        max_delivery_fix_attempts=int(config.get("max_delivery_fix_attempts", 3)),
-        max_run_turns=(None if config.get("max_run_turns", 40) is None else int(config.get("max_run_turns", 40))),
-        max_run_seconds=(None if config.get("max_run_seconds", 1800) is None else float(config.get("max_run_seconds", 1800))),
-        max_consecutive_failures=config.get("max_consecutive_failures"),
-    )
-
-    return AgentLoop(agent_config, event_sink=event_sink, approval_handler=approval_handler)
 
 
 async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosave: bool = True):
@@ -1600,10 +1387,14 @@ def init_home_layout():
 
 def main():
     from . import __version__
+    if sys.argv[1:2] == ['config']:
+        from .config_cli import main as config_main
+        raise SystemExit(config_main(sys.argv[2:]))
 
     parser = argparse.ArgumentParser(
         prog="thinkflow",
         description="续想 ThinkFlow — 流式执行 Agent",
+        epilog='配置管理：thinkflow config show|get|set|unset|path；详见 thinkflow config --help。',
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version",
@@ -1612,6 +1403,8 @@ def main():
 
     parser.add_argument("--config", default=None,
                         help="JSON 配置文件路径")
+    parser.add_argument('--set', dest='setting_overrides', action='append', default=[], metavar='KEY=VALUE',
+                        help='本次运行覆盖任意配置，例如 --set compaction.enabled=false；可重复')
     parser.add_argument("--api-key", default=None)
     parser.add_argument("--base-url", default=None)
     parser.add_argument("--api-path", default=None,
@@ -1732,22 +1525,20 @@ def main():
         init_home_layout()
         return
 
-    # 加载配置
-    config = {}
-
-    # 自动查找 config.json
-    config_candidates = []
-    if args.config:
-        config_candidates.append((args.config, True))
-    # 当前目录
-    config_candidates.append(("config.json", False))
-    # 用户全局 config
-    config_candidates.append((str(thinkflow_home() / "config.json"), False))
-    config = load_discovered_config(config_candidates)
-    config = apply_env_defaults(config)
-    if args.provider_profile:
-        config["active_provider"] = args.provider_profile
-    config = merge_active_provider(config)
+    invocation_overrides = {}
+    try:
+        for assignment in args.setting_overrides:
+            key, separator, value = assignment.partition('=')
+            if not separator:
+                raise ValueError('--set requires KEY=VALUE')
+            set_setting(invocation_overrides, key, parse_setting_value(value))
+        selected = invocation_overrides.get('active_provider', args.provider_profile)
+        selection = {'active_provider': selected} if selected is not None else {}
+        settings = load_configuration(args.cwd or os.getcwd(), config_path=args.config)
+        config, _ = settings.resolve(merge_settings(invocation_overrides, selection))
+    except (OSError, ValueError) as error:
+        renderer.render_error(f'配置文件无法读取: {error}')
+        raise SystemExit(1) from None
 
     if not config and not args.api_key and not args.print_system_prompt:
         renderer.render_error("找不到配置文件，也未提供 --api-key / THINKFLOW_API_KEY")
@@ -1862,6 +1653,8 @@ def main():
     if context_config:
         config["context"] = context_config
 
+    config = merge_settings(config, invocation_overrides)
+    validate_runtime_settings(config)
     config = resolve_auto_model(config)
 
     # CWD：命令行 > 配置 > 当前目录

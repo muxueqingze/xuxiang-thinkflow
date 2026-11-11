@@ -4,10 +4,23 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const vm = require('node:vm');
-const { SettingsStore, DEFAULTS, normalizeConfig } = require('../settings.cjs');
+const { SettingsStore, DEFAULTS, RUNTIME_CONFIG_FIELDS, normalizeConfig } = require('../settings.cjs');
 const encrypted = { isEncryptionAvailable: () => true, encryptString: text => Buffer.from(text.split('').reverse().join('')), decryptString: bytes => bytes.toString().split('').reverse().join('') };
-test('only ciphertext persists; blank preserves and explicit clear removes a key', () => {
+function temporarySettings(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'thinkflow-settings-'));
+  t.after(() => {
+    const file = path.join(directory, 'settings.json');
+    if (fs.existsSync(file)) fs.unlinkSync(file);
+    fs.rmdirSync(directory);
+  });
+  return directory;
+}
+function ipcValidation() {
+  const source = fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8');
+  return vm.runInNewContext(source.slice(source.indexOf('function validateParams('), source.indexOf('function cleanError(')) + '\nvalidateParams', { RUNTIME_CONFIG_FIELDS });
+}
+test('only ciphertext persists; blank preserves and explicit clear removes a key', t => {
+  const directory = temporarySettings(t);
   const store = new SettingsStore(directory, encrypted);
   const secret = 'fake-test-secret-123';
   const initial = store.prepare({ ...DEFAULTS, api_key: secret });
@@ -29,8 +42,7 @@ test('optional output budget follows provider protocol without injecting a defau
 });
 
 test('tool and engineering guidance choices survive configure, save and restart', t => {
-  const source = fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8');
-  const validateParams = vm.runInNewContext(source.slice(source.indexOf('function validateParams('), source.indexOf('function cleanError(')) + '\nvalidateParams');
+  const validateParams = ipcValidation();
   const files = new Map();
   t.mock.method(fs, 'existsSync', file => files.has(file));
   t.mock.method(fs, 'mkdirSync', () => {});
@@ -69,6 +81,37 @@ test('tool and engineering guidance choices survive configure, save and restart'
       assert.equal(restarted.backendConfig()[key], guidance[key]);
     }
   }
+});
+test('runtime overrides reach configure, survive restart and can be removed from the editor', t => {
+  const directory = temporarySettings(t);
+  const validateParams = ipcValidation();
+  const store = new SettingsStore(directory, encrypted);
+  const overrides = {
+    compaction: { enabled: false }, context: { files: ['guide.md'] }, interfaces: { web: { enabled: false } },
+    tool_protocol: { allow_legacy_tags: true }, max_read_chars: 4096, max_retries: 0, retry_backoff_seconds: 0.5,
+    max_auto_continues: 1, max_consecutive_failures: 4, delivery_verify: true, auto_verify_runnable_artifacts: false,
+    max_delivery_fix_attempts: 2, native_tools: ['read'], disabled_native_tools: ['web'],
+  };
+  const input = { ...DEFAULTS, api_key: 'test-encrypted-key', runtime_config: overrides };
+  validateParams('configure', input);
+  validateParams('configure', { ...DEFAULTS, ...overrides });
+  const prepared = store.prepare(input);
+  store.save(prepared);
+  const saved = JSON.parse(fs.readFileSync(store.file, 'utf8'));
+  assert.deepEqual(saved.config, { ...DEFAULTS, ...overrides });
+  assert.deepEqual(prepared.backend, { ...saved.config, api_key: input.api_key });
+  const restarted = new SettingsStore(directory, encrypted);
+  restarted.load();
+  assert.deepEqual(restarted.backendConfig(), prepared.backend);
+  const basicEdit = restarted.prepare({ ...DEFAULTS, model: 'changed-model' });
+  assert.deepEqual(basicEdit.config, { ...saved.config, model: 'changed-model' });
+  assert.throws(() => restarted.prepare({ ...DEFAULTS, runtime_config: ['read'] }), /JSON 对象/);
+  assert.throws(() => restarted.prepare({ ...DEFAULTS, runtime_config: { api_key: 'must-not-leak' } }), /不支持.*api_key/);
+  const replacement = restarted.prepare({ ...DEFAULTS, runtime_config: { max_retries: 3 } });
+  restarted.save(replacement);
+  assert.deepEqual(replacement.config, { ...DEFAULTS, max_retries: 3 });
+  assert.equal(restarted.backendConfig().api_key, input.api_key);
+  assert.deepEqual(restarted.prepare({ ...DEFAULTS, runtime_config: {} }).config, DEFAULTS);
 });
 test('encryption failure refuses to persist plaintext', () => {
   const store = new SettingsStore(path.join(os.tmpdir(), 'thinkflow-unused'), { isEncryptionAvailable: () => false });

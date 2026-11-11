@@ -24,7 +24,9 @@
         "max_chars": 200000,
         "keep_recent_messages": 30,
         "max_summary_chars": 16000,
-        "max_item_chars": 900
+        "max_item_chars": 900,
+        "max_input_tokens": 0,
+        "keep_recent_tokens": 0
     },
     "tool_protocol": {
         "allow_legacy_tags": false
@@ -91,5 +93,7 @@
         "max_chars": 80000
     },
     "max_run_turns": 40,
-    "max_run_seconds": 1800
+    "max_run_seconds": 1800,
+    "native_tools": [],
+    "disabled_native_tools": []
 }

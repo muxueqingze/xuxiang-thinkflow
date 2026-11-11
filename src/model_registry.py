@@ -114,7 +114,7 @@ def merge_active_provider(config: dict, active_provider: str | None = None) -> d
     """Merge a named provider profile into the legacy flat config shape."""
     merged = dict(config)
     providers = _as_dict(config.get("providers"))
-    selected = active_provider or config.get("active_provider")
+    selected = config.get("active_provider") if active_provider is None else active_provider
     if not providers or not selected:
         return merged
     profile = _as_dict(providers.get(str(selected)))

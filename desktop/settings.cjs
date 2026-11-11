@@ -2,7 +2,21 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const DEFAULTS = Object.freeze({ provider: 'openai', base_url: '', api_path: '', model: '', max_tokens: null, max_run_turns: 40, max_run_seconds: 1800, security_profile: 'balanced', thinking_mode: 'disabled', reasoning_effort: 'high', stream_options_include_usage: true, enable_native_tools: false, use_builtin_system_prompt: true, system_prompt: '' });
-function normalizeConfig(input) {
+const RUNTIME_CONFIG_FIELDS = Object.freeze([
+  'compaction', 'context', 'interfaces', 'tool_protocol', 'max_read_chars', 'max_retries',
+  'retry_backoff_seconds', 'max_auto_continues', 'max_consecutive_failures', 'delivery_verify',
+  'auto_verify_runnable_artifacts', 'max_delivery_fix_attempts', 'native_tools', 'disabled_native_tools',
+]);
+function runtimeConfig(config) {
+  return Object.fromEntries(RUNTIME_CONFIG_FIELDS.filter(key => Object.hasOwn(config, key)).map(key => [key, config[key]]));
+}
+function validateRuntimeConfig(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('更多运行配置须为 JSON 对象');
+  const unsupported = Object.keys(value).filter(key => !RUNTIME_CONFIG_FIELDS.includes(key));
+  if (unsupported.length) throw new Error(`更多运行配置不支持以下字段：${unsupported.join('、')}`);
+  return value;
+}
+function normalizeConfig(input, runtime = null) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('设置格式不正确');
   const config = {};
   for (const key of ['provider', 'base_url', 'api_path', 'model', 'security_profile']) {
@@ -37,7 +51,7 @@ function normalizeConfig(input) {
     config[key] = value;
   }
   if (config.model.length > 512 || config.base_url.length > 4096 || config.api_path.length > 1024) throw new Error('设置字段过长');
-  return config;
+  return { ...config, ...(runtime ?? runtimeConfig(input)) };
 }
 class SettingsStore {
   constructor(directory, safeStorage) { this.file = path.join(directory, 'settings.json'); this.safeStorage = safeStorage; this.current = { config: { ...DEFAULTS }, encrypted_key: '' }; }
@@ -58,7 +72,10 @@ class SettingsStore {
     return config;
   }
   prepare(input) {
-    const config = normalizeConfig(input);
+    const runtime = Object.hasOwn(input, 'runtime_config')
+      ? validateRuntimeConfig(input.runtime_config)
+      : { ...runtimeConfig(this.current.config), ...runtimeConfig(input) };
+    const config = normalizeConfig(input, runtime);
     let encrypted_key = this.current.encrypted_key;
     let api_key;
     if (input.clear_api_key === true) { encrypted_key = ''; api_key = ''; }
@@ -79,4 +96,4 @@ class SettingsStore {
     this.current = target;
   }
 }
-module.exports = { DEFAULTS, normalizeConfig, SettingsStore };
+module.exports = { DEFAULTS, RUNTIME_CONFIG_FIELDS, normalizeConfig, runtimeConfig, SettingsStore };

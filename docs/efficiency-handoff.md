@@ -1,8 +1,10 @@
 # ThinkFlow 执行效率 · 当前接力
 
-更新：2026-11-11。当前完成完整工具输出留存、关键词回取、范围读取与连续精确编辑。目标是按当前任务提供足够信息、减少重跑与重复请求，保持工程质量；默认工程指引不扩写。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
+更新：2026-11-11。当前新增Pi式配置分层、无模型配置命令、公共运行时工厂、桌面高级设置，以及按实际待发输入触发的可选预算。目标是可组合的基础设施harness，减少重复请求且保持质量；默认工程指引不扩写。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
 
 本轮两个完整单元独立验收通过。[输出留存](output-recall-20261111.md)覆盖取消、恢复、fork、CLI无自动保存和导出索引；[范围读取](read-ranges-20261111.md)将同版本已观察片段与exact edit接起来，整文件操作沿用全文基线。协议1.9由底层注入，工程方法仍可推荐/自定义/关闭。
+
+最新节点的[配置与SDK](configuration.md)及[独立验收](reviews/configuration-20261111.md)已完成。本地parser/core及291项unittest、桌面15项测试通过；实际Electron完成保存/重启/恢复默认。本轮无付费模型调用，新增预算默认0，旧策略保持。
 
 ## 当前成果
 
@@ -10,6 +12,8 @@
 - `src/compaction.py`沿用结构化摘要条目，只摘录新增历史；两种provider的工具调用/结果保持配对。压缩后默认开放recall，文本/原生共用回取实现，独立信息仍同批反馈。
 - `src/output_capture.py`/`output_store.py`保存完整模型可见输出，`recall.py`统一字符范围与字面搜索；持久根使用实际SessionStore，分支原文独立，临时原文随agent关闭清理。
 - `src/file_observations.py`分块读取目标行并计算整文件版本，精确编辑仅用实际已读范围；连续编辑维护位置，保留独立read合批与可预测修改不中断。
+- `src/configuration.py`处理CLI配置层级与来源，`config_cli.py`按字段稀疏保存；`runtime.py`共享真实配置构造/预览/Agent工厂。桌面14个额外运行项保持平铺保存，不丢常用表单之外的配置。
+- `src/context_budget.py`按实际messages/system/tools估算输入；可选触发只做一次本地整理，近期预算保留末条与完整工具批次，reported usage仍独立记录。预算压缩后的账本起点问题已修复并以真实流式写入复核。
 - 默认tf-*连续执行、tf-python、精确正文去重与可替换工程指引保持。协议由核心注入；用户自定义或关闭工程指引不移除协议。可选方法见[工程示例](prompts/engineering-guidance.md)。
 - 本轮实现、复现、保留位置和边界见[长程上下文记录](long-context-20261110.md)，代码入口见[代码地图](代码地图.md)。
 
@@ -29,6 +33,6 @@
 
 ## 下一步
 
-沿[成熟harness方向](harness-direction-20261110.md)继续第三单元：统一文本/原生的上下文投影与实际预算，usage只对应当时发送的视图；投影变化后重算当前输入，尾段保留完整工具批次和正在处理的任务。
+沿[成熟harness方向](harness-direction-20261110.md)继续统一文本及两种原生路径的正文投影；当前读取精确去重主要在OpenAI原生路径，不能把本次可选输入估算写成三种格式已统一。依据实际任务选择预算，再接语义摘要的可选对照。
 
 之后用跨阶段、至少两次压缩、恢复/分支的完整长任务与Pi对照，计入全部失败和恢复。定价探针的两次自编检查失败仅保留了错误而非脚本，具体断言原因未知；复现入口已补完整工具正文，下一轮按证据减少无效检查，不关闭必要验收。语义摘要按总调用与质量作为可选对照；自动ID仍须先解决镜像和合法重复身份。

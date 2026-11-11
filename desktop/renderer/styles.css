@@ -190,6 +190,9 @@ input::placeholder{color:#99958b;font-size:12px}
 .checkbox-label{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);margin-top:16px}
 .form-section{padding-top:24px;margin-top:24px;border-top:1px solid var(--line)}
 .form-section h3{margin-bottom:16px}
+.runtime-config summary{font-size:13px;font-weight:500;cursor:pointer}
+#settings-form .runtime-config textarea{font-family:Consolas,"Microsoft YaHei",monospace}
+#runtime-config-fields{overflow-wrap:anywhere}
 .policy-description{font-size:11px;color:var(--muted);line-height:1.8;margin-top:12px}
 .dialog-footer{display:flex;align-items:center;gap:8px;padding:16px 32px;border-top:1px solid var(--line);flex-shrink:0}
 .dialog-footer>span{font-size:10px;color:var(--muted);margin-right:auto}

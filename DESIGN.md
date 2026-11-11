@@ -47,11 +47,14 @@ CLI / Electron desktop
 | 模块 | 职责 |
 |---|---|
 | `agent_loop.py` | provider调用、核心协议注入、反馈边界、FIFO生命周期、运行限额 |
+| `configuration.py / config_cli.py` | 配置文件分层、字段来源、稀疏修改与无模型配置命令；数组替换、对象合并 |
+| `runtime.py` | 共享配置构造、实际默认值预览与Agent工厂；CLI、桌面和嵌入宿主复用 |
 | `prompts.py` | 分开维护框架协议与推荐工程指引，协议按真实工具集合生成 |
 | `parser.py / text_filter.py` | 完整命令解析、显示过滤、围栏保护 |
 | `executor.py / security.py` | 文件动作、shell与原生Python代码块；共用进程输出、取消及权限策略 |
 | `tool_registry.py / interfaces.py` | 工具schema、分流/风险、自定义接口 |
 | `context.py / feedback.py / compaction.py` | 可审计回执、observation 合并、去重与确定性摘录；先压缩再按最终历史判断重复 |
+| `context_budget.py` | 对实际待发messages/system/tools作输入估算；可选阈值在反馈注入后触发一次本地整理 |
 | `conversation.py` | 原始用户要求、request引用、字符范围回取与结构化摘要状态；与provider消息分离 |
 | `output_capture.py / output_store.py / recall.py` | 流式保存完整输出与尾部预览、不可变原文、共用字符范围及字面搜索；实际SessionStore绑定归档根 |
 | `file_observations.py` | 分块范围读取、整文件SHA256与字符覆盖；精确编辑后维护同版本观察位置 |
@@ -61,6 +64,8 @@ CLI / Electron desktop
 | `desktop/` | 本地界面、窗口、目录对话框、系统加密凭据 |
 
 ## 桌面进程边界
+
+运行时工厂从CLI移到核心，桌面不再导入终端入口。CLI可将全局、原项目配置及专属项目覆盖合并，也可显式选择独立文件；桌面仍使用自己的加密设置存储，并开放现有核心运行参数。宿主显式选择配置与会话存储，复用ToolRegistry扩展能力。语义、优先级和SDK示例见[配置说明](docs/configuration.md)。
 
 Electron main 通过子进程 stdin/stdout 与 Python 服务通信，没有本地 HTTP 监听器。renderer 不解析 tf-*、不执行文件操作、不持有回读凭据的接口。preload 仅暴露允许的方法。页面使用本地资源、CSP、contextIsolation 和 sandbox；这保护 UI 边界，不代表模型的 shell 被操作系统隔离。
 

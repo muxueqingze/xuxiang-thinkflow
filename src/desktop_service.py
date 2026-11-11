@@ -19,9 +19,10 @@ import time
 from urllib.parse import urlsplit
 import uuid
 
-from .cli import create_agent, resolve_system_prompt
+from .runtime import create_agent, resolve_system_prompt, build_agent_config
 from .provider import normalize_max_tokens
 from .model_registry import merge_active_provider
+from .configuration import RUNTIME_CONFIG_FIELDS, validate_runtime_settings
 from .session import SessionStore
 
 
@@ -297,6 +298,8 @@ class DesktopService:
 
     @staticmethod
     def _validate_config(config):
+        validate_runtime_settings(config)
+        build_agent_config(config, system_prompt='', cwd='.')
         if config["provider"] not in ("openai", "anthropic"):
             raise ValueError("模型协议须为 openai 或 anthropic。")
         if config["security_profile"] not in ("balanced", "read-only", "open"):
@@ -332,8 +335,11 @@ class DesktopService:
     async def configure(self, params):
         self._require_idle()
         candidate = dict(self.config)
+        if params.get('replace_runtime_config'):
+            for key in RUNTIME_CONFIG_FIELDS:
+                candidate.pop(key, None)
         for key, value in params.items():
-            if key in DEFAULT_CONFIG:
+            if key in DEFAULT_CONFIG or key in RUNTIME_CONFIG_FIELDS:
                 if key == "api_key" and value == "" and not params.get("clear_api_key"):
                     continue
                 candidate[key] = value
@@ -820,7 +826,8 @@ class DesktopService:
             initial_config = params.get("config", {})
             if not isinstance(initial_config, dict):
                 raise ValueError("配置须为对象。")
-            candidate = {**DEFAULT_CONFIG, **{k: v for k, v in initial_config.items() if k in DEFAULT_CONFIG}}
+            candidate = {**DEFAULT_CONFIG, **{k: v for k, v in initial_config.items()
+                                            if k in DEFAULT_CONFIG or k in RUNTIME_CONFIG_FIELDS}}
             self._validate_config(candidate)
             data_dir.mkdir(parents=True, exist_ok=True)
             self.data_dir = data_dir.resolve()
