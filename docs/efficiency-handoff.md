@@ -1,6 +1,6 @@
 # ThinkFlow 执行效率 · 当前接力
 
-用户的 Pro 报告已用于完成 F01–F10 的入口、执行事实与消息投影改动，见[本轮接力](pro-review-handoff.md)和[实现验证](reviews/pro-implementation-20261111.md)。本地 parser/core、336项unittest及桌面15项通过，最后新增读取边界的分发7项通过。下文保留先前节点和历史实测。
+用户的 Pro 报告已用于完成 F01–F12 的具体工程改动，见[本轮接力](pro-review-handoff.md)。0.9.0新增API原始内容块回传、增量持久化与会话索引，并分发CLI和Windows安装版/便携版；[版本说明](release-0.9.0.md)记录固定本地存储收益。[F11/F12独立验收](reviews/release-runtime-quality-20261111.md)通过，下文保留先前节点和历史实测。
 
 更新：2026-11-11。当前新增Pi式配置分层、无模型配置命令、公共运行时工厂，以及按实际待发输入触发的可选预算。最近的 Desktop / CLI 交互节点已实现全屏设置、真实思考档位、工作区终端、Git 行内差异与文件标签，状态和验证集中在[交互接力](interaction-handoff.md)。目标是可组合的基础设施harness，减少重复请求且保持质量；默认工程指引不扩写。分支`codex/thinkflow-efficient-execution`，推送到既有PR head `codex/thinkflow-desktop-v06`。
 
@@ -29,12 +29,12 @@
 
 ## 交付与保留
 
-[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)已转为正式审查，未合并。npm `xuxiang-agent@0.8.0`已发布`next`通道，GitHub [v0.8.0预发布](https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.8.0)仍对应`6d85c06`；两者不包含本轮新源码，`latest`仍为0.5.1。发布校验见[记录](evidence/npm-0.8.0.json)，Windows便携包仍是旧构建。已收到用户对`558078e`的Pro全局审查，本轮落实其中具体工程问题。
+[PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)保持未合并。0.9.0通过npm `next`及GitHub预发布提供新源码对应的CLI、Windows安装EXE和便携ZIP，`latest`保持0.5.1；安装入口见[版本说明](release-0.9.0.md)。0.8.0历史包对应`6d85c06`，[原发布记录](evidence/npm-0.8.0.json)保留。已收到用户对`558078e`的Pro全局审查，F01–F12按实际工程价值落实。
 
 每轮实验结束即清理临时工作区并关闭客户端/进程。保留`bench/output_recovery_20261111/`、`bench/range_edit_20261111/`复现脚本，正式回归与docs证据；前一轮长上下文和历史benchmark材料仍按原用途保留。无新增依赖、PATH或Codex登录改动，密钥不进入项目。
 
 ## 下一步
 
-沿[成熟harness方向](harness-direction-20261110.md)推进原生thinking/signature完整采集及增量快照。文本及两种原生路径的精确read正文投影已在本轮统一；原文被压缩移走时自动重新提供，固定轨迹请求数不变。依据实际任务选择预算，再接语义摘要的可选对照。
+沿[成熟harness方向](harness-direction-20261110.md)进入完整长任务对照。三种路径的精确read投影、API原始thinking块回传和增量持久化均已实现；原文被压缩移走时重新提供，固定轨迹请求数不变。依据实际任务选择预算，再接语义摘要的可选对照。
 
 之后用跨阶段、至少两次压缩、恢复/分支的完整长任务与Pi对照，计入全部失败和恢复。定价探针的两次自编检查失败仅保留了错误而非脚本，具体断言原因未知；复现入口已补完整工具正文，下一轮按证据减少无效检查，不关闭必要验收。语义摘要按总调用与质量作为可选对照；自动ID仍须先解决镜像和合法重复身份。

@@ -10,7 +10,7 @@ npm ci
 npm start
 ```
 
-多个 Python 版本时，启动前设置 `THINKFLOW_PYTHON` 为所需解释器的完整路径。开发模式从仓库目录运行 `python -u -m src.desktop_service`。打包模式运行 `resources/backend/thinkflow-service.exe`，不依赖系统 Python。`npm run package` 复用仓库 `scripts/build-desktop.cjs` 构建完整 Windows 文件夹。
+多个 Python 版本时，启动前设置 `THINKFLOW_PYTHON` 为所需解释器的完整路径。开发模式从仓库目录运行 `python -u -m src.desktop_service`。打包模式运行自带的 `resources/backend/thinkflow-service.exe`。`npm run package` 复用仓库 `scripts/build-desktop.cjs`，构建 Windows 应用目录、安装程序和便携 ZIP。依赖与产物路径见[桌面指南](../docs/desktop.md#开发与构建)。
 
 首次打开选择工作区，并填写兼容端点与模型。密钥使用 Electron safeStorage 的 Windows 系统加密，保存到当前用户应用目录的 `settings.json`；留空保留已有密钥，勾选清除才删除。界面只能获取是否保存密钥。会话按工作区隔离存储。
 

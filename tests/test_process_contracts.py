@@ -58,7 +58,8 @@ class ProcessContracts(unittest.IsolatedAsyncioTestCase):
         redirect = ", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL" if mode == "closed" else ""
         source = ("import os,pathlib,subprocess,sys\n"
                   f"child=subprocess.Popen([sys.executable,'-c',{child!r}]{redirect})\n"
-                  "pathlib.Path('pids.txt').write_text(str(os.getpid())+' '+str(child.pid))\n")
+                  "pathlib.Path('pids.pending').write_text(str(os.getpid())+' '+str(child.pid))\n"
+                  "os.replace('pids.pending', 'pids.txt')\n")
         task = asyncio.create_task(self.executor._run_process(
             [sys.executable, "-c", source], shell=False, tool="fixture",
             timeout=.4 if mode == "timeout" else 10))
@@ -193,7 +194,8 @@ class ProcessContracts(unittest.IsolatedAsyncioTestCase):
         ready = self.root / "image-ready"
         source = ("import os,pathlib,sys,time\n"
                   "sys.stdout.write('x'*90000+'IMAGE_TAIL');sys.stdout.flush()\n"
-                  f"pathlib.Path({str(ready)!r}).write_text(str(os.getpid()))\n"
+                  f"pathlib.Path({str(ready.with_suffix('.pending'))!r}).write_text(str(os.getpid()))\n"
+                  f"os.replace({str(ready.with_suffix('.pending'))!r}, {str(ready)!r})\n"
                   "time.sleep(60)\n")
         image = ImageGenerationConfig(enabled=True, provider="command", command=[sys.executable, "-c", source])
         task = asyncio.create_task(self.interfaces._run_image_command(image, {"output_path": str(self.root / "image.png")}))

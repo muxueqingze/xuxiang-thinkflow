@@ -13,6 +13,8 @@
 
 验证：本地 parser/core 与 336 项 unittest、桌面 15 项测试通过；最后补充的显式读取边界连同分发模块 7 项通过。隔离 Electron 实测配置与 HTTP/部分用量展示。进程和运行时两个单元的独立验收通过，原失败项均已复核。远端最终提交由现有 CI 执行完整测试。
 
-下一单元：F11 原生 thinking/signature 的完整采集与回放、F12 增量快照与会话索引；随后做跨阶段、至少两次压缩、恢复/分支的完整 Pi 对照。已有原生字段的发送保留已实现，完整采集仍是独立工作。
+F11/F12 已接入 0.9.0 并通过[独立定向验收](reviews/release-runtime-quality-20261111.md)：保存 API 实际返回的 Anthropic thinking/signature/redacted 块，工具执行中的磁盘快照也可恢复原块；工具边界追加变化、轮次保存完整检查点、列表读取 `.index`。隐藏的原始思维链不在客户端可见。固定2.7 MB样本40次更新由108,403,739字节降至34,321字节，恢复历史和回执一致。
 
-交付仍走 [PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)。本轮只更新源码与文档，npm 0.8.0 和旧桌面包保持原构建。正式测试和必要证据归入 `tests/`、`docs/evidence/pro-review-20261111/`，实验输入与桌面测试配置在结束时清理。
+交付仍走 [PR #1](https://github.com/muxueqingze/xuxiang-thinkflow/pull/1)。0.9.0 分发 CLI npm `next`、Windows当前用户安装EXE和便携ZIP；入口与实测见[版本说明](release-0.9.0.md)。正式测试、运行时与安装证据归入 `tests/`、`docs/evidence/`，本轮实验目录结束即回收。
+
+下一单元是跨阶段、至少两次压缩、恢复/分支的完整 Pi 对照，比较总请求、全部token与最终产物质量；语义摘要仍作为可选对照，不额外添加默认摘要请求。

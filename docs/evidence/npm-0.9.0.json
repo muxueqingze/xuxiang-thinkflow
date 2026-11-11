@@ -1,0 +1,25 @@
+{
+  "version": "0.9.0",
+  "artifact": "artifacts/npm-0.9.0/xuxiang-agent-0.9.0.tgz",
+  "files": 100,
+  "bytes": 305176,
+  "sha1": "66cc9e7c2b8d8d7851df107f97351af86f8b3ac9",
+  "integrity": "sha512-eFqymskzudoudtFnqDoL4wuKaHFwTxlLbzezCzMcgvp0ODHscPKNBUKC0i24DMj4TKIwpi+Oo22yrVFrN6VZEg==",
+  "validation": {
+    "postinstall": true,
+    "cli_version": "0.9.0",
+    "alternate_command_help": true,
+    "installed_core_import": true,
+    "local_http_requests": 2,
+    "paid_requests": 0,
+    "real_write_read": true,
+    "persisted_receipts": [
+      "success",
+      "success"
+    ],
+    "user_agent": "ThinkFlow/0.9.0",
+    "publish_content_scan": "no findings",
+    "final_repack": "All CLI and runtime bytes match the isolated installed package; only scripts/build-desktop.cjs changed to include the ConPTY helper."
+  },
+  "cleanup": "Temporary workspace removed; isolated install and venv are recycled after publication verification."
+}

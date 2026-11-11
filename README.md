@@ -4,9 +4,11 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > 可预测式工具调用不需要打断模型的推理与思考。
+
+**安装 0.9.0：** [Windows 桌面安装版](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.0/ThinkFlow-0.9.0-Windows-x64-Setup.exe) · [便携 ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.0/ThinkFlow-0.9.0-Windows-x64.zip) · CLI：`npm install -g xuxiang-agent@next`。桌面自带运行时，npm 只安装 CLI。[版本说明](docs/release-0.9.0.md)
 
 续想 ThinkFlow 是一个实验性流式工具调用 agent harness。它验证一个核心判断：并不是所有工具调用都应该成为模型回合边界。
 
@@ -52,7 +54,7 @@ model stream
 
 2026-11-11根据Pro源码审查进一步统一运行链：文本及两种原生协议共享精确read去重，切换协议时转换发送视图；独立读取失败保留同批其他结果。CLI/SDK新增工具执行中持久化，扩展命令保存完整输出，冻结附件可按`request:N:input`回取；用量显示真实HTTP尝试与缺失情况。固定轨迹单次请求少传5,710个JSON字符，请求数不变。[本轮实现与验证](docs/reviews/pro-implementation-20261111.md)
 
-当前源码重做了桌面与终端交互：桌面输入区直接切换模型、权限与思考强度，提供上下文浮层、全屏设置与搜索、工具与技能目录、Git 行内差异、多文件标签和持续运行的 PowerShell 终端。左右面板可拖拽，浅色/深色与减少动画统一设置。CLI 与全屏 TUI 共用原文队列、停止和退出收尾逻辑。参考源码与实物对照见 [ZCode 记录](docs/research/zcode-interaction-20261111.md)，实际用法见 [桌面指南](docs/desktop.md)，当前节点见 [交互接力](docs/interaction-handoff.md)。这些改动属于源码，已发布 npm 和旧便携包保持原版本。
+当前源码重做了桌面与终端交互：桌面输入区直接切换模型、权限与思考强度，提供上下文浮层、全屏设置与搜索、工具与技能目录、Git 行内差异、多文件标签和持续运行的 PowerShell 终端。左右面板可拖拽，浅色/深色与减少动画统一设置。CLI 与全屏 TUI 共用原文队列、停止和退出收尾逻辑。参考源码与实物对照见 [ZCode 记录](docs/research/zcode-interaction-20261111.md)，实际用法见 [桌面指南](docs/desktop.md)，当前节点见 [交互接力](docs/interaction-handoff.md)。这些交互随0.9.0桌面和CLI分发。
 
 ## v0.8：完整任务工作流
 
@@ -84,7 +86,9 @@ v0.7 已通过源码与 Windows 独立包的本地 SSE 流程、11组交互和�
 
 ## 安装
 
-**0.8.0 CLI 预览版**使用 npm 的`next`通道；安装时明确指定通道：
+桌面用户下载上方 Windows 安装版，双击安装后从开始菜单打开“续想 ThinkFlow”。安装目录可选，无需管理员权限或预装 Node.js/Python。便携版完整解压后运行 `ThinkFlow.exe`。
+
+**0.9.0 CLI 预览版**使用 npm 的`next`通道；安装时明确指定通道：
 
 ```bash
 npm install -g xuxiang-agent@next
@@ -92,9 +96,9 @@ thinkflow --help
 xuxiang --help
 ```
 
-固定版本安装可用`npm install -g xuxiang-agent@0.8.0`；`latest`通道继续提供0.5.1。[发布说明](docs/npm-release-0.8.0.md)记录本包内容，Windows桌面包另行构建。
+固定版本安装可用`npm install -g xuxiang-agent@0.9.0`；`latest`通道继续提供0.5.1。[发布说明](docs/release-0.9.0.md)记录 CLI 与桌面安装、升级和本轮改动。
 
-要求：
+CLI 要求：
 
 - Node.js 18+
 - Python 3.12+

@@ -139,7 +139,7 @@ class ConfigurationTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         command = [sys.executable, '-B', '-m', 'src.cli', 'config', 'set',
                    'compaction.enabled', 'false', '--project', '--cwd', str(self.project)]
-        result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, timeout=20)
+        result = subprocess.run(command, cwd=root, env=env, capture_output=True, text=True, encoding='utf-8', timeout=20)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(read_config(self.project / '.thinkflow/config.json'), {'compaction': {'enabled': False}})
         self.assertFalse((self.home / 'sessions').exists())

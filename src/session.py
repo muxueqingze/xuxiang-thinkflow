@@ -8,12 +8,15 @@ import json
 import os
 import time
 import tempfile
+import uuid
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from .runtime_context import cwd_session_path
 from .output_store import OutputStore
+from .session_delta import snapshot_changes, apply_changes
 
 
 DEFAULT_SESSION_DIR = ".thinkflow"
@@ -33,6 +36,9 @@ class SessionStore:
         if not self.path.is_absolute():
             self.path = Path(os.getcwd()) / self.path
         self._agent = None
+        self._saved_snapshot = None
+        self._saved_source = None
+        self._checkpoint_id = ''
 
     def bind(self, agent):
         """Persist execution boundaries without replacing the host's event view."""
@@ -71,10 +77,10 @@ class SessionStore:
         kind = event["type"]
         if kind == "tool_started":
             self._journal({**event, "session_id": self._agent.session_id})
-            self.save(self._agent.to_snapshot(), history=False)
+            self.save(self._agent.to_snapshot(), history=False, incremental=True)
         elif kind == "tool_completed":
             # The receipt is committed before the journal marks the intent done.
-            self.save(self._agent.to_snapshot(), history=False)
+            self.save(self._agent.to_snapshot(), history=False, incremental=True)
             self._journal({**event, "session_id": self._agent.session_id})
         elif kind in ("turn_started", "turn_finished", "run_finished", "plan_updated"):
             self.save(self._agent.to_snapshot(), history=kind == "run_finished")
@@ -127,6 +133,71 @@ class SessionStore:
     def output_dir(self) -> Path:
         return self.path.with_suffix(".outputs")
 
+    @property
+    def changes_path(self) -> Path:
+        return self.path.with_suffix('.changes.jsonl')
+
+    @staticmethod
+    def _source_signature(path):
+        stat = path.stat()
+        changes = path.with_suffix('.changes.jsonl')
+        delta_stat = changes.stat() if changes.exists() else None
+        return [stat.st_mtime_ns, stat.st_size,
+                delta_stat.st_mtime_ns if delta_stat else 0,
+                delta_stat.st_size if delta_stat else 0]
+
+    @staticmethod
+    def _read_snapshot(path):
+        with path.open('r', encoding='utf-8-sig') as stream:
+            snapshot = json.load(stream)
+        checkpoint_id = snapshot.pop('_thinkflow_checkpoint', '')
+        changes = path.with_suffix('.changes.jsonl')
+        if checkpoint_id and changes.exists():
+            with changes.open('rb') as stream:
+                for line in stream:
+                    # A killed append can leave only its final line unfinished.
+                    if not line.endswith(b'\n'):
+                        break
+                    entry = json.loads(line)
+                    if entry['checkpoint'] == checkpoint_id:
+                        apply_changes(snapshot, entry['changes'])
+        return snapshot, checkpoint_id
+
+    def _append_changes(self, changes):
+        entry = {'checkpoint': self._checkpoint_id, 'changes': changes}
+        with self.changes_path.open('a+b') as stream:
+            if stream.tell():
+                stream.seek(-1, os.SEEK_END)
+                if stream.read(1) != b'\n':
+                    stream.seek(0)
+                    committed_end = stream.read().rfind(b'\n') + 1
+                    stream.truncate(committed_end)
+                    stream.seek(0, os.SEEK_END)
+            stream.write((json.dumps(entry, ensure_ascii=False, separators=(',', ':')) + '\n').encode('utf-8'))
+            stream.flush()
+            os.fsync(stream.fileno())
+
+    @classmethod
+    def _write_index(cls, path, snapshot, digest):
+        messages = snapshot.get('messages', []) or []
+        start = ''
+        for message in messages:
+            if not isinstance(message, dict) or message.get('role') != 'user':
+                continue
+            text = str(message.get('content', '') or '').replace('\n', ' ').strip()
+            if text:
+                start = text[:89] + '…' if len(text) > 90 else text
+                break
+        desktop = snapshot.get('desktop', {})
+        info = {'start': start, 'messages': len(messages),
+                'records': len((snapshot.get('context', {}) or {}).get('records', []) or []),
+                'turn_count': int(snapshot.get('turn_count', 0) or 0), 'digest': digest,
+                'desktop': {name: desktop[name] for name in
+                            ('id', 'cwd', 'title', 'title_custom', 'pinned', 'archived', 'updated_at')
+                            if name in desktop}}
+        cls._write_json_atomic(path.with_suffix('.index'),
+                               {'source': cls._source_signature(path), 'info': info})
+
     def discover(self) -> list[Path]:
         """Return known session snapshots, newest first."""
         candidates: dict[str, Path] = {}
@@ -140,25 +211,17 @@ class SessionStore:
             if not root.exists() or not root.is_dir():
                 continue
             for item in root.glob("*.json"):
-                if item.name.endswith(".tmp"):
-                    continue
                 candidates[str(item.resolve())] = item
             for item in root.glob("*/session.json"):
-                if item.name.endswith(".tmp"):
-                    continue
                 candidates[str(item.resolve())] = item
             for item in root.glob("*/history/*.json"):
-                if item.name.endswith(".tmp"):
-                    continue
                 candidates[str(item.resolve())] = item
             for item in root.glob("history/*.json"):
-                if item.name.endswith(".tmp"):
-                    continue
                 candidates[str(item.resolve())] = item
 
         sorted_candidates = sorted(
             candidates.values(),
-            key=lambda item: item.stat().st_mtime if item.exists() else 0,
+            key=lambda item: self.inspect(item).get('mtime', 0),
             reverse=True,
         )
         seen_digests: set[str] = set()
@@ -172,44 +235,37 @@ class SessionStore:
             deduped.append(item)
         return deduped
 
-    @staticmethod
-    def inspect(path: Path) -> dict:
-        def preview(messages: list[dict], max_len: int = 90) -> str:
-            for message in messages:
-                if message.get("role") != "user":
-                    continue
-                text = str(message.get("content", "") or "").replace("\n", " ").strip()
-                if not text:
-                    continue
-                return text[: max_len - 1] + "…" if len(text) > max_len else text
-            return ""
-
+    @classmethod
+    def inspect(cls, path: Path) -> dict:
         try:
-            with path.open("r", encoding="utf-8-sig") as f:
-                data = json.load(f)
+            index_path = path.with_suffix('.index')
+            source = cls._source_signature(path)
+            index = None
+            if index_path.exists():
+                with index_path.open(encoding='utf-8') as stream:
+                    index = json.load(stream)
+            if index is None or index['source'] != source:
+                snapshot, _ = cls._read_snapshot(path)
+                cls._write_index(path, snapshot, snapshot.get('_history_digest') or cls._snapshot_digest(snapshot))
+                with index_path.open(encoding='utf-8') as stream:
+                    index = json.load(stream)
         except Exception as exc:
             return {"path": str(path), "error": str(exc)}
-        messages = data.get("messages", []) or []
-        mtime = path.stat().st_mtime if path.exists() else 0
+        mtime = max(source[0], source[2]) / 1_000_000_000
         return {
-            "path": str(path),
+            **index['info'], "path": str(path),
             "mtime": mtime,
             "timestamp": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S") if mtime else "",
-            "start": preview(messages),
-            "messages": len(messages),
-            "records": len(((data.get("context", {}) or {}).get("records", [])) or []),
-            "turn_count": int(data.get("turn_count", 0) or 0),
         }
     def load(self) -> dict:
-        with self.path.open("r", encoding="utf-8-sig") as f:
-            snapshot = json.load(f)
+        snapshot, _ = self._read_snapshot(self.path)
         outputs = snapshot.get("outputs")
         if outputs and outputs.get("root"):
             outputs["root"] = str((self.path.parent / outputs["root"]).resolve())
         self._recover_intents(snapshot)
         return snapshot
 
-    def save(self, snapshot: dict, *, history: bool = True):
+    def save(self, snapshot: dict, *, history: bool = True, incremental: bool = False):
         snapshot = dict(snapshot)
         if "outputs" in snapshot:
             outputs = OutputStore(root=self.output_dir)
@@ -217,15 +273,37 @@ class SessionStore:
             snapshot["outputs"] = outputs.to_dict()
             snapshot["outputs"]["root"] = Path(os.path.relpath(self.output_dir, self.path.parent)).as_posix()
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._write_json_atomic(self.path, snapshot)
+        if incremental and not history and self.path.exists():
+            source = (str(self.path), self._source_signature(self.path))
+            if source != self._saved_source:
+                self._saved_snapshot, self._checkpoint_id = self._read_snapshot(self.path)
+            if self._checkpoint_id:
+                changes = list(snapshot_changes(self._saved_snapshot, snapshot))
+                if changes:
+                    self._append_changes(changes)
+                    self._write_index(self.path, snapshot,
+                                      f'journal:{self._checkpoint_id}:{self.changes_path.stat().st_size}')
+                self._saved_snapshot = deepcopy(snapshot)
+                self._saved_source = (str(self.path), self._source_signature(self.path))
+                return
+        # A full checkpoint also replaces the base for future appended changes.
+        checkpoint_id = uuid.uuid4().hex
+        self._write_json_atomic(self.path, {**snapshot, '_thinkflow_checkpoint': checkpoint_id})
+        self.changes_path.write_bytes(b'')
+        self._checkpoint_id = checkpoint_id
+        self._saved_snapshot = deepcopy(snapshot)
+        self._saved_source = (str(self.path), self._source_signature(self.path))
+        digest = self._snapshot_digest(snapshot)
+        self._write_index(self.path, snapshot, digest)
         if history:
-            self._save_history_snapshot(snapshot)
+            self._save_history_snapshot(snapshot, digest=digest)
 
     @staticmethod
     def _snapshot_digest(snapshot: dict) -> str:
         normalized = dict(snapshot)
         normalized.pop("_history_digest", None)
         normalized.pop("_history_saved_at", None)
+        normalized.pop('_thinkflow_checkpoint', None)
         payload = json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         import hashlib
 
@@ -233,12 +311,7 @@ class SessionStore:
 
     @classmethod
     def _snapshot_file_digest(cls, path: Path) -> str:
-        try:
-            with path.open("r", encoding="utf-8-sig") as f:
-                data = json.load(f)
-        except Exception:
-            return ""
-        return str(data.get("_history_digest") or cls._snapshot_digest(data))
+        return cls.inspect(path).get('digest', '')
 
     @staticmethod
     def _write_json_atomic(path: Path, snapshot: dict):
@@ -256,20 +329,15 @@ class SessionStore:
             if temp_name and os.path.exists(temp_name):
                 os.unlink(temp_name)
 
-    def _save_history_snapshot(self, snapshot: dict, keep: int = 60):
+    def _save_history_snapshot(self, snapshot: dict, keep: int = 60, *, digest=None):
         if not snapshot.get("messages") and not ((snapshot.get("context", {}) or {}).get("records")):
             return
-        digest = self._snapshot_digest(snapshot)
+        digest = digest or self._snapshot_digest(snapshot)
         history_dir = self.path.parent / "history"
         history_dir.mkdir(parents=True, exist_ok=True)
         for item in history_dir.glob("*.json"):
-            try:
-                with item.open("r", encoding="utf-8-sig") as f:
-                    existing = json.load(f)
-                if existing.get("_history_digest") == digest:
-                    return
-            except Exception:
-                continue
+            if self._snapshot_file_digest(item) == digest:
+                return
         archived = dict(snapshot)
         if "outputs" in snapshot:
             archived["outputs"] = dict(snapshot["outputs"])
@@ -279,14 +347,16 @@ class SessionStore:
         stamp = datetime.fromtimestamp(time.time()).strftime("%Y%m%d-%H%M%S")
         path = history_dir / f"{stamp}-{digest[:8]}.json"
         self._write_json_atomic(path, archived)
+        self._write_index(path, archived, digest)
 
         items = sorted(
-            [item for item in history_dir.glob("*.json") if not item.name.endswith(".tmp")],
+            list(history_dir.glob("*.json")),
             key=lambda item: item.stat().st_mtime if item.exists() else 0,
             reverse=True,
         )
         for old in items[keep:]:
             try:
                 old.unlink()
+                old.with_suffix('.index').unlink(missing_ok=True)
             except OSError:
                 pass

@@ -139,7 +139,7 @@ class DesktopService:
             stream.flush()
             os.fsync(stream.fileno())
 
-    def _save(self, *, history=False):
+    def _save(self, *, history=False, incremental=False):
         if not self.agent or not self.store:
             return
         self._assign_message_ids()
@@ -155,7 +155,7 @@ class DesktopService:
             "queue_pause_reason": self.queue_pause_reason,
             "stream_id": self.stream_id, "seq": self.seq,
         }
-        self.store.save(self._clean(snapshot), history=history)
+        self.store.save(self._clean(snapshot), history=history, incremental=incremental)
         self._durable_inputs = copy.deepcopy(self.input_commands)
 
     def _config_for_agent(self):
@@ -203,11 +203,11 @@ class DesktopService:
             if kind == "tool_started":
                 self._journal(event)
                 self.active_intents[intent_key] = event
-                self._save()
+                self._save(incremental=True)
             else:
                 # Snapshot must precede the completed journal marker: after a crash
                 # an extra unresolved intent is safer than losing a committed receipt.
-                self._save()
+                self._save(incremental=True)
                 self._journal(event)
                 self.active_intents.pop(intent_key, None)
         elif kind == "turn_finished":
@@ -238,7 +238,7 @@ class DesktopService:
         result = []
         for path in self.session_root.glob("*.json"):
             try:
-                data = json.loads(path.read_text(encoding="utf-8"))
+                data = SessionStore.inspect(path)
                 meta = data.get("desktop", {})
                 if meta.get("cwd") != self.cwd:
                     continue

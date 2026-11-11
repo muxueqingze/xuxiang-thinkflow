@@ -1,0 +1,53 @@
+{
+  "passed": true,
+  "artifact": "D:\\the things of mine\\项目库\\agent\\thinkflow\\artifacts\\desktop-2026-11-11T10-46-17-041Z\\ThinkFlow-win32-x64\\resources\\backend\\thinkflow-service.exe",
+  "requests": 2,
+  "user_agents": [
+    "ThinkFlow/0.8.0",
+    "ThinkFlow/0.8.0"
+  ],
+  "file_content": "packaged-0.9.0-actual-output",
+  "ledger": [
+    {
+      "id": "1",
+      "tool": "write",
+      "status": "success"
+    },
+    {
+      "id": "2",
+      "tool": "read",
+      "status": "success"
+    }
+  ],
+  "hot_delta_bytes": 2729,
+  "checkpoint_resets_delta": true,
+  "index_created": true,
+  "output_file_count": 1,
+  "restart_same_messages_and_ledger": true,
+  "no_model_request_on_restart": true,
+  "backend_exit_codes": [
+    0,
+    0
+  ],
+  "final_candidate": {
+    "passed": true,
+    "artifact": "D:\\the things of mine\\项目库\\agent\\thinkflow\\artifacts\\desktop-2026-11-11T11-00-34-883Z\\ThinkFlow-win32-x64\\resources\\backend\\thinkflow-service.exe",
+    "helper_relative_path": "resources/backend/_internal/winpty/OpenConsole.exe",
+    "helper_bytes": 1089376,
+    "terminal_markers": [
+      "TFQA_A_42",
+      "TFQA_B_63",
+      "TFQA_STILL_144"
+    ],
+    "markers_absent_from_literal_input": true,
+    "second_terminal_exit_code": 7,
+    "first_terminal_alive_after_second_exit": true,
+    "requests": [
+      {
+        "user_agent": "ThinkFlow/0.9.0",
+        "model": "final-package-fixture"
+      }
+    ],
+    "backend_exit_code": 0
+  }
+}

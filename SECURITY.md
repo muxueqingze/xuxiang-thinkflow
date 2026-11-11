@@ -2,15 +2,16 @@
 
 ## Supported Versions
 
-The current development source is on `codex/thinkflow-desktop-v06` (0.8.0 development).
-The npm preview channel `next` provides 0.8.0 at commit `6d85c06`; `latest` provides 0.5.1.
-Security fixes target the current development line; publication is a separate step.
+The current source is on `codex/thinkflow-desktop-v06` (0.9.0).
+The npm preview channel `next` and Windows desktop release provide 0.9.0; `latest` provides 0.5.1.
+Security fixes target the current development line.
 
 | Version | Supported |
 |---|---|
 | Current development source | Yes |
-| `0.8.0` npm preview | Source updates are tracked on the development branch |
-| `0.5.1` npm stable | Upgrade to `next` for the 0.8.0 preview |
+| `0.9.0` CLI / Desktop preview | Yes |
+| `0.8.0` npm preview | Upgrade to 0.9.0 |
+| `0.5.1` npm stable | Upgrade to `next` for the 0.9.0 preview |
 | older versions | No |
 
 ## Reporting a Vulnerability

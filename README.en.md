@@ -1,4 +1,4 @@
-> Version 0.8.0 adds durable backend input admission and queues, exact receipt lookup, file browsing and revision-bound attachments, recorded diffs and guarded restoration, task plans with execution evidence, and verified DeepSeek Flash thinking/tool compatibility. The CLI preview is published on npm's `next` channel; `latest` remains 0.5.1. See [desktop guide](docs/desktop.md), [handoff and evidence](docs/v0.8-handoff.md), [architecture](DESIGN.md) and [roadmap](docs/harness-roadmap.md).
+> Version 0.9.0 packages the desktop workbench, long-session context and execution improvements, lossless Anthropic content-block round trips, and incremental session persistence. See [release notes](docs/release-0.9.0.md), [desktop guide](docs/desktop.md) and [architecture](DESIGN.md).
 
 # Xuxiang ThinkFlow
 
@@ -6,7 +6,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
@@ -56,7 +56,9 @@ The 2026-11-11 review follow-up unifies exact read projection across text and bo
 
 ## Installation
 
-The **0.8.0 CLI preview** uses the npm `next` channel:
+Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.0/ThinkFlow-0.9.0-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.0/ThinkFlow-0.9.0-Windows-x64.zip) runs after extracting the complete folder.
+
+The **0.9.0 CLI preview** uses the npm `next` channel. npm installs the CLI only:
 
 ```bash
 npm install -g xuxiang-agent@next
@@ -64,9 +66,9 @@ thinkflow --help
 xuxiang --help
 ```
 
-For an exact version, use `npm install -g xuxiang-agent@0.8.0`. The `latest` channel remains at 0.5.1. See the [release notes](docs/npm-release-0.8.0.md) for package contents; Windows desktop builds are distributed separately.
+For an exact version, use `npm install -g xuxiang-agent@0.9.0`. The `latest` channel remains at 0.5.1. See the [release notes](docs/release-0.9.0.md) for installation, upgrades and included changes.
 
-Requirements:
+CLI requirements:
 
 - Node.js 18+
 - Python 3.12+

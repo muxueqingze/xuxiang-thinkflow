@@ -2,7 +2,9 @@
 
 ## 使用
 
-Windows x64 文件夹包内双击 `ThinkFlow.exe`，首次选择工作区，再打开「设置 → 模型连接」填写兼容端点和模型。应用本体无需另装Node.js或Python；具体项目需要的编译器/运行时仍须具备。必须保留整个应用文件夹。
+在 [GitHub Releases](https://github.com/muxueqingze/xuxiang-thinkflow/releases) 下载 Windows x64 的 `ThinkFlow-版本-Windows-x64-Setup.exe`，双击安装。默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ThinkFlow`，可以在向导里更改目录。安装后从开始菜单打开「续想 ThinkFlow」。可在 Windows「设置 → 应用」卸载，配置和会话会保留。
+
+便携版下载 `ThinkFlow-版本-Windows-x64.zip`，完整解压后双击 `ThinkFlow.exe`。两种桌面包都自带应用所需的 Node.js 和 Python 运行时。具体项目的编译器和运行时按项目配置。首次打开时选择工作区，再在「设置 → 模型连接」填写兼容端点和模型。
 
 - Enter 发送，Shift+Enter 换行，Ctrl+Enter 也可发送；中文输入法选词不会触发发送。
 - 后续消息由后端持久接收，最多20条等待任务。当前任务成功后按顺序继续；停止、失败和重启后暂停。可独立编辑或移除未开始的任务，不改动输入框草稿。
@@ -21,7 +23,7 @@ Windows x64 文件夹包内双击 `ThinkFlow.exe`，首次选择工作区，再�
 - 平衡模式约束文件工具在工作区内，对shell等高风险操作逐次询问。只读模式禁止写入与命令执行。桌面开放模式放宽命令与敏感读取，可读取工作区外内容；带变更回执的文件写入仍限当前工作区。CLI开放模式沿用原有路径策略。
 - 模型端点可使用不需要key的本地服务。设置提供DeepSeek预设、与当前协议匹配的思考选项、模型列表与连接测试；后两项仅点击时调用已保存端点，连接测试有少量模型用量。保存本身不调用模型。
 - 会话导出为Markdown，单次导出上限1600万字符，超限会明确提示；完整展示对话仍在本机快照。界面只展示最近120条消息/500条账本，单条长消息显示末尾32000字符。压缩会摘录模型上下文、裁剪旧账本正文并保留摘要/hash，它不是完整文件历史归档。
-- 当前源码另存原始用户要求及附件展开后的执行输入，当前输入在压缩后完整保留。`request:N` 回取用户原话，`request:N:input` 回取包含冻结附件的提交时输入；原文和摘要状态随恢复、分支及配置切换保存。仅新记录的要求拥有引用，旧快照按原内容载入。该改动尚未包含在npm 0.8.0和旧桌面包中。
+- 当前源码另存原始用户要求及附件展开后的执行输入，当前输入在压缩后完整保留。`request:N` 回取用户原话，`request:N:input` 回取包含冻结附件的提交时输入；原文和摘要状态随恢复、分支及配置切换保存。仅新记录的要求拥有引用，旧快照按原内容载入。0.9.0已包含该能力。
 - 当前源码将完整工具输出保存在会话快照旁的`.outputs`目录，支持按短回执引用及关键词回取；分支复制原文，取消/超时保留已收到的输出。Markdown导出提供回执到本地文件的索引。见[输出留存](output-recall-20261111.md)。
 - 异常退出后存在不确定执行时，先核对文件，再点击「已核对，继续会话」。应用不会自动重放未知副作用。
 - 文件工具内存操作上限8 MiB，大文件读取返回有界截断，截断内容不能作为完整写入基线；不会因失败偷偷改走shell。
@@ -69,10 +71,16 @@ python -m pip install -e .
 npm --prefix desktop ci
 npm run desktop
 python -m pip install pyinstaller
+winget install --id JRSoftware.InnoSetup --exact --scope user
+```
+
+构建需要 Inno Setup 6.5 或更新的 6.x 版本。将 `ISCC.exe` 所在目录加入 PATH，或用 `THINKFLOW_ISCC` 指定编译器的完整路径。如果编译器的 `Languages/` 目录缺少 `ChineseSimplified.isl`，将 [Inno Setup 6.7.3 的简体中文翻译](https://raw.githubusercontent.com/jrsoftware/issrc/refs/tags/is-6_7_3/Files/Languages/Unofficial/ChineseSimplified.isl) 保存到该目录。
+
+```powershell
 npm run desktop:build
 ```
 
-构建产物位于 `artifacts/desktop-时间戳/ThinkFlow-win32-x64/`；最近路径记录于 `artifacts/latest-desktop.json`。每次构建单独输出，不覆盖旧包。Python服务入口 `scripts/desktop_entry.py`，Electron使用私有管道，不监听HTTP端口。
+每次构建在独立的 `artifacts/desktop-时间戳/` 下生成 `ThinkFlow-win32-x64/`、安装程序和便携 ZIP。`artifacts/latest-desktop.json` 记录最近一次完整构建的版本与三种产物路径。Python 服务入口为 `scripts/desktop_entry.py`，Electron 使用私有管道连接服务。
 
 ```powershell
 python -B tests/run_all.py
@@ -93,4 +101,4 @@ node desktop/tests/electron-workbench.cjs --packaged
 
 OpenAI 兼容接口的“输出 token 上限”默认留空，保存为 `null`，发送请求时省略 `max_tokens`，不另加客户端输出额度；已有配置中的显式正整数仍会保留。CLI 配置同样支持 `null`，`--max-tokens 0` 可清除已有输出额度。Anthropic 协议必须给出正整数，切换时需要明确填写，程序不会猜一个上限。
 
-这只改变客户端请求，不改变服务商自身容量和省略参数时的默认值。当前已发布的旧便携包不自动包含本次源码更新。
+这只改变客户端请求，不改变服务商自身容量和省略参数时的默认值。更新到0.9.0桌面包可使用上述配置。

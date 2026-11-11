@@ -163,8 +163,11 @@ class DesktopProtocolSwitchTests(unittest.IsolatedAsyncioTestCase):
                                 frames = [{'choices': [{'delta': {'content': self.reply}, 'finish_reason': None}]},
                                           {'choices': [{'delta': {}, 'finish_reason': 'stop'}]}]
                             else:
-                                frames = [{'type': 'content_block_delta', 'index': 0,
+                                frames = [{'type': 'content_block_start', 'index': 0,
+                                           'content_block': {'type': 'text', 'text': ''}},
+                                          {'type': 'content_block_delta', 'index': 0,
                                            'delta': {'type': 'text_delta', 'text': self.reply}},
+                                          {'type': 'content_block_stop', 'index': 0},
                                           {'type': 'message_stop'}]
                             for frame in frames:
                                 yield ('data: ' + json.dumps(frame) + '\n\n').encode()

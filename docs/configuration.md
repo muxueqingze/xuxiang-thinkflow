@@ -114,6 +114,8 @@ asyncio.run(main())
 
 绑定 `session_store` 后，执行意图、已完成工具回执和运行终态会自动保存，原 `event_sink` 继续接收事件；载入已有快照仍由宿主显式调用。也可用 `store.bind(agent)` 为已有 agent 绑定或切换持久存储。执行日志位于快照旁的 `.execution.jsonl`，输出位于 `.outputs`。
 
+0.9.0 在工具边界追加 `.changes.jsonl`，轮次和显式保存写完整 JSON 检查点；`store.load()` 自动合并已提交变化，再恢复未结算意图。`.index` 保存会话列表所需的小型元信息。移动活跃会话时应保留同名快照、变化日志、执行日志与输出目录；`store.save(snapshot)` 继续直接写完整快照。旧 JSON 首次保存时建立新检查点，索引可从快照重建。
+
 工具 handler 可返回字符串、`ToolResult` 或 `ExecutionResult`。结构化结果中的失败、stdout/stderr、完整输出引用会保留到实际反馈；覆盖已有工具后 direct、tf、native 使用同一 handler，运行中新增工具会进入 `load_tools` 目录。需要实际调用 ID 的 handler 可注册 `pass_call_id=True`，接收 `handler(arguments, call_id=...)`。
 
 ## 本轮依据与验证

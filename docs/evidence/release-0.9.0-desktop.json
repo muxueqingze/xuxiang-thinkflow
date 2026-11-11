@@ -1,0 +1,122 @@
+{
+  "version": "0.9.0",
+  "platform": "Windows 11 x64 (build 26200)",
+  "artifacts": {
+    "applicationDirectory": "artifacts/desktop-2026-11-11T11-00-34-883Z/ThinkFlow-win32-x64",
+    "installer": {
+      "path": "artifacts/desktop-2026-11-11T11-00-34-883Z/ThinkFlow-0.9.0-Windows-x64-Setup.exe",
+      "bytes": 160426979,
+      "peVersion": "0.9.0",
+      "signed": false
+    },
+    "portable": {
+      "path": "artifacts/desktop-2026-11-11T11-00-34-883Z/ThinkFlow-0.9.0-Windows-x64.zip",
+      "bytes": 178630480,
+      "entries": 207,
+      "crcPassed": true
+    }
+  },
+  "build": {
+    "command": "npm run desktop:build",
+    "python": "3.12.10",
+    "pyInstaller": "6.22.3",
+    "electron": "44.4.5",
+    "innoSetup": "6.7.3",
+    "innoSetupLocation": "%LOCALAPPDATA%/Programs/Inno Setup 6",
+    "innoSetupUserPath": "%LOCALAPPDATA%/Programs/Inno Setup 6",
+    "innoSetupLanguage": "Languages/ChineseSimplified.isl from the Inno Setup 6.7.3 source tag",
+    "electronSource": "Reused the existing npm Electron dist in an isolated temporary build cache after the download stalled.",
+    "windowsTerminal": {
+      "pywinpty": "3.1.2",
+      "helper": "resources/backend/_internal/winpty/OpenConsole.exe",
+      "helperBytes": 1089376,
+      "additionalDependency": "resources/backend/_internal/D3DCOMPILER_47.dll"
+    }
+  },
+  "checks": {
+    "candidate": {
+      "packagedSmoke": {
+        "passed": true,
+        "clipboard": "The isolated Electron test intercepted the clipboard write."
+      },
+      "packagedWorkbench": {
+        "passed": true,
+        "scenarios": 6
+      },
+      "isolatedInstaller": {
+        "version": "0.9.0",
+        "passed": true,
+        "perUser": true,
+        "customUnicodePath": true,
+        "startMenu": true,
+        "desktopShortcut": false,
+        "installedPayloadMatches": true,
+        "uninstallRemovesEntriesAndApplication": true
+      },
+      "isolatedProfilePreservedOnUninstall": {
+        "version": "0.8.0 payload",
+        "passed": true
+      }
+    },
+    "final": {
+      "extractedPortableStarted": true,
+      "bundledBackendConnected": true,
+      "appVersion": "0.9.0",
+      "pyInstallerArchiveModules": [
+        "src.session_delta",
+        "winpty.ptyprocess"
+      ],
+      "localSse": {
+        "passed": true,
+        "userAgent": "ThinkFlow/0.9.0"
+      },
+      "terminal": {
+        "passed": true,
+        "markers": [
+          "FINAL_ONE",
+          "FINAL_TWO",
+          "FINAL_STILL_ALIVE"
+        ],
+        "terminalIds": [
+          "85216ea0210448b89ec15186a8213741",
+          "07fe173a3ddf4d558111f64aac148300"
+        ],
+        "secondExitCode": 7,
+        "firstTerminalRemainedUsable": true,
+        "secondTerminalTabShowsExitCode": true
+      }
+    },
+    "terminalRegression": {
+      "baseline": {
+        "passed": false,
+        "step": "Created two PowerShell sessions by RPC, then polled each session by ID for its prompt before sending any command.",
+        "packaged": [
+          {
+            "id": "9c2ecf0c688544f5a9efe0080e5d986c",
+            "exited": true,
+            "exit_code": 3221225786,
+            "scrollback": "\u001b[?9001h\u001b[?1004h\u001b[2t"
+          },
+          {
+            "id": "b29923a5fe494e3da08aa408450a2d12",
+            "exited": true,
+            "exit_code": 3221225786,
+            "scrollback": "\u001b[?9001h\u001b[?1004h\u001b[2t"
+          }
+        ],
+        "source": "Both sessions returned their command markers. The second exited with code 7, and the first returned another command marker."
+      },
+      "isolatedComparison": {
+        "passed": true,
+        "changedFile": "winpty/OpenConsole.exe",
+        "markers": [
+          "AB_ONE",
+          "AB_TWO",
+          "AB_STILL_ALIVE"
+        ],
+        "secondExitCode": 7
+      },
+      "fix": "Include OpenConsole.exe from the build interpreter’s pywinpty package as a PyInstaller binary beside conpty.dll."
+    }
+  }
+}

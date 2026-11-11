@@ -117,7 +117,11 @@ class RuntimeUsageTests(unittest.IsolatedAsyncioTestCase):
                 if cache_write is not None:
                     start["cache_creation_input_tokens"] = cache_write
                 content = sse({"type": "message_start", "message": {"usage": start}})
-                content += sse({"type": "content_block_delta", "delta": {"type": "text_delta", "text": "x" * 1399}})
+                content += sse({"type": "content_block_start", "index": 0,
+                                "content_block": {"type": "text", "text": ""}})
+                content += sse({"type": "content_block_delta", "index": 0,
+                                "delta": {"type": "text_delta", "text": "x" * 1399}})
+                content += sse({"type": "content_block_stop", "index": 0})
                 if final:
                     content += sse({"type": "message_delta", "delta": {"stop_reason": "end_turn"},
                                     "usage": {"output_tokens": 7}})

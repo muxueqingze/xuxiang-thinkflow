@@ -1,0 +1,14 @@
+{
+  "initial_snapshot_bytes": 2707120,
+  "receipt_updates": 40,
+  "written_bytes": 34321,
+  "atomic_writes": 40,
+  "delta_appends": 40,
+  "save_total_ms": 83.263,
+  "save_median_ms": 2.038,
+  "list_ms": 6.711,
+  "list_read_bytes": 20412,
+  "list_full_snapshot_reads": 0,
+  "listed_sessions": 12,
+  "full_history_and_receipts_equal": true
+}

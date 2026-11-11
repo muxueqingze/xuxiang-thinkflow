@@ -675,8 +675,9 @@ class AgentLoop:
 
     def _build_headers(self) -> dict:
         """构建请求头。"""
+        from . import __version__
         p = self.config.provider
-        common = {"content-type": "application/json", "User-Agent": "ThinkFlow/0.8.0"}
+        common = {"content-type": "application/json", "User-Agent": f"ThinkFlow/{__version__}"}
         if urlparse(p.base_url).hostname == 'opencode.ai':
             common['x-opencode-session'] = self.session_id
         if p.format == "anthropic":
@@ -1019,12 +1020,13 @@ class AgentLoop:
         parser_error_message = ""
         assistant_text = ""
         assistant_reasoning = ""
+        anthropic_content = [] if self.config.provider.format == 'anthropic' else None
         parser_error_count = len(self.parser.errors)
         text_parser_error_count = len(self.text_parser.errors)
         self.text_filter.reset()
         self.text_command_gate.reset()
 
-        event_stream = self._events_until_failure(response, command_queue)
+        event_stream = self._events_until_failure(response, command_queue, anthropic_content)
         try:
             async for event in event_stream:
                 # thinking delta → 喂给解析器
@@ -1051,7 +1053,7 @@ class AgentLoop:
                         self.view.flush_text()
                         abort_reason = AbortReason.TOOL_FAILED
 
-                    if abort_reason != AbortReason.NONE:
+                    if abort_reason not in (AbortReason.NONE, AbortReason.TOOL_USE):
                         break
 
                 # text delta → 安全过滤后流式渲染，命令块仍由 text_parser 执行
@@ -1076,7 +1078,7 @@ class AgentLoop:
                         self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
                         self.view.flush_text()
                         abort_reason = AbortReason.TOOL_FAILED
-                    if abort_reason != AbortReason.NONE:
+                    if abort_reason not in (AbortReason.NONE, AbortReason.TOOL_USE):
                         break
                     visible_text = self.text_filter.feed(event.text)
                     if visible_text:
@@ -1181,11 +1183,13 @@ class AgentLoop:
                     self.parser.flush()
                     self.text_parser.flush()
                     self.clear_text_tool_activity()
+                    self._append_anthropic_content(anthropic_content)
 
         try:
             background_failure = await command_queue.close()
         except BaseException:
             await command_queue.abort()
+            self._append_anthropic_content(anthropic_content)
             raise
         self.finish_text_tool_stream()
         if background_failure and abort_reason not in (AbortReason.TOOL_FAILED, AbortReason.NEED_RESULT):
@@ -1258,13 +1262,14 @@ class AgentLoop:
                 self.events.emit('provider_protocol_error', kind='orphan_tool_close')
                 abort_reason = AbortReason.TOOL_FAILED
                 turn_usage.abort_reason = abort_reason
-        if abort_reason != AbortReason.TOOL_USE and (clean_text or assistant_reasoning):
+        if anthropic_content is not None:
+            if abort_reason != AbortReason.TOOL_USE:
+                self._append_anthropic_content(anthropic_content)
+        elif abort_reason != AbortReason.TOOL_USE and (clean_text or assistant_reasoning):
             message = {"role": "assistant", "content": clean_text}
             if self.config.provider.format == 'openai' and (assistant_reasoning or is_deepseek(self.config.provider)):
                 message['reasoning_content'] = assistant_reasoning
             self.messages.append(message)
-        elif abort_reason == AbortReason.TOOL_USE and self.config.provider.format != 'openai' and clean_text:
-            self.messages.append({"role": "assistant", "content": clean_text})
 
         # 4. 处理中断原因
         if abort_reason == AbortReason.TOOL_FAILED:
@@ -1345,9 +1350,16 @@ class AgentLoop:
             return False
 
         elif abort_reason == AbortReason.TOOL_USE:
+            if anthropic_content is not None:
+                raw_inputs = {tool['id']: tool['input'] for tool in traditional_tools.values()}
+                traditional_tools = {block['id']: {
+                    'id': block['id'], 'name': block['name'],
+                    'input': raw_inputs[block['id']] or json.dumps(block['input'], ensure_ascii=False),
+                } for block in anthropic_content if block['type'] == 'tool_use'}
             if traditional_tools:
                 await self._handle_traditional_tools(list(traditional_tools.values()),
-                                                     assistant_text=clean_text, reasoning=assistant_reasoning)
+                                                     assistant_text=clean_text, reasoning=assistant_reasoning,
+                                                     assistant_content=anthropic_content)
             if self._stop_for_uncertain_effect(self.context.records[record_start_index:]):
                 return False
             self.context.clear_flags()
@@ -1488,9 +1500,20 @@ class AgentLoop:
             command_queue.enqueue(cmd)
         return dispatched, AbortReason.NONE
 
-    async def _events_until_failure(self, response, queue):
+    def _append_anthropic_content(self, content):
+        """Keep closed blocks on interruption; unexecuted native calls have no result."""
+        if content is not None:
+            blocks = [block for block in content if block['type'] != 'tool_use']
+            if blocks:
+                message = {'role': 'assistant', 'content': blocks}
+                self.messages.append(message)
+                return message
+
+    async def _events_until_failure(self, response, queue, content_blocks=None):
         """Race socket reads against execution failure, including stalled SSE."""
-        iterator = self._process_stream(response).__aiter__()
+        stream = (self._process_stream(response) if content_blocks is None else
+                  self._process_stream(response, content_blocks=content_blocks))
+        iterator = stream.__aiter__()
         failed = asyncio.create_task(queue.failed.wait())
         pending = None
         try:
@@ -1561,10 +1584,12 @@ class AgentLoop:
         """返回本次 feed 新增的解析错误。"""
         return parser.errors[start_count:]
 
-    async def _process_stream(self, response):
+    async def _process_stream(self, response, *, content_blocks=None):
         """处理 SSE 流，统一产出 StreamEvent。"""
         event_type_str = ""
         pending_openai_finish_reason = ""
+        open_blocks = {}
+        block_inputs = {}
 
         async for line in response.aiter_lines():
             line = line.strip()
@@ -1602,6 +1627,32 @@ class AgentLoop:
 
             # Anthropic 格式
             data_type = data.get("type", "")
+            if content_blocks is not None:
+                if data_type == 'content_block_start':
+                    block = data['content_block']
+                    if block['type'] in ('thinking', 'redacted_thinking', 'text', 'tool_use'):
+                        open_blocks[data['index']] = block.copy()
+                elif data_type == 'content_block_delta' and data['index'] in open_blocks:
+                    index = data['index']
+                    block = open_blocks[index]
+                    delta = data['delta']
+                    field = {'thinking_delta': 'thinking', 'signature_delta': 'signature',
+                             'text_delta': 'text'}.get(delta['type'])
+                    if field:
+                        block[field] = block.get(field, '') + delta[field]
+                    elif delta['type'] == 'input_json_delta':
+                        block_inputs[index] = block_inputs.get(index, '') + delta['partial_json']
+                elif data_type == 'content_block_stop' and data['index'] in open_blocks:
+                    index = data['index']
+                    block = open_blocks.pop(index)
+                    if index in block_inputs:
+                        try:
+                            block['input'] = json.loads(block_inputs.pop(index))
+                        except json.JSONDecodeError:
+                            # Raw deltas still reach the native argument validator,
+                            # which emits the existing failed receipt without execution.
+                            block['input'] = {}
+                    content_blocks.append(block)
             if data_type in ("message_start", "message_delta") and self.usage.turns:
                 provider_usage = (data.get("message", {}).get("usage") if data_type == "message_start"
                                   else data.get("usage"))
@@ -1870,8 +1921,12 @@ class AgentLoop:
             return True
         return False
 
-    async def _handle_traditional_tools(self, tool_calls: list[dict], *, assistant_text='', reasoning=''):
+    async def _handle_traditional_tools(self, tool_calls: list[dict], *, assistant_text='', reasoning='',
+                                        assistant_content=None):
         """处理传统 tool_use（read 等），支持分片参数和多工具并发返回。"""
+        # Tool-event snapshots retain signed state before execution. Until all
+        # results exist, omit tool_use blocks so interruption leaves no orphan calls.
+        assistant_message = self._append_anthropic_content(assistant_content)
         normalized = []
         results = []
         batch_failed = False
@@ -1889,6 +1944,9 @@ class AgentLoop:
             except (ValueError, TypeError) as exc:
                 tool_input = {}
                 input_error = f"Invalid tool arguments: {exc}"
+                if assistant_content is not None:
+                    next(block for block in assistant_content
+                         if block['type'] == 'tool_use' and block['id'] == tool_id)['input'] = {}
 
             self.view.render_tool_call(tool_name, tool_input)
             result = await self._execute_traditional_result(
@@ -1938,9 +1996,9 @@ class AgentLoop:
                     "content": result["content"],
                 })
         else:
-            self.messages.append({
+            message = {
                 "role": "assistant",
-                "content": [
+                "content": assistant_content if assistant_content is not None else [
                     {
                         "type": "tool_use",
                         "id": item["id"],
@@ -1949,7 +2007,11 @@ class AgentLoop:
                     }
                     for item in normalized
                 ],
-            })
+            }
+            if assistant_message is None:
+                self.messages.append(message)
+            else:
+                assistant_message['content'] = message['content']
             self.messages.append({
                 "role": "user",
                 "content": [
