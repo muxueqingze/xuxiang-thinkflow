@@ -29,3 +29,9 @@
 ## 2026-11-11：桌面 Git 路径与终端编码
 
 `d34ef25` 的 [PR](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42983581066)和 [push](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/42983573845)检查均在新桌面服务测试中失败：Git 目录断言再次误用长/短路径字符串比较；英文 Windows 的 PowerShell Console 默认编码将中文输出变为问号。前者沿用 `Path.samefile`；后者在新建终端时设置 UTF-8，中文输出断言保持。局部真实 CP437→UTF-8 复现及两项回归通过，详见[交互节点验证](reviews/interaction-20261111.md#github-windows-runner-的两处差异)。
+
+## 2026-11-11：发布标签的终端就绪等待
+
+0.9.0源码`f7c49b0`的[分支](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/43008969369)与[PR](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/43008981896)均通过346项Python和15项Node检查。[标签首轮](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/43009638115)唯一错误发生在终端测试第112行：12秒内没有同时观察到两个终端的字面`PS `提示符，尚未进入命令断言。
+
+测试现在向两端发送分段拼接的计算标记，以实际输出`TF_READY_42`判断就绪；启动阶段独立等待30秒，后续操作仍限定12秒，原尺寸、编码、退出码及清理断言保留。此修改仅涉及测试和记录，已发布0.9.0运行代码及包内容保持不变。

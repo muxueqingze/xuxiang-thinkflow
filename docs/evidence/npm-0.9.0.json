@@ -21,5 +21,25 @@
     "publish_content_scan": "no findings",
     "final_repack": "All CLI and runtime bytes match the isolated installed package; only scripts/build-desktop.cjs changed to include the ConPTY helper."
   },
-  "cleanup": "Temporary workspace removed; isolated install and venv are recycled after publication verification."
+  "cleanup": "Release test installs, virtual environment, profiles, build intermediates, task caches and ten task-owned global npm logs recycled; only release artifacts and evidence retained.",
+  "status": "published_verified",
+  "source_commit": "f7c49b04bb74b80120a9033bd164432a212829f1",
+  "registry": {
+    "version": "0.9.0",
+    "tarball": "https://registry.npmjs.org/xuxiang-agent/-/xuxiang-agent-0.9.0.tgz",
+    "bytes": 305176,
+    "integrity": "sha512-eFqymskzudoudtFnqDoL4wuKaHFwTxlLbzezCzMcgvp0ODHscPKNBUKC0i24DMj4TKIwpi+Oo22yrVFrN6VZEg==",
+    "exact_validated_bytes": true,
+    "dist_tags": {
+      "beta": "0.5.0-beta.2",
+      "latest": "0.5.1",
+      "next": "0.9.0"
+    }
+  },
+  "github": {
+    "release": "https://github.com/muxueqingze/xuxiang-thinkflow/releases/tag/v0.9.0",
+    "tag": "v0.9.0",
+    "prerelease": true,
+    "assets_verified_by_sha256": true
+  }
 }

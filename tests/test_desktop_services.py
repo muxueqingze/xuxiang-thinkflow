@@ -107,9 +107,13 @@ class WorkspaceServicesTests(unittest.IsolatedAsyncioTestCase):
 
         first, second = await create(), await create()
         first_handle, second_handle = self.terminal_handle(first), self.terminal_handle(second)
-        async with asyncio.timeout(12):
-            while not all("PS " in output(identifier) for identifier in (first, second)):
+        for identifier in (first, second):
+            await self.service.dispatch("terminal_input", {"id": identifier, "data":
+                "[Console]::WriteLine('TF_READY_' + (6 * 7))\r"})
+        async with asyncio.timeout(30):
+            while not all("TF_READY_42" in output(identifier) for identifier in (first, second)):
                 await asyncio.sleep(.02)
+        async with asyncio.timeout(12):
             await self.service.dispatch("new_session")
             self.assertEqual(set(await terminals()), {first, second})
             await self.service.dispatch("terminal_resize", {"id": first, "cols": 96, "rows": 19})
