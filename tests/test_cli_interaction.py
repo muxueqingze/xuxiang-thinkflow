@@ -234,6 +234,9 @@ class CliInteractionTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(len(requests), 1)
                             self.assertEqual([call.args[0] for call in rendered.call_args_list], ["initial request"])
                             self.assertEqual(marker.read_text(encoding="utf-8"), "batch finished")
+                            # File replacement precedes the executor's completed
+                            # receipt; wait for that fact rather than filesystem timing.
+                            await wait_for(lambda: bool(agent.context.records))
                             self.assertEqual(agent.context.records[0].status, "success")
                             finish_first_stream.set()
                             await asyncio.wait_for(final_run_finished.wait(), 3)

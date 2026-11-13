@@ -8,3 +8,5 @@
 - 同一组测试覆盖默认终端和 TUI 的 `Enter`、`Ctrl+J`、`Alt+Enter`、多行粘贴和取消后发送草稿。
 
 运行 `python -B -m unittest discover -s tests -p 'test_cli_interaction.py' -v`，6 项通过。追加队列显示和模型请求中的回执断言后，定向复跑 `-k steer` 与 `-k cancel_pauses_fifo`，均通过。可复现用例见 [test_cli_interaction.py](../../tests/test_cli_interaction.py)。会话和工具输出使用由测试自动清理的临时目录，回环监听在测试结束时关闭。
+
+发布CI的push运行曾在TUI子例触发测试竞态：文件原子替换已完成，执行器回执仍在结算，夹具就读取 `records[0]`。同提交PR运行通过。现在保留文件内容断言，并等待真实回执出现后核对状态；未增加固定延时，也未改变运行代码。原运行：[push失败](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/43388763872)、[PR通过](https://github.com/muxueqingze/xuxiang-thinkflow/actions/runs/43388770458)。
