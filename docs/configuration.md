@@ -112,6 +112,8 @@ asyncio.run(main())
 
 只用内存配置时直接传dict给create_agent；宿主需要事件时传`event_sink`，需要授权交互时传`approval_handler`。自定义工具通过现有ToolRegistry注册，声明flow及risk，沿用现有信息合批和回执链。无需新建一套插件执行器。
 
+运行中补充可传 `steering_source`：这是一个无参数异步函数，返回待补充输入列表，每项含 `prompt`（实际执行输入）与可选 `user_request`（用户原话，省略时与prompt一致）。宿主拥有队列；框架只在当前响应及全部工具结算后取出补充，原文进入历史和request引用，随后发出 `steering_applied` 事件。空列表不增加模型请求。取消、错误或预算停止前未取出的输入仍由宿主处理；当前任务与补充在压缩中一并保留原文。
+
 绑定 `session_store` 后，执行意图、已完成工具回执和运行终态会自动保存，原 `event_sink` 继续接收事件；载入已有快照仍由宿主显式调用。也可用 `store.bind(agent)` 为已有 agent 绑定或切换持久存储。执行日志位于快照旁的 `.execution.jsonl`，输出位于 `.outputs`。
 
 0.9.0 在工具边界追加 `.changes.jsonl`，轮次和显式保存写完整 JSON 检查点；`store.load()` 自动合并已提交变化，再恢复未结算意图。`.index` 保存会话列表所需的小型元信息。移动活跃会话时应保留同名快照、变化日志、执行日志与输出目录；`store.save(snapshot)` 继续直接写完整快照。旧 JSON 首次保存时建立新检查点，索引可从快照重建。

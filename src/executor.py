@@ -10,11 +10,12 @@ import codecs
 import fnmatch
 import os
 import re
+import stat
 import sys
 import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Callable, Iterator, Optional
 
 from .parser import Command
 from .security import SecurityPolicy
@@ -22,6 +23,7 @@ from .output_capture import OutputCapture
 from .output_store import OutputStore
 from .process_owner import spawn_owned, stop_owned
 from .file_observations import ReadObservation, read_file_range
+from .workspace_search import iter_entries
 from .changes import (
     ChangeStore, MAX_GUARDED_FILE_BYTES, atomic_write_bytes, content_revision,
     read_optional_bytes, reject_symbolic_path,
@@ -188,19 +190,21 @@ class Executor:
         return resolved
 
     @staticmethod
-    async def _file_io(function, *args):
-        """A thread cannot be cancelled: settle it before releasing path locks."""
+    async def _file_io(function, *args, stop: threading.Event | None = None):
+        """Settle file I/O before unwinding, signalling cooperative searches first."""
         work = asyncio.get_running_loop().run_in_executor(None, function, *args)
         try:
             return await asyncio.shield(work)
         except asyncio.CancelledError:
+            if stop is not None:
+                stop.set()
             while not work.done():
                 try:
                     await asyncio.shield(work)
                 except asyncio.CancelledError:
                     continue
             result = work.result()
-            if isinstance(result, ExecutionResult):
+            if stop is None and isinstance(result, ExecutionResult):
                 raise ExecutionCancelled(result) from None
             raise
 
@@ -300,6 +304,47 @@ class Executor:
             return ExecutionResult(success=False, tool="read", error="缺少 path")
         return await self.read(command.path, command.offset, command.limit)
 
+    async def _search(
+        self,
+        tool: str,
+        path: str,
+        limit: int,
+        collect: Callable[[str, threading.Event], Iterator[str]],
+    ) -> ExecutionResult:
+        stopped = threading.Event()
+
+        def run():
+            try:
+                if limit < 0:
+                    raise ValueError("结果数量上限不能为负数")
+                root = self._resolve_path(path or ".", "read")
+                lines = []
+                for line in collect(root, stopped):
+                    if len(lines) == limit:
+                        return ExecutionResult(True, tool, root, content="\n".join(lines), truncated=True)
+                    lines.append(line)
+                return ExecutionResult(True, tool, root, content="\n".join(lines))
+            except re.error as e:
+                return ExecutionResult(False, tool, path, error=f"正则错误: {e}")
+            except (OSError, ValueError) as e:
+                return ExecutionResult(False, tool, path, error=f"搜索失败: {e}")
+
+        return await self._file_io(run, stop=stopped)
+
+    def _search_readable(self, path: str) -> bool:
+        try:
+            self._resolve_path(path, "read")
+        except PermissionError:
+            return False
+        return True
+
+    def _search_entries(self, root: str, recursive: bool, stopped: threading.Event):
+        return iter_entries(root, self.cwd, recursive, stopped, self._search_readable)
+
+    def _search_prefix(self, root: str) -> str:
+        relative = os.path.relpath(root, self.cwd).replace(os.sep, "/")
+        return "" if relative == "." else relative + "/"
+
     async def list_files(
         self,
         path: str = ".",
@@ -307,82 +352,25 @@ class Executor:
         max_entries: int = 200,
     ) -> ExecutionResult:
         """List files under a directory."""
-        try:
-            resolved = self._resolve_path(path or ".", "read")
-            if not os.path.isdir(resolved):
-                return ExecutionResult(
-                    success=False,
-                    tool="list_files",
-                    path=resolved,
-                    error=f"不是目录: {resolved}",
-                )
 
-            entries = []
-            truncated = False
-            if recursive:
-                for root, dirs, files in os.walk(resolved):
-                    dirs.sort()
-                    files.sort()
-                    for name in dirs + files:
-                        full = os.path.join(root, name)
-                        rel = os.path.relpath(full, self.cwd)
-                        suffix = "/" if os.path.isdir(full) else ""
-                        entries.append(rel.replace("\\", "/") + suffix)
-                        if len(entries) >= max_entries:
-                            truncated = True
-                            break
-                    if truncated:
-                        break
-            else:
-                for name in sorted(os.listdir(resolved)):
-                    full = os.path.join(resolved, name)
-                    rel = os.path.relpath(full, self.cwd)
-                    suffix = "/" if os.path.isdir(full) else ""
-                    entries.append(rel.replace("\\", "/") + suffix)
-                    if len(entries) >= max_entries:
-                        truncated = True
-                        break
+        def collect(root, stopped):
+            prefix = self._search_prefix(root)
+            for entry in self._search_entries(root, recursive, stopped):
+                yield prefix + entry.relative + ("/" if entry.is_dir else "")
 
-            content = "\n".join(entries)
-            return ExecutionResult(
-                success=True,
-                tool="list_files",
-                path=resolved,
-                content=content,
-                truncated=truncated,
-            )
-        except Exception as e:
-            return ExecutionResult(success=False, tool="list_files", path=path, error=f"列目录失败: {e}")
+        return await self._search("list_files", path, max_entries, collect)
 
     async def glob(self, pattern: str, path: str = ".", max_results: int = 200) -> ExecutionResult:
         """Find paths by glob pattern under path."""
-        try:
-            root = self._resolve_path(path or ".", "read")
-            matches = []
-            truncated = False
-            for current_root, dirs, files in os.walk(root):
-                dirs.sort()
-                files.sort()
-                for name in dirs + files:
-                    full = os.path.join(current_root, name)
-                    rel_from_root = os.path.relpath(full, root).replace("\\", "/")
-                    rel_from_cwd = os.path.relpath(full, self.cwd).replace("\\", "/")
-                    if fnmatch.fnmatch(rel_from_root, pattern) or fnmatch.fnmatch(rel_from_cwd, pattern):
-                        matches.append(rel_from_cwd + ("/" if os.path.isdir(full) else ""))
-                        if len(matches) >= max_results:
-                            truncated = True
-                            break
-                if truncated:
-                    break
-            return ExecutionResult(
-                success=True,
-                tool="glob",
-                path=root,
-                content="\n".join(matches),
-                truncated=truncated,
-            )
-        except Exception as e:
-            return ExecutionResult(success=False, tool="glob", path=path, error=f"glob 失败: {e}")
+
+        def collect(root, stopped):
+            prefix = self._search_prefix(root)
+            for entry in self._search_entries(root, True, stopped):
+                path = prefix + entry.relative
+                if fnmatch.fnmatch(entry.relative, pattern) or fnmatch.fnmatch(path, pattern):
+                    yield path + ("/" if entry.is_dir else "")
+
+        return await self._search("glob", path, max_results, collect)
 
     async def grep(
         self,
@@ -392,54 +380,38 @@ class Executor:
         case_sensitive: bool = False,
         max_results: int = 100,
     ) -> ExecutionResult:
-        """Search text files with a regex pattern."""
-        try:
-            root = self._resolve_path(path or ".", "read")
+        """Search text files with a Python regex pattern."""
+
+        def collect(root, stopped):
             flags = 0 if case_sensitive else re.IGNORECASE
             regex = re.compile(pattern, flags)
-            results = []
-            truncated = False
+            mode = os.stat(root).st_mode
+            if stat.S_ISREG(mode):
+                relative = os.path.relpath(root, self.cwd).replace(os.sep, "/")
+                paths = ((root, relative),)
+            elif stat.S_ISDIR(mode):
+                prefix = self._search_prefix(root)
+                paths = (
+                    (entry.path, prefix + entry.relative)
+                    for entry in self._search_entries(root, True, stopped)
+                    if not entry.is_dir and fnmatch.fnmatch(entry.relative, file_glob)
+                    and self._search_readable(entry.path)
+                )
+            else:
+                raise ValueError(f"不是普通文件或目录: {root}")
 
-            paths = [root] if os.path.isfile(root) else []
-            if os.path.isdir(root):
-                for current_root, dirs, files in os.walk(root):
-                    dirs.sort()
-                    files.sort()
-                    for name in files:
-                        rel_from_root = os.path.relpath(os.path.join(current_root, name), root).replace("\\", "/")
-                        if fnmatch.fnmatch(rel_from_root, file_glob):
-                            paths.append(os.path.join(current_root, name))
+            for file_path, relative in paths:
+                with open(file_path, encoding="utf-8", errors="replace") as source:
+                    for line_no, line in enumerate(source, start=1):
+                        if stopped.is_set():
+                            return
+                        if regex.search(line):
+                            safe_line = line.rstrip()
+                            if not self.security.allow_sensitive_paths:
+                                safe_line = self.security.redact_text(safe_line)
+                            yield f"{relative}:{line_no}: {safe_line}"
 
-            for file_path in paths:
-                try:
-                    resolved_file = self._resolve_path(file_path, "read")
-                    with open(resolved_file, "r", encoding="utf-8", errors="replace") as f:
-                        for line_no, line in enumerate(f, start=1):
-                            if regex.search(line):
-                                rel = os.path.relpath(resolved_file, self.cwd).replace("\\", "/")
-                                safe_line = line.rstrip()
-                                if not self.security.allow_sensitive_paths:
-                                    safe_line = self.security.redact_text(safe_line)
-                                results.append(f"{rel}:{line_no}: {safe_line}")
-                                if len(results) >= max_results:
-                                    truncated = True
-                                    break
-                    if truncated:
-                        break
-                except Exception:
-                    continue
-
-            return ExecutionResult(
-                success=True,
-                tool="grep",
-                path=root,
-                content="\n".join(results),
-                truncated=truncated,
-            )
-        except re.error as e:
-            return ExecutionResult(success=False, tool="grep", path=path, error=f"正则错误: {e}")
-        except Exception as e:
-            return ExecutionResult(success=False, tool="grep", path=path, error=f"搜索失败: {e}")
+        return await self._search("grep", path, max_results, collect)
 
     @staticmethod
     def _read_file(path: str) -> str:

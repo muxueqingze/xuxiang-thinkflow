@@ -18,8 +18,8 @@ const server = http.createServer((request, response) => {
   request.on('data', chunk => { body += chunk; });
   request.on('end', () => {
     const data = JSON.parse(body);
-    // The harness appends a transient runtime-status user message to each API request.
-    const prompt = data.messages.slice(0, -1).filter(message => message.role === 'user').at(-1)?.content || '';
+    // These fixture prompts are single lines. The rest is the runtime observation.
+    const prompt = data.messages.findLast(message => message.role === 'user').content.split('\n', 1)[0];
     requests.push(prompt);
     response.writeHead(200, { 'content-type': 'text/event-stream' });
     const send = content => response.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta: { content }, finish_reason: null }] })}\n\n`);
@@ -68,13 +68,16 @@ async function choose(folder) {
   await page.locator('#workspace').click();
   await eventually(async () => (await getState()).cwd === folder, 'workspace changed');
 }
-async function submit(text) { await page.locator('#prompt').fill(text); await page.locator('#prompt').press('Enter'); }
+async function submit(text, key = 'Enter') {
+  if (key === 'Alt+Enter') await page.locator('#input-delivery').waitFor();
+  await page.locator('#prompt').fill(text); await page.locator('#prompt').press(key);
+}
 async function menu(id) { if (!(await page.locator('#more-menu').evaluate(node => node.open))) await page.locator('#more-menu > summary').click(); await page.locator(id).click(); }
 async function main() {
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   await launch();
   assert.equal(await page.locator('#send').isDisabled(), true);
-  assert.equal(await page.locator('#inspector').isVisible(), false);
+  assert.equal(await page.locator('#inspector').getAttribute('aria-hidden'), 'true');
   await choose(workspace);
   await page.locator('#settings-side').click();
   await page.locator('[name=model]').fill('本地交互测试');
@@ -96,7 +99,7 @@ async function main() {
   const firstSession = (await getState()).session_id;
   await submit('持续任务：检查队列');
   await eventually(() => held.length === 1, 'first held request');
-  await submit('排队的补充说明');
+  await submit('排队的补充说明', 'Alt+Enter');
   await page.locator('#queue-panel').waitFor({ state: 'visible' });
   assert.equal(requests.length, 2);
   held[0].finish(); await idle(6);
@@ -104,7 +107,7 @@ async function main() {
   assert.equal(await page.locator('#message-list').evaluate(node => window.__firstMessage === node.firstElementChild), true);
   checks.push('FIFO follow-up after successful run; existing message DOM preserved');
   await submit('持续任务：停止后暂停'); await eventually(() => held.length === 2, 'second held request');
-  await submit('等待手动继续'); const beforeStop = requests.length;
+  await submit('等待手动继续', 'Alt+Enter'); const beforeStop = requests.length;
   await page.locator('#stop').click(); await idle(8);
   assert.equal((await getState()).status, 'cancelled');
   await page.waitForTimeout(350); assert.equal(requests.length, beforeStop);
@@ -130,8 +133,8 @@ async function main() {
   await page.locator('#command-search').fill('桌面交互验收');
   assert.match(await page.locator('#command-results').innerText(), /桌面交互验收/);
   await page.keyboard.press('Escape');
-  await page.keyboard.press('Control+b'); assert.equal(await page.locator('.sidebar').isVisible(), false);
-  await page.keyboard.press('Control+b'); assert.equal(await page.locator('.sidebar').isVisible(), true);
+  await page.keyboard.press('Control+b'); assert.equal(await page.locator('.sidebar').getAttribute('aria-hidden'), 'true');
+  await page.keyboard.press('Control+b'); assert.equal(await page.locator('.sidebar').getAttribute('aria-hidden'), 'false');
   checks.push('Command search and sidebar keyboard shortcuts');
   await choose(workspaceB); assert.equal(await page.locator('#prompt').inputValue(), '');
   await page.locator('#recent-workspaces').click();
@@ -142,7 +145,7 @@ async function main() {
   assert.equal(rejected, true);
   checks.push('Recent project restores correct session and draft; arbitrary path rejected');
   await submit('持续任务：重启恢复'); await eventually(() => held.length === 3, 'third held request');
-  await submit('重启后需要确认发送');
+  await submit('重启后需要确认发送', 'Alt+Enter');
   await page.locator('#prompt').fill('尚未发送的草稿');
   const requestCount = requests.length;
   await application.close(); application = null;
@@ -154,11 +157,13 @@ async function main() {
   await page.locator('#resume-queue').click(); await idle(14);
   assert.equal(requests.at(-1), '重启后需要确认发送');
   checks.push('Restart restores project/session/draft and leaves queue paused');
-  await page.locator('#messages-scroll').evaluate(node => { node.scrollTop = 0; });
   await submit('持续任务：阅读位置'); await eventually(() => held.length === 4, 'fourth held request');
-  await page.locator('#messages-scroll').evaluate(node => { node.scrollTop = 0; });
+  await page.locator('.message.assistant').last().getByText('正在梳理项目的入口与执行边界。').waitFor();
+  await page.locator('#messages-scroll').hover();
+  await page.mouse.wheel(0, -100000);
+  await page.locator('#back-to-bottom').waitFor();
   held[3].send('新的流式段落。'.repeat(100));
-  await page.waitForTimeout(250);
+  await page.getByText('新的流式段落。', { exact: false }).waitFor();
   assert.ok(await page.locator('#messages-scroll').evaluate(node => node.scrollTop < 20));
   await page.locator('#back-to-bottom').click();
   held[3].finish(); await idle(16);
@@ -166,6 +171,7 @@ async function main() {
   await page.screenshot({ path: path.join(directory, 'conversation-1380.png') });
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1000, 700));
   await page.locator('#toggle-ledger').click();
+  await page.waitForFunction(() => document.querySelector('.workspace-upper').getAnimations().length === 0);
   const layout = await page.evaluate(() => {
     const rect = id => document.getElementById(id).getBoundingClientRect().toJSON();
     return { viewport: [innerWidth, innerHeight], scroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight], composer: rect('composer'), inspector: rect('inspector') };
@@ -174,6 +180,7 @@ async function main() {
   assert.ok(layout.composer.right <= layout.inspector.left + 1);
   await page.screenshot({ path: path.join(directory, 'conversation-1000.png') });
   await page.keyboard.press('Control+,');
+  await page.locator('#settings-dialog').waitFor();
   const settings = await page.evaluate(() => {
     const dialog = document.getElementById('settings-dialog'), save = document.getElementById('save-settings');
     return { bottom: save.getBoundingClientRect().bottom, height: innerHeight, client: dialog.clientHeight, scroll: dialog.scrollHeight };
@@ -183,7 +190,7 @@ async function main() {
   await page.keyboard.press('Escape');
   checks.push('1000×700: composer/ledger do not overlap; settings actions visible with one scroll area');
   await submit('持续任务：失败后暂停'); await eventually(() => held.length === 5, 'failure request');
-  await submit('失败后取回编辑'); const beforeFailure = requests.length;
+  await submit('失败后取回编辑', 'Alt+Enter'); const beforeFailure = requests.length;
   held[4].fail(); await idle(18);
   assert.equal((await getState()).status, 'error');
   await page.waitForTimeout(350); assert.equal(requests.length, beforeFailure);

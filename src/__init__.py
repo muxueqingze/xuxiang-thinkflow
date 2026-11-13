@@ -12,7 +12,7 @@ from .agent_loop import AgentLoop, AgentConfig
 from .compaction import CompactionConfig
 from .text_filter import SafeTextStreamFilter
 
-__version__ = "0.9.1"
+__version__ = "0.10.0"
 
 from .configuration import Configuration, load_configuration, merge_settings
 from .runtime import create_agent, build_agent_config

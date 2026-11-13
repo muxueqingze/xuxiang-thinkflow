@@ -1,0 +1,83 @@
+{
+  "result": "PASS",
+  "artifact": "artifacts\\desktop-2026-11-13T07-30-02-771Z\\ThinkFlow-0.10.0-Windows-x64.zip",
+  "zip_bytes": 189849276,
+  "crc": {
+    "method": "zipfile.extractall: all entries read and CRC validated once",
+    "entries": 245,
+    "passed": true
+  },
+  "packaged_dependencies": {
+    "backend": "resources\\backend\\thinkflow-service.exe",
+    "python": "resources\\backend\\python\\python.exe",
+    "openconsole": [
+      "resources\\backend\\_internal\\winpty\\OpenConsole.exe"
+    ],
+    "pathspec_notice": "PathSpec 1.1.1",
+    "license_present": true
+  },
+  "child_path": "C:\\Windows\\System32",
+  "system_python_available_on_child_path": false,
+  "state_write_complete": {
+    "http_calls": 1,
+    "receipts_seen_before_stream_end": [
+      "1",
+      "2",
+      "3"
+    ],
+    "artifact_text": "PACKAGED_MARKER visible",
+    "plan": {
+      "explanation": "Known package fixture",
+      "steps": [
+        {
+          "id": "one",
+          "title": "Write artifact",
+          "acceptance": "Expected text exists",
+          "status": "completed",
+          "evidence": [
+            "2"
+          ]
+        }
+      ],
+      "context": {
+        "summary": "PACKAGED_STAGE_CURRENT",
+        "decisions": [
+          "UTF-8 keeps the original interface"
+        ],
+        "files": [
+          {
+            "path": "result.txt",
+            "note": "Delivered artifact"
+          }
+        ]
+      }
+    }
+  },
+  "search_python_batch": {
+    "http_calls": 2,
+    "tools": [
+      "grep",
+      "glob",
+      "python"
+    ],
+    "visible_match": true,
+    "ignored_match_absent": true,
+    "python_result": {
+      "python_marker": "BUNDLED_PYTHON_OK",
+      "executable": "resources\\backend\\python\\python.exe",
+      "sum": 10,
+      "text": "PACKAGED_MARKER visible"
+    }
+  },
+  "restart": {
+    "same_session": true,
+    "same_plan_context": true,
+    "extra_http_calls": 0
+  },
+  "total_http_calls": 3,
+  "backend_exit_codes": [
+    0,
+    0
+  ],
+  "cleanup": "Both successful backend processes exited with code 0; local SSE server closed; checked temp/iteration-package-20261113 including unpacked ZIP, scripts and all fixture rounds moved to Recycle Bin; source path absent."
+}

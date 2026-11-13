@@ -76,9 +76,10 @@ SLASH_COMMAND_SPECS = (
     SlashCommandSpec("/model", "选择模型：/model [provider/model|model]", "model", selectable=True),
     SlashCommandSpec("/models", "列出 provider 模型；/models refresh 重新拉取 active provider", "model"),
     SlashCommandSpec("/thinking", "查看或选择当前模型的思考档位：/thinking [档位|预算]", "model", selectable=True),
-    SlashCommandSpec("/btw", "作为独立消息追加一条补充", "runtime"),
+    SlashCommandSpec("/btw", "在当前批次结束后补充当前任务，空闲时直接发送", "runtime"),
+    SlashCommandSpec("/steer", "补充当前任务（同 /btw）", "runtime"),
     SlashCommandSpec("/cancel", "打断当前正在运行的模型请求", "runtime"),
-    SlashCommandSpec("/queue", "查看待发消息：/queue [resume|remove 编号]", "runtime"),
+    SlashCommandSpec("/queue", "查看待发消息，支持 edit 编号 新文本、remove 编号、resume", "runtime"),
     SlashCommandSpec("/tools", "显示可用工具", "inspect"),
     SlashCommandSpec("/interfaces", "显示开放接口状态", "inspect"),
     SlashCommandSpec("/skills", "列出可用 skills，可加关键词过滤", "inspect"),
@@ -574,6 +575,10 @@ def build_slash_completer(agent: AgentLoop | None = None, store: SessionStore | 
                                 start_position=-len(arg_prefix),
                                 display_meta=f"{profile_name} {item.meta}".strip(),
                             )
+                elif command.lower() == "/queue":
+                    for option in ("edit", "remove", "resume"):
+                        if option.startswith(arg_prefix.lower()):
+                            yield Completion(option, start_position=-len(arg_prefix))
                 elif command.lower() == "/resume" and store is not None:
                     sessions = store.discover()
                     for idx, item in enumerate(build_resume_selection_items(store, sessions), start=1):

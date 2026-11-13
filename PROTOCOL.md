@@ -1,7 +1,7 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.10
-> 日期：2026-11-11
+> 版本：1.11
+> 日期：2026-11-13
 
 ---
 
@@ -37,7 +37,24 @@
 <tf-read id="006" path="D:/input/prompt.txt" />
 ```
 
-### 2.3 带属性的完整示例
+### 2.3 JSON 参数命令
+
+搜索和计划工具使用 JSON 正文，沿用同一 parser、FIFO、注册处理器与执行回执：
+
+```xml
+<tf-grep id="10">{"pattern":"目标函数","path":"src","file_glob":"*.py"}</tf-grep>
+<tf-glob id="11">{"pattern":"**/*.py","path":"src"}</tf-glob>
+<tf-list_files id="12">{"path":"src","recursive":false}</tf-list_files>
+<tf-update_plan id="13">{"explanation":"当前阶段","steps":[],"context":{"summary":"复用已有解析器","decisions":["保持现有调用方式"],"files":[{"path":"src/parser.py","note":"语法入口"}]}}</tf-update_plan>
+```
+
+前三项提供新信息，结果整批反馈；目录遍历遵循工作区内的 `.gitignore`，明确指定被忽略文件或目录时可直接搜索。`grep` 保留 Python 正则语义。
+
+`update_plan` 只保存明确提交的本地状态，成功时仅确认已知内容，走 delayed 路径，不增加模型回合。步骤采用原有 `id/title/acceptance/status/evidence` 结构；完成项仍引用真实成功回执，FIFO 中先写文件、后标记完成。错误和显式 `need_result` 沿用原反馈路径。原生 `update_plan` 继续遵守提供方的 tool call/result 回合，不改写原生协议。
+
+可选 `context` 保存少量阶段说明、决策和文件导航，省略沿用已有值，提供对象整体替换，`{}` 清除。已有 `steps` 负责进度和下一步；文件导航不授予读取或修改基线。context 随计划持久化并投影到当前请求，不复制进压缩摘要、不请求额外摘要模型。
+
+### 2.4 带属性的完整示例
 
 ```xml
 <tf-write id="004" path="D:/config.json" need_result="true">
@@ -216,13 +233,13 @@ print("checked")
 - Skill：`list_skills`、`read_skill`
 - 配置式插头：`interfaces.custom_tools[]` 中声明的本地 command tools
 
-原生模式同一响应可声明多个调用、统一反馈；文本模式的读取使用tf-read，搜索和批处理可使用shell或Python。
+原生模式同一响应可声明多个调用、统一反馈；文本模式使用tf-read及JSON正文的tf-grep/tf-glob/tf-list_files，批处理可使用shell或Python。
 
 ```json
 {"path": "src/agent_loop.py", "offset": 40, "limit": 20}
 ```
 
-- read/list_files/glob/grep/web_search/fetch_url/list_skills/read_skill 属于输入式工具，需要结果才能继续。`read` 同时支持 `<tf-read ... />` 文本协议；其它搜索、联网和 skill 工具仍按传统 tool_use 返回。
+- read/list_files/glob/grep/web_search/fetch_url/list_skills/read_skill 属于输入式工具，需要结果才能继续。前四项也支持 `tf-*` 文本协议，联网和 skill 工具按原生 tool_use 返回。
 - image_generate 默认只是开放接口；只有在 `config.interfaces.image_generation` 配置 command/webhook 后才真实生成。
 - custom tools 使用 JSON stdin 传参、stdout 返回结果，适合把已有脚本包装成原生工具。
 - list_skills 只返回摘要；选中 skill 后再 read_skill 读取全文，避免初始上下文被大量 SKILL.md 挤占。

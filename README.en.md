@@ -1,4 +1,4 @@
-> Version 0.9.1 fixes interrupted execution-journal recovery and ships a standalone CPython runtime for desktop Python tools. The 0.9 series includes the desktop workbench, long-session context, lossless Anthropic content-block round trips, and incremental persistence. See [release notes](docs/release-0.9.1.md), [desktop guide](docs/desktop.md) and [architecture](DESIGN.md).
+> Version 0.10.0 adds predictable streaming plan updates, ignore-aware project search, in-run steering, and optional phase context. See [release notes](docs/release-0.10.0.md), [desktop guide](docs/desktop.md) and [architecture](DESIGN.md).
 
 # Xuxiang ThinkFlow
 
@@ -6,11 +6,13 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.9.1-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.10.0-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
 Xuxiang ThinkFlow is an experimental streaming tool-call agent harness. It explores one technical claim: not every tool call should become a model-turn boundary.
+
+Version 0.10.0 admits predictable plan updates to the same stream, respects project ignore rules during search, and adds steering at complete tool-batch boundaries. Optional phase context reuses the existing plan; no summary request is added. With no steering input, enabling the queue hook leaves request bodies and HTTP counts unchanged. [Changes and validation](docs/release-0.10.0.md)
 
 Tools such as `read`, `grep`, `web`, and `bash` can return new information or trigger high-risk side effects, so ThinkFlow still handles them through blocking, confirmation, and feedback paths. Predictable side-effect tools such as `write`, `append`, `mkdir`, `touch`, `copy`, and `edit` can be emitted as structured `tf-*` commands during the model stream. A local parser, FIFO queue, executor, and command ledger execute them without stopping the model unless a failure or explicit `need_result` requires feedback.
 
@@ -56,9 +58,9 @@ The 2026-11-11 review follow-up unifies exact read projection across text and bo
 
 ## Installation
 
-Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.1/ThinkFlow-0.9.1-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.9.1/ThinkFlow-0.9.1-Windows-x64.zip) runs after extracting the complete folder.
+Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64.zip) runs after extracting the complete folder.
 
-The **0.9.1 CLI preview** uses the npm `next` channel. npm installs the CLI only:
+The **0.10.0 CLI preview** uses the npm `next` channel. npm installs the CLI only:
 
 ```bash
 npm install -g xuxiang-agent@next
@@ -66,7 +68,7 @@ thinkflow --help
 xuxiang --help
 ```
 
-For an exact version, use `npm install -g xuxiang-agent@0.9.1`. The `latest` channel remains at 0.5.1. See the [release notes](docs/release-0.9.1.md) for installation, upgrades and included changes.
+For an exact version, use `npm install -g xuxiang-agent@0.10.0`. The `latest` channel remains at 0.5.1. See the [release notes](docs/release-0.10.0.md) for installation, upgrades and included changes.
 
 CLI requirements:
 
@@ -180,8 +182,8 @@ Interactive slash commands include:
 - `/tools`: inspect tool routing and risk
 - `/security` / `/sandbox`: inspect or change security mode
 - `/compact`: compact old context
-- `/btw`: submit an independent follow-up, queued verbatim during a run
-- `/queue`: inspect, remove, and resume queued input
+- `/btw`, `/steer`: add instructions to the current run after the current response and tool batch
+- `/queue`: inspect, edit, remove, and resume queued input
 - `/cmds`: inspect local tool records and archived output
 - `/cancel` or `Esc`: stop the active run and pause queued input while preserving the draft
 

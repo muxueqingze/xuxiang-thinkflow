@@ -34,6 +34,7 @@ TOOL_KIND_INPUT = "input"
 TOOL_KIND_OUTPUT = "output"
 TOOL_KIND_EXEC = "exec"
 TOOL_KIND_GENERATE = "generate"
+TOOL_KIND_STATE = "state"
 
 TOOL_FLOW_DELAYED = "delayed"
 TOOL_FLOW_BLOCKING = "blocking"
@@ -48,6 +49,7 @@ TOOL_KIND_LABELS = {
     TOOL_KIND_OUTPUT: "OUTPUT",
     TOOL_KIND_EXEC: "EXEC",
     TOOL_KIND_GENERATE: "GEN",
+    TOOL_KIND_STATE: "状态",
 }
 
 TOOL_FLOW_LABELS = {
@@ -215,7 +217,7 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="list_files",
-        description="列出目录内容，适合快速了解项目结构。",
+        description="列出目录内容，适合快速了解项目结构。遵守工作区 .gitignore。",
         parameters={
             "type": "object",
             "properties": {
@@ -227,7 +229,7 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="glob",
-        description="按 glob 模式查找文件路径。",
+        description="按 glob 模式查找文件路径，遵守工作区 .gitignore。",
         parameters={
             "type": "object",
             "properties": {
@@ -240,7 +242,7 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="grep",
-        description="用正则搜索文本文件。",
+        description="用 Python 正则搜索文本，返回路径、行号和命中行。目录搜索遵守工作区 .gitignore，也可直接指定文件。",
         parameters={
             "type": "object",
             "properties": {
@@ -366,6 +368,8 @@ BUILTIN_TOOL_SPECS = [
 
 
 def classify_tool_kind(name: str) -> str:
+    if name == 'update_plan':
+        return TOOL_KIND_STATE
     if name in {"write", "append", "edit", "mkdir", "touch", "copy"}:
         return TOOL_KIND_OUTPUT
     if name in {"bash"} or name.startswith("custom_"):
@@ -376,7 +380,7 @@ def classify_tool_kind(name: str) -> str:
 
 
 def classify_tool_flow(name: str) -> str:
-    if name in {"write", "append", "mkdir", "touch", "copy", "edit"}:
+    if name in {"write", "append", "mkdir", "touch", "copy", "edit", "update_plan"}:
         return TOOL_FLOW_DELAYED
     if name in {"bash"} or name.startswith("custom_"):
         return TOOL_FLOW_CONFIRM

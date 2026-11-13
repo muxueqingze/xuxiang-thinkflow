@@ -49,7 +49,9 @@ class DesktopCatalogTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(tools["read"]["native_enabled"])
         self.assertTrue(tools["read"]["text_protocol"])
         self.assertTrue(tools["grep"]["on_demand"])
-        self.assertFalse(tools["grep"]["text_protocol"])
+        self.assertTrue(tools["grep"]["text_protocol"])
+        self.assertTrue(tools["update_plan"]["text_protocol"])
+        self.assertEqual(tools["update_plan"]["flow"], 'delayed')
 
         self.agent.additional_native_tools.add("grep")
         self.assertTrue(self.tools()["grep"]["native_enabled"])

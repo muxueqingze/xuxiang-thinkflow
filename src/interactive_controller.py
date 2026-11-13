@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections import deque
 from collections.abc import Callable
+from dataclasses import dataclass
 import time
 
 from prompt_toolkit.utils import get_cwidth
@@ -22,6 +23,12 @@ IDLE_COMMANDS = frozenset({
 SESSION_COMMANDS = frozenset({"/clear", "/new", "/resume"})
 
 
+@dataclass
+class PendingMessage:
+    text: str
+    steer: bool = False
+
+
 class InteractiveController:
     def __init__(self, agent: AgentLoop, store: SessionStore | None, autosave: bool,
                  invalidate: Callable[[], None]):
@@ -29,7 +36,7 @@ class InteractiveController:
         self.store = store
         self.autosave = autosave
         self.invalidate = invalidate
-        self.pending: deque[str] = deque()
+        self.pending: deque[PendingMessage] = deque()
         self.paused = False
         self._closing = False
         self._runner: asyncio.Task | None = None
@@ -77,11 +84,17 @@ class InteractiveController:
             end += 1
         return status[:end] + "…"
 
-    def submit(self, text: str) -> None:
-        self.pending.append(text)
+    def submit(self, text: str, *, steer: bool = False) -> None:
+        steer = steer and not self.paused and self._active is not None and not self._active.done()
+        self.pending.append(PendingMessage(text, steer))
         if self.running or self.paused:
-            queue = "队列已暂停，/queue resume 继续" if self.paused else "已加入待发队列"
-            renderer.render_info(f"{queue}（{len(self.pending)} 条）")
+            if self.paused:
+                status = "队列已暂停，/queue resume 继续"
+            elif steer:
+                status = "已排队补充当前任务，将在本批次结束后发送"
+            else:
+                status = "已加入待发队列"
+            renderer.render_info(f"{status}（{len(self.pending)} 条）")
         self._start()
         self.invalidate()
 
@@ -91,13 +104,31 @@ class InteractiveController:
             self._runner = asyncio.create_task(self._run_queue())
 
     async def _run(self, text: str) -> None:
-        with renderer.compact_tool_output():
-            await self.agent.run(text)
+        previous_source = self.agent.steering_source
+        self.agent.steering_source = self._take_steering
+        try:
+            with renderer.compact_tool_output():
+                await self.agent.run(text)
+        finally:
+            self.agent.steering_source = previous_source
+
+    async def _take_steering(self) -> list[dict[str, str]]:
+        messages = []
+        if self.paused:
+            return messages
+        for item in self.pending:
+            if item.steer:
+                renderer.render_user_message(item.text)
+                messages.append({"prompt": item.text, "user_request": item.text})
+        if messages:
+            self.pending = deque(item for item in self.pending if not item.steer)
+            self.invalidate()
+        return messages
 
     async def _run_queue(self) -> None:
         try:
             while self.pending and not (self.paused or self._closing):
-                text = self.pending.popleft()
+                text = self.pending.popleft().text
                 self._started_at = time.monotonic()
                 renderer.render_user_message(text)
                 self._active = asyncio.create_task(self._run(text))
@@ -116,6 +147,8 @@ class InteractiveController:
                     renderer.render_error(f"运行失败：{exc}")
                 finally:
                     self._active = None
+                    for item in self.pending:
+                        item.steer = False
                     self.agent.clear_text_tool_activity()
                     if self.autosave and self.store is not None:
                         try:
@@ -147,11 +180,11 @@ class InteractiveController:
             await runner
 
     def handle_command(self, command: str, arg: str) -> bool:
-        if command == "/btw":
+        if command in ("/btw", "/steer"):
             if arg.strip():
-                self.submit(arg)
+                self.submit(arg, steer=True)
             else:
-                renderer.render_error("用法：/btw 补充内容")
+                renderer.render_error(f"用法：{command} 补充内容")
         elif command == "/cancel":
             if not self.cancel():
                 renderer.render_info("当前没有正在运行的任务")
@@ -167,40 +200,49 @@ class InteractiveController:
         return True
 
     def _queue_command(self, arg: str) -> None:
-        parts = arg.split()
-        action = parts[0].lower() if parts else ""
+        action, arguments = slash_parts(arg)
         if not action:
             if not self.pending:
                 renderer.render_info("没有待发消息")
                 return
             renderer.render_info("队列已暂停" if self.paused else "待发队列")
-            for index, text in enumerate(self.pending, 1):
-                preview = " ".join(text.split())
+            for index, item in enumerate(self.pending, 1):
+                preview = " ".join(item.text.split())
                 if len(preview) > 100:
                     preview = preview[:99] + "…"
-                renderer.console.print(f"  {index}. {preview}", markup=False, highlight=False)
-            renderer.render_info("/queue remove 编号 移除一条，/queue resume 继续发送")
-        elif action == "resume" and len(parts) == 1:
+                label = "（补充当前任务）" if item.steer else ""
+                renderer.console.print(f"  {index}. {preview}{label}", markup=False, highlight=False)
+            renderer.render_info("/queue edit 编号 新文本 · /queue remove 编号 · /queue resume")
+        elif action == "resume" and not arguments.strip():
             if self.running or not self.pending:
                 renderer.render_info("当前任务仍在结束中" if self.running else "没有待发消息")
                 return
             self.paused = False
             self._start()
-        elif action == "remove" and len(parts) == 2:
+        elif action in ("edit", "remove"):
+            index_text, replacement = slash_parts(arguments)
+            if not index_text or (action == "edit") != bool(replacement.strip()):
+                usage = "edit 编号 新文本" if action == "edit" else "remove 编号"
+                renderer.render_error(f"用法：/queue {usage}")
+                return
             try:
-                index = int(parts[1])
+                index = int(index_text)
             except ValueError:
                 renderer.render_error("待发消息编号必须为整数")
                 return
             if not 1 <= index <= len(self.pending):
                 renderer.render_error("没有这个编号的待发消息")
                 return
-            del self.pending[index - 1]
-            if not self.pending and not self.running:
-                self.paused = False
-            renderer.render_info("已移除待发消息")
+            if action == "edit":
+                self.pending[index - 1].text = replacement
+                renderer.render_info("已修改待发消息")
+            else:
+                del self.pending[index - 1]
+                if not self.pending and not self.running:
+                    self.paused = False
+                renderer.render_info("已移除待发消息")
         else:
-            renderer.render_error("用法：/queue [resume|remove 编号]")
+            renderer.render_error("用法：/queue [resume|edit 编号 新文本|remove 编号]")
         self.invalidate()
 
 

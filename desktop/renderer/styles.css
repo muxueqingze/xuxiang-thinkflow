@@ -2594,6 +2594,14 @@ input[type="checkbox"] {
   gap: 4px;
   min-width: 0;
 }
+.composer-actions #input-delivery {
+  flex-shrink: 0;
+  width: auto;
+  height: 28px;
+  padding: 4px;
+  margin: 0;
+  font-size: 12px;
+}
 .composer-actions #settings-top {
   display: flex;
   align-items: center;

@@ -17,16 +17,35 @@ PLAN_SCHEMA = {
                 'evidence': {'type': 'array', 'items': {'type': 'string'},
                              'description': '成功回执的短引用receipt:N或完整id；completed至少一个，保存时转换为完整id'}},
             'required': ['id', 'title', 'acceptance', 'status', 'evidence'], 'additionalProperties': False}},
+        'context': {
+            'type': 'object',
+            'description': '换阶段或关键决定变化时更新必要工作上下文；省略沿用，提供对象整体替换，{}清空。文件仅作导航。',
+            'properties': {
+                'summary': {'type': 'string', 'maxLength': 2000},
+                'decisions': {'type': 'array', 'maxItems': 10,
+                              'items': {'type': 'string', 'maxLength': 500}},
+                'files': {'type': 'array', 'maxItems': 10, 'items': {
+                    'type': 'object', 'properties': {
+                        'path': {'type': 'string', 'minLength': 1, 'maxLength': 1000},
+                        'note': {'type': 'string', 'maxLength': 500}},
+                    'required': ['path', 'note'], 'additionalProperties': False}},
+            }, 'additionalProperties': False,
+        },
     }, 'required': ['explanation', 'steps'], 'additionalProperties': False,
 }
 
 
 def validate_plan(value, *, records=None, previous=None):
-    if not isinstance(value, dict) or set(value) != {'explanation', 'steps'}:
+    if (not isinstance(value, dict) or not {'explanation', 'steps'} <= set(value)
+            or set(value) - {'explanation', 'steps', 'context'}):
         raise ValueError('计划必须包含explanation与steps。')
     if not isinstance(value['explanation'], str) or len(value['explanation']) > 2000:
         raise ValueError('计划说明最多2000字符。')
     value = copy.deepcopy(value)
+    if 'context' not in value and previous is not None and 'context' in previous:
+        value['context'] = copy.deepcopy(previous['context'])
+    if 'context' in value:
+        _validate_context(value['context'])
     steps = value['steps']
     if not isinstance(steps, list) or len(steps) > 20:
         raise ValueError('计划最多20项。')
@@ -104,3 +123,26 @@ def validate_plan(value, *, records=None, previous=None):
     if active > 1:
         raise ValueError('一次最多一个正在执行的步骤。')
     return value
+
+
+def _validate_context(context):
+    if not isinstance(context, dict) or set(context) - {'summary', 'decisions', 'files'}:
+        raise ValueError('context仅接受summary、decisions、files。')
+    if 'summary' in context and (not isinstance(context['summary'], str) or len(context['summary']) > 2000):
+        raise ValueError('context.summary须为文本，最多2000字符。')
+    if 'decisions' in context:
+        decisions = context['decisions']
+        if (not isinstance(decisions, list) or len(decisions) > 10
+                or any(not isinstance(item, str) or len(item) > 500 for item in decisions)):
+            raise ValueError('context.decisions最多10项文本，每项最多500字符。')
+    if 'files' in context:
+        files = context['files']
+        if not isinstance(files, list) or len(files) > 10:
+            raise ValueError('context.files最多10项。')
+        for item in files:
+            if not isinstance(item, dict) or set(item) != {'path', 'note'}:
+                raise ValueError('context.files每项须包含path与note。')
+            if not isinstance(item['path'], str) or not 1 <= len(item['path']) <= 1000:
+                raise ValueError('context.files.path须为非空文本，最多1000字符。')
+            if not isinstance(item['note'], str) or len(item['note']) > 500:
+                raise ValueError('context.files.note须为文本，最多500字符。')

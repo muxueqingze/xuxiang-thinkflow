@@ -102,7 +102,10 @@ function updateControls() {
   for (const id of ['fork', 'compact', 'export']) $(id).disabled = busy || active || !connected || !state.session_id || (id === 'fork' && state.recovery_required);
   $('send').disabled = busy || sending || !canRun() || !$('prompt').value.trim() || queue.filter(item => item.status !== 'running').length >= 20 || Boolean(pendingInput);
   $('send').hidden = active && !$('prompt').value.trim();
-  const sendLabel = sending ? '提交中…' : active || queue.some(item => item.status !== 'running') ? '加入队列' : '发送';
+  const delivery = $('input-delivery');
+  delivery.hidden = !active;
+  if (!active) delivery.value = 'steer';
+  const sendLabel = sending ? '提交中…' : active ? (delivery.value === 'steer' ? '补充当前任务' : '排队任务') : queue.some(item => item.status !== 'running') ? '加入队列' : '发送';
   $('send').setAttribute('aria-label',sendLabel); $('send').title = sendLabel; $('send').classList.toggle('submitting',sending);
   $('stop').hidden = !active || Boolean($('prompt').value.trim());
   $('stop').disabled = busy || !connected;
@@ -120,7 +123,7 @@ function updateControls() {
   $('pause-queue').disabled = busy || !connected;
   updateWorkspaceControls();
   $('new-terminal').disabled = !connected || !state.cwd || terminalCreating;
-  const hint = active ? 'Enter 加入队列 · 当前成功完成后继续' : state.recovery_required ? '请先核对上次中断的操作' : !state.cwd ? '请先选择工作区' : !state.config.base_url || !state.config.model ? '请先在设置中连接模型端点' : currentSession()?.archived ? '会话已归档，请先恢复' : 'Enter 发送 · Shift + Enter 换行';
+  const hint = active ? 'Enter 发送 · Shift + Enter 换行 · Alt + Enter 排队任务' : state.recovery_required ? '请先核对上次中断的操作' : !state.cwd ? '请先选择工作区' : !state.config.base_url || !state.config.model ? '请先在设置中连接模型端点' : currentSession()?.archived ? '会话已归档，请先恢复' : 'Enter 发送 · Shift + Enter 换行';
   $('composer-hint').textContent = hint;
   renderComposerControls();
 }
@@ -420,15 +423,24 @@ $('dismiss-error').addEventListener('click', () => { $('error-banner').hidden = 
 $('prompt').addEventListener('input', () => { resizePrompt(); saveDraft(); updateControls(); });
 $('prompt').addEventListener('compositionstart', () => { composing = true; });
 $('prompt').addEventListener('compositionend', () => { composing = false; });
+$('input-delivery').addEventListener('change', updateControls);
 $('prompt').addEventListener('keydown', event => {
-  if (event.key === 'Enter' && !event.shiftKey && !event.altKey && !event.isComposing && !composing && event.keyCode !== 229) { event.preventDefault(); $('composer').requestSubmit(); }
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing || composing || event.keyCode === 229) return;
+  if (event.altKey && !running()) return;
+  event.preventDefault();
+  submitComposer(event.altKey);
 });
-$('composer').addEventListener('submit', async event => {
-  event.preventDefault(); if (busy || sending || pendingInput || !canRun() || !$('prompt').value.trim()) return;
+$('composer').addEventListener('submit', event => {
+  event.preventDefault();
+  submitComposer();
+});
+function submitComposer(queueNext = false) {
+  if (busy || sending || pendingInput || !canRun() || !$('prompt').value.trim()) return;
   if ($('prompt').value.length > 200000) { showError('每条任务最多20万字符'); return; }
   if (queue.filter(item => item.status !== 'running').length >= 20) { showError('最多20条待发任务，请先移除或等待执行。'); return; }
-  await submitPrompt($('prompt').value);
-});
+  const delivery = queueNext || !running() ? 'follow_up' : $('input-delivery').value;
+  submitPrompt($('prompt').value, { delivery });
+}
 $('stop').addEventListener('click', () => perform(() => api.request('cancel'), { notify: '已停止当前运行，后续任务已保留并暂停' }));
 for (const [id, approved] of [['approve', true], ['reject', false]]) $(id).addEventListener('click', async () => {
   const request_id = state.pending_approval?.request_id;

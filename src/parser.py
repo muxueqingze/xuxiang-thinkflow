@@ -13,7 +13,8 @@ from typing import Optional
 
 
 # 支持的工具类型。append/touch/copy 属于可预测的确定性流式工具。
-TOOLS = ("read", "write", "append", "mkdir", "touch", "copy", "bash", "edit", "python", "recall")
+JSON_TOOLS = ("update_plan", "grep", "glob", "list_files")
+TOOLS = ("read", "write", "append", "mkdir", "touch", "copy", "bash", "edit", "python", "recall", *JSON_TOOLS)
 
 # 最大缓冲区大小（防止格式错误导致无限增长）
 MAX_BUFFER_SIZE = 2 * 1024 * 1024  # 2MB
@@ -436,7 +437,7 @@ class StreamingParser:
                 setattr(command, name, number)
 
         # 按工具处理正文
-        if tool in ("write", "append"):
+        if tool in ("write", "append", *JSON_TOOLS):
             command.content = _unescape_command_tags(content or "")
 
         elif tool == "python":

@@ -1,6 +1,6 @@
 # Xuxiang ThinkFlow v0.5 Open Source Release Checklist
 
-Historical release checklist for the 0.5 line. Current 0.9.1 CLI and Windows desktop packaging is described in [the release notes](docs/release-0.9.1.md); desktop delivery is documented in [the desktop guide](docs/desktop.md).
+Historical release checklist for the 0.5 line. Current 0.10.0 CLI and Windows desktop packaging is described in [the release notes](docs/release-0.10.0.md); desktop delivery is documented in [the desktop guide](docs/desktop.md).
 
 This file records the intended release shape for the `0.5.0-beta.2` open-source release.
 

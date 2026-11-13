@@ -400,8 +400,12 @@
                       <path
                         d="M12 4c-4-3-7 0-6 3-4 1-4 6-1 7-2 4 2 7 5 6l2-2m0-14c4-3 7 0 6 3 4 1 4 6 1 7 2 4-2 7-5 6l-2-2V4M6 7l2 2m10-2-2 2M5 14l3-1m11 1-3-1"
                       ></path></svg
-                    ><span id="thinking-label"></span><span aria-hidden="true">⌄</span></button
-                  ><button
+                    ><span id="thinking-label"></span><span aria-hidden="true">⌄</span></button>
+                  <select aria-label="运行中发送方式" id="input-delivery" title="Alt + Enter 排队任务" hidden="">
+                    <option value="steer">补充当前</option>
+                    <option value="follow_up">排队任务</option>
+                  </select>
+                  <button
                     aria-label="停止"
                     class="stop-button"
                     hidden=""
@@ -1080,8 +1084,10 @@
           <dd>Ctrl + ,</dd>
           <dt>快捷键帮助</dt>
           <dd>Ctrl + /</dd>
-          <dt>发送 / 加入队列</dt>
+          <dt>发送</dt>
           <dd>Enter 或 Ctrl + Enter</dd>
+          <dt>运行中排队任务</dt>
+          <dd>Alt + Enter</dd>
           <dt>换行</dt>
           <dd>Shift + Enter</dd>
           <dt>文件面板</dt>

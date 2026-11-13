@@ -62,10 +62,10 @@ async function queryInputReceipt() {
     if (key === draftKey) pendingReceiptStatus = `暂时无法查询回执：${error.message}。内容已保留，恢复连接后再查询。`;
   } finally { receiptQueryBusy = false; renderInputReceipt(); updateControls(); }
 }
-async function submitPrompt(prompt, retry = false) {
+async function submitPrompt(prompt, { delivery, retry = false } = {}) {
   if (sending || !canRun()) return;
   const key = draftKey;
-  const candidate = retry ? pendingInput : { command_id: crypto.randomUUID(), prompt, session_id: state.session_id, attachments: attachments.map(item => ({ ...item })) };
+  const candidate = retry ? pendingInput : { command_id: crypto.randomUUID(), prompt, session_id: state.session_id, attachments: attachments.map(item => ({ ...item })), delivery };
   if (!candidate) return;
   if (!retry) {
     if (!writeLocal('v08-pending:' + key, candidate)) return;
@@ -73,6 +73,7 @@ async function submitPrompt(prompt, retry = false) {
     $('prompt').value = '';
     if (!saveDraft()) { $('prompt').value = prompt; pendingInput = null; writeLocal('v08-pending:' + key, null); resizePrompt(); updateControls(); return; }
     attachments = []; saveAttachments(); renderAttachments(); resizePrompt();
+    $('input-delivery').value = 'steer';
   }
   sending = true; pendingReceiptStatus = '正在提交，等待后端确认接收…'; renderInputReceipt(); updateControls();
   try {
@@ -91,11 +92,13 @@ function renderQueue() {
   $('queue-panel').hidden = !waiting.length;
   $('queue-status').textContent = `${queue.some(item => item.status === 'running') ? '执行中 · ' : ''}待发 ${waiting.length} 条${queuePaused ? ' · 已暂停' : ''}`;
   $('resume-queue').hidden = !queuePaused; $('pause-queue').hidden = queuePaused;
-  $('queue-reason').textContent = state.queue_pause_reason || '当前任务成功完成后，按顺序继续。';
+  const hasSteer = waiting.some(item => item.delivery === 'steer');
+  $('queue-reason').textContent = state.queue_pause_reason || (hasSteer && running() ? '本轮生成和工具执行结束后送入补充。' : '当前任务成功完成后，按顺序继续。');
   const list = $('queue-list'); list.replaceChildren();
-  for (const [index,item] of waiting.entries()) {
-    const row = element('li'), label = element('span', '', `${inputStatusNames[item.status] || '待执行'} · ${item.prompt || ''}`), id = item.id || item.command_id;
-    row.dataset.commandId = id; label.title = item.prompt || '';
+  for (const item of waiting) {
+    const mode = item.delivery === 'steer' ? '补充当前' : '排队任务';
+    const row = element('li'), label = element('span', '', `${mode} · ${item.prompt || ''}`), id = item.id || item.command_id;
+    row.dataset.commandId = id; label.title = label.textContent;
     const edit = element('button', 'queue-edit', '编辑'), remove = element('button', 'queue-remove', '移除');
     edit.disabled = remove.disabled = item.status === 'running' || busy || !connected;
     edit.addEventListener('click', () => openQueueEditor(item));
@@ -104,14 +107,14 @@ function renderQueue() {
   }
 }
 function openQueueEditor(item) {
-  editingInput = item; $('queue-edit-title').textContent = '编辑待发任务'; $('queue-edit-prompt').value = item.prompt || '';
+  editingInput = item; $('queue-edit-title').textContent = item.delivery === 'steer' ? '编辑待发补充' : '编辑待发任务'; $('queue-edit-prompt').value = item.prompt || '';
   $('queue-edit-prompt').readOnly = false; $('save-queue-edit').hidden = false; $('queue-edit-error').hidden = true;
   $('queue-edit-note').textContent = '只修改尚未运行的任务；文件引用保持不变。';
   $('queue-edit-dialog').showModal(); $('queue-edit-prompt').focus();
 }
 function initializeInputController() {
   $('query-input-receipt').addEventListener('click', queryInputReceipt);
-  $('retry-input').addEventListener('click', () => submitPrompt(pendingInput?.prompt, true));
+  $('retry-input').addEventListener('click', () => submitPrompt(pendingInput?.prompt, { retry: true }));
   $('restore-unreceived-input').addEventListener('click', () => {
     if (!pendingInput || sending || receiptQueryBusy || $('restore-unreceived-input').hidden) return;
     if ($('prompt').value.trim()) { showError('输入框已有草稿，请先保存或清空后再取回。'); return; }
@@ -119,6 +122,7 @@ function initializeInputController() {
     if (!saveDraft()) { $('prompt').value = ''; return; }
     attachments = candidate.attachments || []; saveAttachments();
     if (!writeLocal('v08-pending:' + draftKey, null)) { $('prompt').value = ''; saveDraft(); return; }
+    if (running()) $('input-delivery').value = candidate.delivery || 'follow_up';
     pendingInput = null; pendingReceiptStatus = ''; renderInputReceipt(); renderAttachments(); resizePrompt(); updateControls(); $('prompt').focus();
   });
   $('edit-pending-input').addEventListener('click', () => {

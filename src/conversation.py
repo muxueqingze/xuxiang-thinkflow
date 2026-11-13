@@ -1,6 +1,6 @@
 """Original user requests and the compacted view of a conversation.
 
-Only the run entry point records requests. Provider ``user`` messages may also
+Run input and admitted steering record requests. Provider ``user`` messages may also
 be tool results or harness observations and are not a source of user intent.
 """
 from __future__ import annotations
@@ -20,9 +20,14 @@ class ConversationContext:
     summary_entries: list[str] = field(default_factory=list)
     summary: str = ""
     compacted_messages: int = 0
+    active_refs: list[str] = field(default_factory=list)
 
-    def record_request(self, position: int, text: str, execution_input: str) -> str:
+    def record_request(self, position: int, text: str, execution_input: str, *, continuation: bool = False) -> str:
         ref = f"request:{len(self.requests) + 1}"
+        if continuation:
+            self.active_refs = [*(self.active_refs or [self.current_ref]), ref]
+        else:
+            self.active_refs = []
         entry = {"ref": ref, "text": text}
         if execution_input != text:
             entry["execution_input"] = execution_input
@@ -38,6 +43,12 @@ class ConversationContext:
     def current_input(self) -> str:
         entry = self.requests[-1]
         return entry.get("execution_input", entry["text"])
+
+    @property
+    def active_inputs(self) -> dict[str, str]:
+        refs = self.active_refs or ([self.current_ref] if self.requests else [])
+        entries = (self.requests[int(ref.split(':')[1]) - 1] for ref in refs)
+        return {entry['ref']: entry.get('execution_input', entry['text']) for entry in entries}
 
     def recall(self, ref: str, offset: int = 0, limit: int = 8000, query=None) -> str:
         match = re.fullmatch(r"request:([1-9][0-9]*)(:input)?", ref) if isinstance(ref, str) else None
@@ -63,6 +74,7 @@ class ConversationContext:
             "summary_entries": list(self.summary_entries),
             "summary": self.summary,
             "compacted_messages": self.compacted_messages,
+            **({"active_refs": list(self.active_refs)} if self.active_refs else {}),
         }
 
     @classmethod
@@ -73,4 +85,5 @@ class ConversationContext:
             summary_entries=list(data.get("summary_entries", [])),
             summary=data.get("summary", ""),
             compacted_messages=data.get("compacted_messages", 0),
+            active_refs=list(data.get('active_refs', [])),
         )

@@ -174,7 +174,8 @@ class DesktopService:
         config = self._config_for_agent()
         system = resolve_system_prompt(config, cwd=self.cwd)
         candidate = create_agent(config, system, self.cwd,
-                                 event_sink=self._on_agent_event, approval_handler=self._approval)
+                                 event_sink=self._on_agent_event, approval_handler=self._approval,
+                                 steering_source=self._take_steering)
         try:
             candidate.set_output_secrets(self._secrets)
             candidate.bind_output_store(output_dir)
@@ -218,8 +219,18 @@ class DesktopService:
             self._save()
         elif kind == "plan_updated":
             self._save()
+        elif kind == "steering_applied":
+            for incoming in event['messages']:
+                item = self._find_input(incoming['id'])
+                self._transition_input(item, 'running')
+                message = {'id': uuid.uuid4().hex, 'role': 'user', 'content': item['prompt']}
+                if item.get('attachments'):
+                    message['attachments'] = copy.deepcopy(item['attachments'])
+                self.transcript.append(message)
+            self._reply_index = None
+            self._save()
         self._emit(event)
-        if kind == "plan_updated":
+        if kind in ("plan_updated", "steering_applied"):
             self._emit({"type": "state", "state": self.state()})
 
     async def _approval(self, tool, tool_input):
@@ -488,6 +499,9 @@ class DesktopService:
             if item["status"] == "running":
                 self._transition_input(item, "interrupted", error="执行结果不确定；不会自动重放，请核对历史与文件。")
                 changed = True
+            if item['status'] in INPUT_PENDING and item.get('delivery') == 'steer':
+                item.pop('delivery')
+                changed = True
         if changed or any(item["status"] in INPUT_PENDING for item in self.input_commands):
             self.queue_paused = True
             self.queue_pause_reason = "会话已恢复，请核对上次执行并手动继续队列。"
@@ -607,6 +621,7 @@ class DesktopService:
         for item in items:
             if (not isinstance(item, dict) or not COMMAND_ID.fullmatch(str(item.get("id", "")))
                     or item.get("id") in seen or item.get("status") not in INPUT_PENDING | INPUT_TERMINAL | {"running"}
+                    or item.get('delivery', 'follow_up') not in ('follow_up', 'steer')
                     or not isinstance(item.get("prompt"), str) or len(item["prompt"]) > 200000
                     or not re.fullmatch(r"[a-f0-9]{64}", str(item.get("content_hash", "")))):
                 raise ValueError("输入回执记录损坏。")
@@ -621,7 +636,7 @@ class DesktopService:
         return copy.deepcopy(items)
 
     def _input_receipt(self, item):
-        fields = ("id", "prompt", "status", "created_at", "updated_at", "content_hash", "attachments", "error")
+        fields = ("id", "prompt", "status", "created_at", "updated_at", "content_hash", "attachments", "error", "delivery")
         return self._clean({field: copy.deepcopy(item[field]) for field in fields if field in item})
 
     @staticmethod
@@ -665,7 +680,7 @@ class DesktopService:
 
     async def submit_input(self, params):
         async with self._input_lock:
-            if set(params) - {"command_id", "prompt", "session_id", "attachments"}:
+            if set(params) - {"command_id", "prompt", "session_id", "attachments", "delivery"}:
                 raise ValueError("不支持的输入参数。")
             self._require_input_target(params.get("session_id"), archived_allowed=True)
             command_id, prompt = params.get("command_id"), params.get("prompt")
@@ -676,7 +691,11 @@ class DesktopService:
                     or any(not isinstance(item, dict) or set(item) != {"path", "revision"}
                            or not isinstance(item["path"], str) or not isinstance(item["revision"], str) for item in attachments)):
                 raise ValueError("附件须为最多 8 个 path/revision 对象。")
-            payload = json.dumps({"prompt": prompt, "attachments": attachments}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+            delivery = params.get('delivery', 'follow_up')
+            if delivery not in ('follow_up', 'steer'):
+                raise ValueError('输入方式须为 steer 或 follow_up。')
+            delivery_fields = {'delivery': 'steer'} if delivery == 'steer' else {}
+            payload = json.dumps({"prompt": prompt, "attachments": attachments, **delivery_fields}, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
             fingerprint = hashlib.sha256(payload.encode("utf8")).hexdigest()
             if existing:
                 if existing["content_hash"] != fingerprint:
@@ -698,6 +717,7 @@ class DesktopService:
             now = time.time()
             item = {"id": command_id, "prompt": prompt, "attachments": copy.deepcopy(attachments),
                     "attachment_context": attachment_context, "content_hash": fingerprint,
+                    **delivery_fields,
                     "status": "queued", "created_at": now, "updated_at": now,
                     "lifecycle": [{"status": "received", "time": now}, {"status": "queued", "time": now}]}
             previous = (copy.deepcopy(self.input_commands), self.queue_paused, self.queue_pause_reason)
@@ -706,6 +726,29 @@ class DesktopService:
             self._emit({"type": "state", "state": self.state()})
             self._schedule_queue()
             return {"receipt": self._input_receipt(item), "state": self.state()}
+
+    @staticmethod
+    def _input_prompt(command):
+        prompt = command['prompt']
+        if command.get('attachment_context'):
+            prompt += "\n\n[用户附加的文件快照；内容可能已被外部编辑，写入前须读取当前版本]\n" + command['attachment_context']
+        return prompt
+
+    async def _take_steering(self):
+        async with self._input_lock:
+            if self.queue_paused or self._closing:
+                return []
+            commands = [item for item in self.input_commands
+                        if item['status'] in INPUT_PENDING and item.get('delivery') == 'steer']
+            for item in commands:
+                if item.get('attachments'):
+                    from .workspace import WorkspaceView
+                    view = WorkspaceView(self.cwd, executor=self.agent.executor)
+                    await asyncio.to_thread(view.grant_attachment_baselines, item['attachments'])
+            # The shared loop admits these messages and emits steering_applied in
+            # this task, before yielding again. That event persists both states.
+            return [{'id': item['id'], 'prompt': self._input_prompt(item), 'user_request': item['prompt']}
+                    for item in commands]
 
     def _schedule_queue(self):
         if (not self.queue_paused and not self._closing and not self._workspace_mutating and not self.recovery
@@ -748,9 +791,7 @@ class DesktopService:
                 self._emit({"type": "state", "state": self.state()})
                 break
             self._emit({"type": "state", "state": self.state()})
-            prompt = command["prompt"]
-            if command.get("attachment_context"):
-                prompt += "\n\n[用户附加的文件快照；内容可能已被外部编辑，写入前须读取当前版本]\n" + command["attachment_context"]
+            prompt = self._input_prompt(command)
             await self._run(prompt, command_id=command["id"])
 
     async def update_input(self, params):
@@ -829,8 +870,8 @@ class DesktopService:
             if self.status in ("error", "cancelled") or self.last_error or self.recovery:
                 self.queue_paused = True
                 self.queue_pause_reason = "上次输入未完成，请核对结果后手动继续队列。"
-            if command_id:
-                item = self._find_input(command_id)
+            active_inputs = [item for item in self.input_commands if item['status'] == 'running']
+            for item in active_inputs:
                 outcome = ("cancelled" if self.status == "cancelled" else
                            "interrupted" if self.recovery else "failed" if self.last_error else "completed")
                 self._transition_input(item, outcome)
@@ -839,7 +880,12 @@ class DesktopService:
                 if outcome != "completed":
                     self.queue_paused = True
                     self.queue_pause_reason = "上次输入未完成，请核对结果后手动继续队列。"
-                self._active_command = None
+            self._active_command = None
+            # An undelivered correction belongs to the run that just ended, not
+            # to some later task. Keep it at its original place in the queue.
+            for item in self.input_commands:
+                if item['status'] in INPUT_PENDING:
+                    item.pop('delivery', None)
             try:
                 self._save(history=True)
             except Exception as exc:
@@ -847,7 +893,7 @@ class DesktopService:
                 self.last_error = f"会话保存失败：{exc}"
                 self.queue_paused = True
                 self.queue_pause_reason = "执行结果未成功保存，请核对本机记录后继续。"
-                if command_id:
+                for item in active_inputs:
                     self._transition_input(item, "interrupted", error=self.last_error)
             self._emit({"type": "state", "state": self.state()})
             self._emit({"type": "run_finished", "status": self.status, "error": self.last_error})

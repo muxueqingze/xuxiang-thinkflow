@@ -106,23 +106,24 @@ def compact_messages(
     history = history if history is not None else ConversationContext()
     entries = list(history.summary_entries)
     count = history.compacted_messages
-    current_position = next((position for position, ref in history.request_positions.items()
-                             if ref == history.current_ref), None)
-    pin_current = current_position is not None and current_position < split_at
+    active_inputs = history.active_inputs
+    active_positions = {position: ref for position, ref in history.request_positions.items()
+                        if ref in active_inputs}
+    pinned = {position: ref for position, ref in sorted(active_positions.items()) if position < split_at}
     expanded_requests = {entry["ref"] for entry in history.requests[:-1] if "execution_input" in entry}
     for position, message in enumerate(older):
         if position == 0 and history.summary and message.get("content") == history.summary:
             continue
-        if pin_current and position == current_position:
+        if position in pinned:
             # with_observation only appends to the admitted input. Keep the user
             # input verbatim and summarize the appended observations separately.
-            suffix = message["content"][len(history.current_input):].strip()
+            suffix = message["content"][len(active_inputs[pinned[position]]):].strip()
             if not suffix:
                 continue
             message = {"role": "observation", "content": suffix}
         count += 1
         entry = _message_to_summary_line(count, message, config.max_item_chars)
-        if position in history.request_positions and position != current_position:
+        if position in history.request_positions and position not in active_positions:
             ref = history.request_positions[position]
             if ref in expanded_requests:
                 entry = f"{ref} | frozen input: {ref}:input | {entry}"
@@ -133,8 +134,7 @@ def compact_messages(
     summary, kept_entries = _build_summary(entries, config, count=count, history=history,
                                            has_expanded_requests=bool(expanded_requests))
     prefix = [{"role": "user", "content": summary}]
-    if pin_current:
-        prefix.append({"role": "user", "content": history.current_input})
+    prefix.extend({"role": "user", "content": active_inputs[ref]} for ref in pinned.values())
     compacted = prefix + list(recent)
     after_chars = estimate_message_chars(compacted)
 
@@ -145,8 +145,7 @@ def compact_messages(
     history.compacted_messages = count
     positions = {position - split_at + len(prefix): ref
                  for position, ref in history.request_positions.items() if position >= split_at}
-    if pin_current:
-        positions[1] = history.current_ref
+    positions.update({index: ref for index, ref in enumerate(pinned.values(), start=1)})
     history.request_positions = positions
 
     return compacted, CompactionStats(
@@ -194,7 +193,8 @@ def _build_summary(entries: list[str], config: CompactionConfig, *, count: int,
     if history.requests:
         lines.extend([
             f"Original user requests: request:1 through {history.current_ref}, in chronological order.",
-            f"Current request {history.current_ref} is retained verbatim below.",
+            (f"Active requests {', '.join(history.active_refs)} are retained verbatim below."
+             if history.active_refs else f"Current request {history.current_ref} is retained verbatim below."),
             "Use recall(ref) to retrieve earlier requirements or revisions missing from these excerpts.",
         ])
     lines.extend(["", "Recent compacted entries:"])

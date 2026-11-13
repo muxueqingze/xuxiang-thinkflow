@@ -11,6 +11,20 @@ function run(command, args, cwd) {
   if (result.status !== 0) throw new Error(`${command} failed (exit ${result.status}).`);
 }
 
+function writePathSpecNotice(python, appDir) {
+  const metadata = execFileSync(python, ['-X', 'utf8', '-c', [
+    'import json',
+    'from importlib.metadata import distribution',
+    'package = distribution("pathspec")',
+    'license_file = next(file for file in package.files if file.name == "LICENSE")',
+    'print(json.dumps([package.version, str(package.locate_file(license_file))]))',
+  ].join('\n')], { encoding: 'utf8', windowsHide: true });
+  const [version, licenseFile] = JSON.parse(metadata);
+  fs.writeFileSync(path.join(appDir, 'PathSpec-LICENSE.txt'),
+    `PathSpec ${version}\r\nSource distribution: https://pypi.org/project/pathspec/${version}/#files\r\n\r\n`
+    + fs.readFileSync(licenseFile, 'utf8'), 'utf8');
+}
+
 async function main() {
   if (process.platform !== 'win32') throw new Error('Windows distribution must be built on Windows.');
   const root = path.resolve(__dirname, '..');
@@ -51,6 +65,7 @@ async function main() {
   });
   fs.renameSync(path.join(work, 'runtime', 'thinkflow-service'), path.join(appDir, 'resources', 'backend'));
   fs.copyFileSync(path.join(root, 'LICENSE'), path.join(appDir, 'ThinkFlow-LICENSE.txt'));
+  writePathSpecNotice(python, appDir);
   fs.writeFileSync(path.join(appDir, '使用说明.txt'),
     `续想 ThinkFlow ${version}\r\n\r\n双击 ThinkFlow.exe。首次使用选择工作区，在设置中填写兼容端点与模型。\r\nEnter 发送，Shift+Enter 换行，Ctrl+K 搜索会话与操作。运行中发送的消息进入队列，停止/失败/重启后须手动继续队列。\r\n此文件夹包含 Python 与 Electron 运行时；请整体保存，勿只移动 exe。\r\n会话与加密凭据保存在当前用户的应用数据目录。无需 Python、Node.js 或管理员权限。\r\n应用未做商业代码签名。模型调用使用您配置的端点。\r\n`, 'utf8');
   const baseName = `ThinkFlow-${version}-Windows-x64`;

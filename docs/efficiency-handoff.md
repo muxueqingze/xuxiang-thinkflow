@@ -1,5 +1,7 @@
 # ThinkFlow 执行效率 · 当前接力
 
+最新交付与下一步统一见[0.10.0短接力](iteration-20261113.md)。以下保留0.9阶段的已实现能力与历史测量依据。
+
 当前补丁为 [0.9.1](release-0.9.1.md)：CLI/SDK/桌面恢复已提交回执对应的截断日志，并一次性补齐完成记录；Windows 包内 Python 工具独立于系统 Python。协议切换、真实进程恢复与最终包定向检查见[本次验收](reviews/patch-0.9.1-quality.md)。本补丁不增加模型请求，既有 Pi 效率结论保持原样。
 
 用户的 Pro 报告已用于完成 F01–F12 的具体工程改动，见[本轮接力](pro-review-handoff.md)。0.9.0新增API原始内容块回传、增量持久化与会话索引，并分发CLI和Windows安装版/便携版；[版本说明](release-0.9.0.md)记录固定本地存储收益。[F11/F12独立验收](reviews/release-runtime-quality-20261111.md)通过，下文保留先前节点和历史实测。

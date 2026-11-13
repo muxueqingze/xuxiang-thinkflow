@@ -85,7 +85,7 @@ class SessionStore:
             # The receipt is committed before the journal marks the intent done.
             self.save(self._agent.to_snapshot(), history=False, incremental=True)
             self._journal({**event, "session_id": self._agent.session_id})
-        elif kind in ("turn_started", "turn_finished", "run_finished", "plan_updated"):
+        elif kind in ("turn_started", "turn_finished", "run_finished", "plan_updated", "steering_applied"):
             self.save(self._agent.to_snapshot(), history=kind == "run_finished")
 
     def _recover_intents(self, snapshot):

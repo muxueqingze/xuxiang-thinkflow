@@ -21,7 +21,7 @@ description: 续想 ThinkFlow harness 按需参考——tf-* 流式命令协议�
 
 | flow | 含义 | 工具 |
 |------|------|------|
-| `delayed` | 可预测副作用，流式执行不打断推理 | `write` `append` `mkdir` `touch` `copy` `edit` |
+| `delayed` | 可预测副作用，流式执行不打断推理 | `write` `append` `mkdir` `touch` `copy` `edit` `update_plan` |
 | `blocking` | 批次结果统一返回后，再进行依赖结果的判断 | `read` `bash` `python` `grep` `glob` `list_files` `web_search` `fetch_url` `list_skills` `read_skill`、custom tools |
 | `confirm` | 显式反馈边界，受授权策略约束 | 由扩展工具声明；风险与 flow 独立 |
 
@@ -136,6 +136,10 @@ print("hello")
 - 成功命令的正文若已原样存在于本次请求的有效历史，回执只反馈元数据；不存在的正文完整反馈一次。DeepSeek仅在请求携带原生工具时把reasoning计入上下文，因此关闭原生工具时仍保留正文反馈。信息型结果和错误保留执行器实际返回的完整输出，不重复头尾；provider所需reasoning保持原样。
 
 ## 会话机制
+
+- **阶段上下文**：`tf-update_plan` 的JSON正文复用 `explanation/steps`，可选 `context` 保存少量 summary、decisions 和 files(path/note)。省略context沿用、提供对象整体替换、{}清空；仅关键决定变化或换阶段时记录。文件条目是导航，完成步骤仍引用真实成功回执。计划状态随快照保留，压缩不另行请求摘要。
+- **运行中补充**：当前响应和工具批次结束后，已接收补充进入下一次请求；原任务与补充保持原文。普通待发任务在当前run结束后执行。
+- **目录搜索**：`tf-grep`、`tf-glob`、`tf-list_files` 接收JSON正文，沿用同批反馈。遍历遵循工作区内.gitignore，明确指定被忽略文件或目录时可直接搜索；grep继续采用Python正则。
 
 - **自动续写**：输出因 max_tokens 或断连截断时，续想自动请求继续，不要重复已输出内容；被截断的命令标签要用新 id 重新输出完整标签。
 - **上下文压缩**：旧消息确定性摘录成 `[THINKFLOW COMPACTED CONTEXT]`，无需模型调用；当前输入和最近消息保留原文。原始用户要求独立保存，旧要求的细节按request引用用recall回取，当前文件状态按需读取；重复压缩沿用摘要条目。

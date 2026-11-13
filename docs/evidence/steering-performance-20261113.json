@@ -1,0 +1,33 @@
+{
+  "scope": "Local scheduling comparison on one ThinkFlow revision. AgentLoop.run uses OpenAI SSE through HTTPX MockTransport. No remote model, provider latency, or Pi comparison.",
+  "python": "3.12.10",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "httpx": "0.28.1",
+  "measurement": "Alternating pair order after warmup. Reuses one agent and client. Restores the same empty snapshot before each run, outside the timed interval.",
+  "warmup_pairs": 20,
+  "measured_pairs": 200,
+  "http_requests_per_run": {
+    "source_none": 1,
+    "empty_source": 1
+  },
+  "queue_checks_per_run": {
+    "source_none": 0,
+    "empty_source": 1
+  },
+  "request_body_byte_equal_across_all_runs": true,
+  "request_body_bytes": 4914,
+  "latency_us": {
+    "source_none": {
+      "median": 546.5,
+      "p95": 624.4
+    },
+    "empty_source": {
+      "median": 548.95,
+      "p95": 635.4
+    },
+    "paired_delta_empty_minus_none": {
+      "median": 2.6,
+      "p95": 70.8
+    }
+  }
+}

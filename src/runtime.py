@@ -212,8 +212,9 @@ def build_agent_config(config: dict, system_prompt: str | None = None, cwd: str 
 
 
 def create_agent(config: dict, system_prompt: str | None = None, cwd: str = None, *,
-                 event_sink=None, approval_handler=None, session_store=None) -> AgentLoop:
-    agent = AgentLoop(build_agent_config(config, system_prompt, cwd), event_sink=event_sink, approval_handler=approval_handler)
+                 event_sink=None, approval_handler=None, session_store=None, steering_source=None) -> AgentLoop:
+    agent = AgentLoop(build_agent_config(config, system_prompt, cwd), event_sink=event_sink,
+                      approval_handler=approval_handler, steering_source=steering_source)
     if session_store is not None:
         session_store.bind(agent)
     return agent

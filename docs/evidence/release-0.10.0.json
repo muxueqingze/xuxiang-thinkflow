@@ -1,0 +1,77 @@
+{
+  "version": "0.10.0",
+  "date": "2026-11-13",
+  "source_tag": "v0.10.0",
+  "npm": {
+    "artifact": "artifacts/npm-0.10.0/xuxiang-agent-0.10.0.tgz",
+    "files": 106,
+    "bytes": 318041,
+    "sha1": "6d2e043343b145a23d364a27ae8e3992d36bdbe3",
+    "integrity": "sha512-SWdmi+4duvOk/X/EvuKWsP/SHHw3r7Lxljwo9uoIJ2pZm/F1SeKdGzGmxvOKAQ7uhuVLRcf1uv1JZbR6sjkIUA==",
+    "validation": {
+      "version": "0.10.0",
+      "installed_core": true,
+      "postinstall": true,
+      "local_http_requests": 2,
+      "paid_requests": 0,
+      "pathspec": "1.1.1",
+      "stream_plan_write_complete": true,
+      "search_feedback": true,
+      "restored_context_and_receipts": true,
+      "user_agent": "ThinkFlow/0.10.0"
+    },
+    "publish_content_scan": "no findings",
+    "final_repack": "Runtime and CLI bytes match the tested installation; only three release/handoff Markdown documents changed."
+  },
+  "desktop": {
+    "applicationDirectory": "artifacts/desktop-2026-11-13T07-30-02-771Z/ThinkFlow-win32-x64",
+    "installer": {
+      "path": "artifacts/desktop-2026-11-13T07-30-02-771Z/ThinkFlow-0.10.0-Windows-x64-Setup.exe",
+      "bytes": 170545364,
+      "sha256": "b8549b86f0a9784c726d0349959a9814a64b3cad870ac472bfc3692dd2cd580b"
+    },
+    "portable": {
+      "path": "artifacts/desktop-2026-11-13T07-30-02-771Z/ThinkFlow-0.10.0-Windows-x64.zip",
+      "bytes": 189849276,
+      "sha256": "a89843c9fa52f0f161c36279f6374ae4a949893c0213347ce81e21573b181aee"
+    },
+    "independentPackageEvidence": "docs/evidence/iteration-package-20261113.json",
+    "packagedElectron": {
+      "passed": true,
+      "requests": 4,
+      "controlsFit": true,
+      "screenshot": "docs/evidence/steering-ui-20261113.png"
+    }
+  },
+  "checks": {
+    "pythonSuite": {
+      "ran": 376,
+      "skipped": 4,
+      "initialErrors": 43,
+      "initialFailures": 1,
+      "causes": [
+        "Existing fake factories did not accept the new optional steering_source keyword.",
+        "Tool catalog test still expected grep to have no text protocol."
+      ],
+      "originalFailuresRechecked": 44,
+      "recheckPassed": true
+    },
+    "nodePassed": 15,
+    "sourceElectron": {
+      "steering": true,
+      "workbench": 6,
+      "ux": 11
+    },
+    "streamingProtocol": "Both provider formats completed plan, write and completion in one SSE request; actual invalid state returned error and prevented dependent write.",
+    "steering": "Exact no-input request equality; original task and additions survive two compactions; interrupted queue restore regression covered."
+  },
+  "performance": "docs/evidence/steering-performance-20261113.json",
+  "paidModelCalls": 0,
+  "dependencies": {
+    "added": "pathspec>=0.12.1",
+    "validatedVersion": "1.1.1",
+    "location": "Existing Python312 site-packages; bundled in frozen desktop backend.",
+    "notice": "PathSpec-LICENSE.txt in desktop application directory"
+  },
+  "globalPathChanges": []
+}

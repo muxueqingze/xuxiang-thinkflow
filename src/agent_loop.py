@@ -22,7 +22,7 @@ from dataclasses import dataclass, field, replace
 from typing import Optional
 from urllib.parse import urlparse
 
-from .parser import StreamingParser, Command, TOOLS
+from .parser import StreamingParser, Command, TOOLS, JSON_TOOLS
 from .executor import Executor, ExecutionResult, ExecutionCancelled
 from .context import ContextManager, _command_hash
 from .conversation import ConversationContext
@@ -50,6 +50,7 @@ from .tool_registry import (
     TOOL_KIND_GENERATE,
     TOOL_KIND_INPUT,
     TOOL_KIND_OUTPUT,
+    TOOL_KIND_STATE,
     TOOL_RISK_HIGH,
     TOOL_RISK_LOW,
     TOOL_RISK_MEDIUM,
@@ -249,11 +250,12 @@ class CommandExecutionQueue:
 class AgentLoop:
     """ThinkFlow 主循环"""
 
-    def __init__(self, config: AgentConfig, *, event_sink=None, approval_handler=None):
+    def __init__(self, config: AgentConfig, *, event_sink=None, approval_handler=None, steering_source=None):
         self.config = config
         self.events = RuntimeEvents(event_sink)
         self.view = RuntimeView(self.events, allow_legacy_tags=config.allow_legacy_tool_tags)
         self.approval_handler = approval_handler
+        self.steering_source = steering_source
         self._run_active = False
         self._last_turn_failed = False
         self._replayed_unknown_effect = False
@@ -599,7 +601,7 @@ class AgentLoop:
                 risk=TOOL_RISK_HIGH,
             ), self.interfaces.custom_tool_handler(custom_tool))
         registry.register(ToolSpec(
-            name='update_plan', kind=TOOL_KIND_INPUT,
+            name='update_plan', kind=TOOL_KIND_STATE, flow=TOOL_FLOW_DELAYED,
             description='保存多步骤任务的计划与验收条件。完成项必须引用成功工具回执id；仅代表模型标记，用户仍可核验。简单任务不必调用。',
             parameters=PLAN_SCHEMA,
         ), self._update_plan_tool)
@@ -626,6 +628,14 @@ class AgentLoop:
                              query=tool_input.get('query'))
 
     async def _execute_builtin(self, command: Command) -> ExecutionResult:
+        if command.tool in JSON_TOOLS:
+            try:
+                arguments = json.loads(command.content)
+                if not isinstance(arguments, dict):
+                    raise ValueError('JSON正文必须是参数对象。')
+            except (ValueError, TypeError) as error:
+                return ExecutionResult(success=False, tool=command.tool, error=f'无效的工具JSON正文：{error}')
+            return await self._execute_registered(command.tool, arguments, command.id)
         properties = next(schema['parameters']['properties'] for schema in TOOL_SCHEMAS
                           if schema['name'] == command.tool)
         fields = vars(command)
@@ -731,7 +741,7 @@ class AgentLoop:
             'platform': 'Windows' if os.name == 'nt' else sys.platform,
             'cwd': self.executor.cwd, 'shell': shell,
         }, ensure_ascii=False)
-        if self.task_plan['steps']:
+        if self.task_plan['steps'] or self.task_plan.get('context'):
             content += '\n[CURRENT TASK PLAN]\n' + json.dumps(self.task_plan, ensure_ascii=False)
         if self.native_write_fallback:
             content += '\n[PROTOCOL FALLBACK] 本次任务出现流式协议错误，现已提供原生文件工具作为保底。原生函数名用write/edit/bash等，不含tf-、id属性或尖括号。先核对已有回执，不要重放已成功操作。'
@@ -889,6 +899,21 @@ class AgentLoop:
                         and failures >= max(1, self.config.max_consecutive_failures)):
                     self.stopped_reason = "max_consecutive_failures"
                     break
+                # Admit user steering only after this response and all its tools
+                # settle. No timer, cancelled stream, or acknowledgement request.
+                if (self.steering_source is not None
+                        and (should_continue or not self.last_error)
+                        and (self.config.max_run_turns is None or turns < self.config.max_run_turns)
+                        and (deadline is None or time.monotonic() < deadline)):
+                    incoming = await self.steering_source()
+                    if incoming:
+                        for item in incoming:
+                            text = item['prompt']
+                            self.conversation.record_request(len(self.messages), item.get('user_request', text),
+                                                             text, continuation=True)
+                            self.messages.append({'role': 'user', 'content': text})
+                        self.events.emit('steering_applied', messages=incoming)
+                        should_continue = True
                 if not should_continue:
                     if self.last_error and self.stopped_reason == 'completed':
                         self.stopped_reason = "error"
