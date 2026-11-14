@@ -8,7 +8,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 > 可预测式工具调用不需要打断模型的推理与思考。
 
-**安装 0.10.0：** [Windows 桌面安装版](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64-Setup.exe) · [便携 ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64.zip) · CLI：`npm install -g xuxiang-agent@next`。桌面自带运行时，npm 只安装 CLI。[版本说明](docs/release-0.10.0.md)
+**安装 0.10.0：** [Windows 桌面安装版](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64-Setup.exe) · [便携 ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64.zip) · CLI：`npm install -g xuxiang-agent`。桌面自带运行时，npm 只安装 CLI。[版本说明](docs/release-0.10.0.md)
 
 续想 ThinkFlow 是一个实验性流式工具调用 agent harness。它验证一个核心判断：并不是所有工具调用都应该成为模型回合边界。
 
@@ -90,15 +90,15 @@ v0.7 已通过源码与 Windows 独立包的本地 SSE 流程、11组交互和�
 
 桌面用户下载上方 Windows 安装版，双击安装后从开始菜单打开“续想 ThinkFlow”。安装目录可选，无需管理员权限或预装 Node.js/Python。便携版完整解压后运行 `ThinkFlow.exe`。
 
-**0.10.0 CLI 预览版**使用 npm 的`next`通道；安装时明确指定通道：
+**0.10.0 CLI**已设为 npm 默认安装版本：
 
 ```bash
-npm install -g xuxiang-agent@next
+npm install -g xuxiang-agent
 thinkflow --help
 xuxiang --help
 ```
 
-固定版本安装可用`npm install -g xuxiang-agent@0.10.0`；`latest`通道继续提供0.5.1。[发布说明](docs/release-0.10.0.md)记录 CLI 与桌面安装、升级和本轮改动。
+固定版本安装可用`npm install -g xuxiang-agent@0.10.0`。自2026-11-14起，`latest`与`next`均指向0.10.0，默认安装无需指定通道。[发布说明](docs/release-0.10.0.md)记录 CLI 与桌面安装、升级和本轮改动。
 
 CLI 要求：
 
@@ -111,7 +111,7 @@ CLI 要求：
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g xuxiang-agent@next
+npm install -g xuxiang-agent
 ```
 
 开发安装：

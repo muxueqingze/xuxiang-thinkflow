@@ -60,15 +60,15 @@ The 2026-11-11 review follow-up unifies exact read projection across text and bo
 
 Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64.zip) runs after extracting the complete folder.
 
-The **0.10.0 CLI preview** uses the npm `next` channel. npm installs the CLI only:
+**0.10.0** is now the default npm version. npm installs the CLI only:
 
 ```bash
-npm install -g xuxiang-agent@next
+npm install -g xuxiang-agent
 thinkflow --help
 xuxiang --help
 ```
 
-For an exact version, use `npm install -g xuxiang-agent@0.10.0`. The `latest` channel remains at 0.5.1. See the [release notes](docs/release-0.10.0.md) for installation, upgrades and included changes.
+For an exact version, use `npm install -g xuxiang-agent@0.10.0`. Since 2026-11-14, both `latest` and `next` point to 0.10.0; no channel suffix is required for the default install. See the [release notes](docs/release-0.10.0.md) for installation, upgrades and included changes.
 
 CLI requirements:
 
@@ -81,7 +81,7 @@ If multiple Python versions are installed:
 
 ```bash
 set THINKFLOW_PYTHON=C:\Path\To\Python312\python.exe
-npm install -g xuxiang-agent@next
+npm install -g xuxiang-agent
 ```
 
 Development install:

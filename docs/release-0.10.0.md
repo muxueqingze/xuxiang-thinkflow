@@ -27,6 +27,6 @@
 
 - [Windows 安装版](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64-Setup.exe)
 - [Windows 便携 ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64.zip)
-- CLI：`npm install -g xuxiang-agent@next`，固定版本 `xuxiang-agent@0.10.0`；Node.js 18+、Python 3.12+。npm只安装CLI。
+- CLI：`npm install -g xuxiang-agent`，固定版本 `xuxiang-agent@0.10.0`；Node.js 18+、Python 3.12+。npm只安装CLI。2026-11-14已将`latest`更新为0.10.0，默认安装与`next`均使用本版。
 
 桌面自带 Electron、服务运行时及独立 CPython；新增搜索依赖 PathSpec 随包提供，其许可证与精确版本源码链接位于 `PathSpec-LICENSE.txt`。源码/CLI安装通过现有依赖入口安装 `pathspec>=0.12.1`，本机验证版本1.1.1，无PATH变更。
