@@ -2,26 +2,23 @@
 
 ## Supported Versions
 
-The current source is on `codex/thinkflow-desktop-v06` (0.9.0).
-The npm preview channel `next` and Windows desktop release provide 0.9.0; `latest` provides 0.5.1.
-Security fixes target the current development line.
+The current source is on `main`. npm `latest` and `next`, and the Windows
+desktop release, provide 0.10.0. Security fixes target `main` and the current release.
 
 | Version | Supported |
 |---|---|
-| Current development source | Yes |
-| `0.9.0` CLI / Desktop preview | Yes |
-| `0.8.0` npm preview | Upgrade to 0.9.0 |
-| `0.5.1` npm stable | Upgrade to `next` for the 0.9.0 preview |
-| older versions | No |
+| `main` | Yes |
+| `0.10.0` CLI / Desktop | Yes |
+| Earlier releases | Upgrade to 0.10.0 |
 
 ## Reporting a Vulnerability
 
 Please do not publish exploit details in a public issue before the issue has
 been reviewed.
 
-For security-sensitive reports, use the contact methods listed on the author's
-GitHub profile. For non-sensitive security hardening suggestions, GitHub Issues
-or Discussions are preferred.
+For security-sensitive reports, use GitHub's
+[private vulnerability report](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new).
+Ordinary bugs and feature suggestions belong in GitHub Issues.
 
 Useful report details include:
 

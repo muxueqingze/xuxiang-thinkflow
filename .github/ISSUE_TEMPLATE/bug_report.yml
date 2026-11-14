@@ -1,0 +1,25 @@
+name: 问题反馈
+description: 报告 CLI 或桌面版的实际使用问题
+body:
+  - type: input
+    id: environment
+    attributes:
+      label: 版本与运行环境
+      description: ThinkFlow版本、CLI或桌面版、操作系统；模型相关问题请补充模型名称。
+      placeholder: 0.10.0 / Windows桌面版 / Windows 11
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 遇到了什么问题
+      description: 描述实际结果和预期结果，可附截图或相关错误片段；省略API密钥。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 如何复现
+      description: 给出触发问题的简短步骤；暂时不能稳定复现也可以说明。
+    validations:
+      required: false

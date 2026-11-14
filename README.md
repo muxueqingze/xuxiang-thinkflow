@@ -10,6 +10,8 @@ Language: [中文](README.md) | [English](README.en.md)
 
 **安装 0.10.0：** [Windows 桌面安装版](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64-Setup.exe) · [便携 ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64.zip) · CLI：`npm install -g xuxiang-agent`。桌面自带运行时，npm 只安装 CLI。[版本说明](docs/release-0.10.0.md)
 
+日常开发与发布使用 `main`。[参与贡献](CONTRIBUTING.md) · [仓库管理](docs/repository-management.md) · [私密漏洞报告](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new)
+
 续想 ThinkFlow 是一个实验性流式工具调用 agent harness。它验证一个核心判断：并不是所有工具调用都应该成为模型回合边界。
 
 0.10.0 将可预测计划更新接入同一流式链，搜索遵循项目忽略规则；支持运行中补充要求，以及复用现有计划的可选阶段上下文。正常无补充路径的请求正文和次数保持一致。[本轮改动与验证](docs/release-0.10.0.md)
@@ -117,7 +119,7 @@ npm install -g xuxiang-agent
 开发安装：
 
 ```bash
-git clone --branch codex/thinkflow-desktop-v06 https://github.com/muxueqingze/xuxiang-thinkflow.git
+git clone https://github.com/muxueqingze/xuxiang-thinkflow.git
 cd xuxiang-thinkflow
 python -m pip install -e .
 thinkflow --help
