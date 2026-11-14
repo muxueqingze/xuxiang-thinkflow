@@ -1,0 +1,25 @@
+name: 改进建议 / Feature or contribution proposal
+description: 提出使用场景、改进目标或贡献方向 / Propose an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 使用场景与当前问题 / Use case and current limitation
+      description: 你在完成什么任务，现在哪里不顺手？What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: 希望达到的效果 / Desired outcome
+      description: 从使用者角度描述改进后的行为。Describe the behavior you would like to have.
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: 实现思路或参与意愿（选填） / Approach or contribution, optional
+      description: 如有方案、参考或愿意帮助实现，可写在这里。Share an approach, reference or interest in contributing.
+    validations:
+      required: false

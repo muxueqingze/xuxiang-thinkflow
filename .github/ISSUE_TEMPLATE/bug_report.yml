@@ -1,25 +1,43 @@
-name: 问题反馈
-description: 报告 CLI 或桌面版的实际使用问题
+name: 问题反馈 / Bug report
+description: 报告 CLI、SDK 或桌面版的实际问题 / Report a bug
+labels: [bug]
 body:
+  - type: markdown
+    attributes:
+      value: 中文或English均可。提供与问题有关的信息即可；密钥或个人会话不要放进公开日志。
   - type: input
     id: environment
     attributes:
-      label: 版本与运行环境
-      description: ThinkFlow版本、CLI或桌面版、操作系统；模型相关问题请补充模型名称。
+      label: 版本与运行环境 / Version and environment
+      description: ThinkFlow版本、CLI/SDK/桌面、操作系统。Include the version, entry point and OS.
       placeholder: 0.10.0 / Windows桌面版 / Windows 11
     validations:
       required: true
   - type: textarea
     id: problem
     attributes:
-      label: 遇到了什么问题
-      description: 描述实际结果和预期结果，可附截图或相关错误片段；省略API密钥。
+      label: 实际与预期结果 / Actual and expected behavior
+      description: 描述具体表现，可附截图。Describe what happened and what you expected.
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
-      label: 如何复现
-      description: 给出触发问题的简短步骤；暂时不能稳定复现也可以说明。
+      label: 如何复现 / Reproduction
+      description: 简短步骤或最小例子；不能稳定复现也可以说明。Steps or a minimal example, if available.
+    validations:
+      required: false
+  - type: input
+    id: model
+    attributes:
+      label: 模型与接口（如相关） / Model and API, if relevant
+      description: 提供方、模型名及OpenAI/Anthropic接口类型，无需密钥。Provider, model and API format; no credentials.
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志（选填） / Relevant logs, optional
+      description: 只提供错误附近的内容，移除密钥与个人信息。Include only relevant excerpts with private data removed.
     validations:
       required: false

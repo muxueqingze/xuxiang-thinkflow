@@ -21,4 +21,21 @@
 - 贡献：[CONTRIBUTING](../CONTRIBUTING.md)；版本和私密报告范围：[SECURITY](../SECURITY.md)。
 - 提交作者使用实际维护者的Git身份。身份修正应用于后续提交，历史作者与发布标签保持原记录。
 
-参考了[OpenCode的维护者分派](https://github.com/anomalyco/opencode/blob/5bf661138b1524fdbfafa82fd8cde1918cf05f73/.github/CODEOWNERS)、[Pi的问题复现字段](https://github.com/earendil-works/pi/blob/47e9d74f9186de37e700693fac0f6e56a499657a/.github/ISSUE_TEMPLATE/bug.yml)与[GitHub规则说明](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)。使用与当前维护规模相配的规则，保留直接开发与开放反馈入口。
+## 反馈如何进入工作
+
+Issue表单分别给缺陷、改进建议和使用提问添加`bug`、`enhancement`、`question`标签。其他现有分类继续保留，维护者按讨论内容调整；空白Issue也可提交。
+
+| 标签 | 含义与下一步 |
+|---|---|
+| `needs info` | 缺少复现或关键使用信息；维护者指出需要补充哪一项，信息齐全后移除 |
+| `confirmed` | 问题已复现，或改进的场景与范围已确认；这不表示功能已完成 |
+| `help wanted` | 范围明确，欢迎外部协助；正文写清入口、预期结果和现有验证方式 |
+| `good first issue` | 适合首次贡献的小任务，同时提供足够定位信息 |
+
+PR由CODEOWNERS路由给维护者，结合相关CI、代码和实际行为审查。需要修改时在原PR继续；重复问题链接到已有讨论，解决后关联对应提交或版本再关闭。版本号、发布说明和分发由维护者统一处理，避免贡献者重复升版。
+
+贡献来源、开发入口与按范围验证在[中文指南](../CONTRIBUTING.md)和[English guide](../CONTRIBUTING.en.md)维护。新增贡献沿用MIT并保留来源和署名；目前无需额外CLA或DCO流程。保持人工决定受理与合并，不启用新贡献者自动关闭、批量封禁或固定时间自动关闭Issue。
+
+## 参照与取舍
+
+参考[Cindy贡献指南](https://github.com/makecindy/cindy/blob/3a474759524e8bf804bda4ddf6d2f4c3188918e2/CONTRIBUTING.md)的入口分流、开发资料定位和实际验证说明，[Pi贡献指南](https://github.com/earendil-works/pi/blob/827383a15262905f82e418483825a49dbb1adbf5/CONTRIBUTING.md)的核心克制、简短提案和提交人理解实现，以及[OpenCode的维护者分派](https://github.com/anomalyco/opencode/blob/5bf661138b1524fdbfafa82fd8cde1918cf05f73/.github/CODEOWNERS)。Cindy的团队审批/DCO和Pi的新贡献者准入流程对应其各自组织；本仓库使用上面的直接主分支维护与开放反馈方式。[GitHub规则说明](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets)说明了保护规则的实际作用。

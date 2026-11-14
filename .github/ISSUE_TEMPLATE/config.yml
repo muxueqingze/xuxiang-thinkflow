@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
-  - name: 私密漏洞报告
+  - name: 私密漏洞报告 / Private vulnerability report
     url: https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new
-    about: 密钥泄露或可利用漏洞请使用私密报告入口。
+    about: 密钥泄露或可利用漏洞请私密提交。Report vulnerabilities or exposed credentials privately.

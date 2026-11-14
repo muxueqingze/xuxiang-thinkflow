@@ -1,0 +1,22 @@
+name: 使用提问 / Usage question
+description: 安装、配置与日常使用问题 / Ask about installation, configuration or usage
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先看 [使用说明](https://github.com/muxueqingze/xuxiang-thinkflow/blob/main/README.md) / [English README](https://github.com/muxueqingze/xuxiang-thinkflow/blob/main/README.en.md) 与 [配置指南](https://github.com/muxueqingze/xuxiang-thinkflow/blob/main/docs/configuration.md)。中文或English均可。
+  - type: textarea
+    id: question
+    attributes:
+      label: 想完成什么、哪里不清楚 / Goal and question
+      description: 描述目标与当前疑问。Describe what you want to do and what needs clarification.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: 版本、环境与已尝试的方法（选填） / Context and attempts, optional
+      description: 补充相关环境、操作或文档位置；省略密钥。Add relevant setup or steps already tried, without credentials.
+    validations:
+      required: false

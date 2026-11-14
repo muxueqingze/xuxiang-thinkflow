@@ -2,13 +2,18 @@
 
 Electron 只负责窗口、系统对话框与加密设置。Python 通过私有 stdin/stdout NDJSON 驱动同一个 ThinkFlow 内核；应用没有 HTTP 监听端口。
 
-开发启动（仓库已安装 Python 依赖）：
+## 开发启动
+
+使用Python 3.12+和Node.js 22.12+（Electron与打包工具的最低版本要求）。先在仓库根目录按[贡献指南](../CONTRIBUTING.md#开发与验证)安装Python依赖，再运行：
 
 ```powershell
 cd desktop
 npm ci
+$env:THINKFLOW_TEST_USER_DATA = Join-Path (Resolve-Path ..).Path '.thinkflow/desktop-dev'
 npm start
 ```
+
+上面的PowerShell命令把开发设置和会话保存在项目`.thinkflow/desktop-dev/`，便于反复调试；该目录已被Git忽略，与安装版的用户数据分开。`THINKFLOW_TEST_USER_DATA`只影响源码开发模式。完整安装包的验证继续使用下方现有脚本提供的独立profile。
 
 多个 Python 版本时，启动前设置 `THINKFLOW_PYTHON` 为所需解释器的完整路径。开发模式从仓库目录运行 `python -u -m src.desktop_service`。打包模式运行自带的 `resources/backend/thinkflow-service.exe`。`npm run package` 复用仓库 `scripts/build-desktop.cjs`，构建 Windows 应用目录、安装程序和便携 ZIP。依赖与产物路径见[桌面指南](../docs/desktop.md#开发与构建)。
 

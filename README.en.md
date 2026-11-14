@@ -58,7 +58,7 @@ The 2026-11-11 review follow-up unifies exact read projection across text and bo
 
 ## Installation
 
-`main` is the active development and release branch. See [contributing](CONTRIBUTING.md), [repository management](docs/repository-management.md), or [report a vulnerability privately](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new).
+`main` is the active development and release branch. See [contributing](CONTRIBUTING.en.md), [repository management](docs/repository-management.md), or [report a vulnerability privately](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new).
 
 Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.0/ThinkFlow-0.10.0-Windows-x64.zip) runs after extracting the complete folder.
 
