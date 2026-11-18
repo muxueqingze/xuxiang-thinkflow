@@ -12,6 +12,7 @@ import asyncio
 import html
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -259,7 +260,6 @@ def select_session(agent: AgentLoop, selected: Path, store: SessionStore = None)
     snapshot = selected_store.load()
     agent.load_snapshot(snapshot)
     if store is not None:
-        store.path = selected_store.path
         if getattr(agent, "session_store", None) is store:
             agent.bind_output_store(store.output_dir)
     renderer.render_info("会话已恢复")
@@ -659,11 +659,38 @@ def render_session_transcript(messages: list[dict], max_messages: int = 24, max_
                 names.append(str(fn))
             content = "tool_call: " + ", ".join(names)
         else:
-            content = str(message.get("content", "") or "")
-        content = _clip_text(content.replace("\n", " "), max_chars)
+            content = _transcript_text(message.get("content", ""))
+        content = _strip_terminal_controls(_clip_text(content, max_chars))
         style = "cyan" if role == "user" else "green" if role == "assistant" else "yellow" if role == "tool" else "dim"
-        renderer.console.print(f"  [{style}]{role}[/{style}] {content}", highlight=False)
+        from rich.text import Text
+        renderer.console.print(Text(f"  {role} {content}", style=style), highlight=False, soft_wrap=True)
     renderer.console.print()
+
+
+def _transcript_text(content) -> str:
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+    visible = []
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        kind = block.get("type")
+        if kind == "text" and isinstance(block.get("text"), str):
+            visible.append(block["text"])
+        elif kind == "tool_result":
+            nested = block.get("content", "")
+            visible.append(nested if isinstance(nested, str) else _transcript_text(nested))
+    return "\n".join(part for part in visible if part)
+
+
+_TERMINAL_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\)|[@-_])")
+_TERMINAL_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
+def _strip_terminal_controls(text: str) -> str:
+    return _TERMINAL_CONTROL_RE.sub("", _TERMINAL_ESCAPE_RE.sub("", text))
 
 
 def render_status(agent: AgentLoop, store: SessionStore = None):

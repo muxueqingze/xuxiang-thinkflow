@@ -83,7 +83,7 @@ class IncrementalSessionTests(unittest.TestCase):
         self.store.save(self.snapshot)
         self.snapshot['messages'].append({'role': 'user', 'content': 'New phase'})
         self.store.save(self.snapshot)
-        self.assertEqual(len(self.store.discover()), 2)  # Current snapshot and archive are deduplicated.
+        self.assertEqual(self.store.discover(), [self.store.path])
         original = Path.open
 
         def only_index(path, mode='r', *args, **kwargs):
@@ -93,7 +93,7 @@ class IncrementalSessionTests(unittest.TestCase):
 
         with patch.object(Path, 'open', only_index):
             items = [self.store.inspect(path) for path in self.store.discover()]
-        self.assertEqual(len(items), 2)
+        self.assertEqual(len(items), 1)
         self.assertTrue(all('error' not in item for item in items))
         external = json.loads(self.store.path.read_text(encoding='utf-8'))
         external['desktop']['title'] = 'Edited externally'
@@ -114,7 +114,42 @@ class IncrementalSessionTests(unittest.TestCase):
 
         self.assertEqual(self.store.load()['messages'], data['messages'])
         self.assertEqual(archive.read_bytes(), archive_bytes)
-        self.assertCountEqual(self.store.discover(), [self.store.path, archive])
+        self.assertEqual(self.store.discover(), [self.store.path])
+
+    def test_old_indexes_upgrade_and_distinct_ids_keep_identical_previews(self):
+        self.store.save(self.snapshot)
+        archive, = (self.root / 'history').glob('*.json')
+        index = archive.with_suffix('.index')
+        old = json.loads(index.read_text(encoding='utf-8'))
+        old['info'].pop('session_id', None)
+        index.write_text(json.dumps(old), encoding='utf-8')
+        self.snapshot['messages'].append({'role': 'assistant', 'content': 'Done'})
+        self.store.save(self.snapshot, history=False)
+        other = SessionStore(str(self.root / 'other.json'), cwd=str(self.root))
+        other.save({**self.snapshot, 'session_id': 'second'}, history=False)
+        self.assertCountEqual(self.store.discover(), [other.path, self.store.path])
+        self.assertEqual(self.store.inspect(archive)['session_id'], 'first')
+
+    def test_transcript_renders_visible_blocks_as_literal_multiline_text(self):
+        from io import StringIO
+        from rich.console import Console
+        from src import renderer
+        from src.cli import render_session_transcript
+
+        output = StringIO()
+        blocks = [{'type': 'thinking', 'signature': 'opaque-signature'},
+                  {'type': 'text', 'text': '[bold]中文[/bold]\n  line two'},
+                  {'type': 'tool_result', 'content': [{'type': 'text', 'text': 'tool result'}]},
+                  {'type': 'image', 'source': {'data': 'encoded-image'}}]
+        with patch.object(renderer, 'console', Console(file=output, width=100)):
+            render_session_transcript([{'role': 'assistant', 'content': blocks},
+                                       {'role': 'tool', 'content': '\x1b[31mvalue\x1b[0m\x07'}])
+        transcript = output.getvalue()
+        self.assertIn('[bold]中文[/bold]\n  line two', transcript)
+        self.assertIn('tool result', transcript)
+        self.assertIn('value', transcript)
+        for hidden in ('opaque-signature', 'encoded-image', "'type':", '\x1b', '\x07'):
+            self.assertNotIn(hidden, transcript)
 
     def test_desktop_lists_metadata_without_loading_transcripts(self):
         service = DesktopService()

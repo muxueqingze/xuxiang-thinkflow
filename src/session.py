@@ -204,7 +204,7 @@ class SessionStore:
                 start = text[:89] + '…' if len(text) > 90 else text
                 break
         desktop = snapshot.get('desktop', {})
-        info = {'start': start, 'messages': len(messages),
+        info = {'session_id': snapshot.get('session_id'), 'start': start, 'messages': len(messages),
                 'records': len((snapshot.get('context', {}) or {}).get('records', []) or []),
                 'turn_count': int(snapshot.get('turn_count', 0) or 0), 'digest': digest,
                 'desktop': {name: desktop[name] for name in
@@ -243,11 +243,18 @@ class SessionStore:
                               metadata[item].get('mtime', 0)),
             reverse=True,
         )
+        seen_session_ids: set[str] = set()
         seen_digests: set[str] = set()
         deduped: list[Path] = []
         for item in preferred:
+            session_id = metadata[item].get('session_id')
+            if session_id:
+                session_id = str(session_id)
+                if session_id in seen_session_ids:
+                    continue
+                seen_session_ids.add(session_id)
             digest = metadata[item].get('digest', '')
-            if digest and digest in seen_digests:
+            if not session_id and digest and digest in seen_digests:
                 continue
             if digest:
                 seen_digests.add(digest)
@@ -263,7 +270,8 @@ class SessionStore:
             if index_path.exists():
                 with index_path.open(encoding='utf-8') as stream:
                     index = json.load(stream)
-            if index is None or index['source'] != source:
+            if (index is None or index['source'] != source
+                    or 'session_id' not in index.get('info', {})):
                 snapshot, _ = cls._read_snapshot(path)
                 cls._write_index(path, snapshot, snapshot.get('_history_digest') or cls._snapshot_digest(snapshot))
                 with index_path.open(encoding='utf-8') as stream:
