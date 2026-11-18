@@ -18,6 +18,7 @@ def main():
     test_core.run_all()
     suite = unittest.TestSuite()
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern='test_stream_completion_regression.py'))
+    suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern='test_console_title.py'))
     for pattern in ('test_cli_persistence.py', 'test_process_contracts.py', 'test_python_runtime.py',
                     'test_task_context.py', 'test_stream_state.py', 'test_stream_markdown_examples.py', 'test_steering.py',
                     'test_message_projection.py', 'test_dispatch_contracts.py', 'test_workspace_search.py',
