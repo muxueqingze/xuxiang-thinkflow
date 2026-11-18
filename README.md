@@ -20,6 +20,8 @@ Language: [中文](README.md) | [English](README.en.md)
 
 对于 `read`、`grep`、`web`、`bash` 这类会带来新信息或高风险副作用的工具，续想仍然使用阻塞、确认、反馈路径。对于 `write`、`append`、`mkdir`、`touch`、`copy`、`edit` 这类可预测副作用工具，续想允许模型在连续 streaming 中写出结构化 `tf-*` 命令，由本地状态机、FIFO 队列、执行器和 ledger 接管执行。成功执行只是回执，不必打断模型正在进行的推理。
 
+2026-11-19 的 `main` 源码对照中，ThinkFlow 和 Pi 1.0.1 在两个三阶段维护任务上均通过全部 49 项分阶段验收。使用同一 DS Flash，ThinkFlow 用了 23 次请求、199,166 token，Pi 用了 42 次、493,422 token。两题分别少用 49.3% 和 70.1% 总 token。[逐阶段结果、成本与失败样本](docs/research/long-workflows-20261119.md)
+
 ## 核心路线
 
 传统 agent 的典型工具链路是：

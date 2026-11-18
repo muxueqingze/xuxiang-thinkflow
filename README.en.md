@@ -20,6 +20,8 @@ In the 2026-11-10 Go DS Flash comparison (three tasks, two repetitions), both ha
 
 The 2026-11-10 source defaults to the streaming protocol. Independent reads and checks are declared together and returned in one feedback batch. `tf-python` runs multiline code through stdin, using the existing execution and cancellation path. `--native-tools` or the desktop setting enables native compatibility and extensions; explicit configuration is preserved. See the [current comparison](docs/efficiency-results-20261110.md) and [diagnosis](docs/efficiency-direction-20261109.md).
 
+In a November 19, 2026 comparison on `main`, ThinkFlow and Pi 1.0.1 passed all 49 stage checks across two three-release maintenance tasks. With the same DS Flash model, ThinkFlow used 23 requests and 199,166 tokens. Pi used 42 requests and 493,422 tokens. ThinkFlow used 49.3% fewer total tokens on the freight project and 70.1% fewer on the plugin resolver. [Stage results, costs and failed trials](docs/research/long-workflows-20261119.md)
+
 ## Core Idea
 
 Traditional agent harnesses often use this loop:

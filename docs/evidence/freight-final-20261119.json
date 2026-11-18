@@ -1,0 +1,418 @@
+{
+  "fixture_sha256": "4252d2c5e45d18d5a4e26493bb5ab7d17cc2a52a9b54cbc926f1c68ca9cfa8dd",
+  "driver_sha256": "c447c2ed53133f8b417cc7fa50cd83ba42110cff6cb4b98b6049755deb2255bc",
+  "model": "deepseek-v4.1-flash",
+  "harness": "thinkflow",
+  "automatic_compaction": "native defaults; no manual compaction",
+  "caps": {"requests": 36, "per_response_tokens": 16384, "run_seconds": 540, "stop_before_next_request_at_total_observed_tokens": 380000, "max_request_bytes": 350000},
+  "stages": [
+    {
+      "stage": 1,
+      "prompt_sha256": "dd9600fed0aa938e",
+      "user_input_chars": 905,
+      "wall_seconds": 64.954,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 1,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 1111},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 1284,
+            "completion_tokens": 81,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 1284,
+            "completion_tokens_details": {"reasoning_tokens": 8},
+            "provider_cost": 0,
+            "provider_list_cost": 0.0002412
+          }
+        },
+        {
+          "index": 2,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 2100, "assistant": 189},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 1624,
+            "completion_tokens": 51,
+            "prompt_cache_hit_tokens": 1280,
+            "prompt_cache_miss_tokens": 344,
+            "completion_tokens_details": {"reasoning_tokens": 7},
+            "provider_cost": 0,
+            "provider_list_cost": 8.604e-05
+          }
+        },
+        {
+          "index": 3,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 3376, "assistant": 279},
+          "client_disconnected": true,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 2044,
+            "completion_tokens": 1016,
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 508,
+            "completion_tokens_details": {"reasoning_tokens": 678},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00069041
+          }
+        },
+        {
+          "index": 4,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 4328, "assistant": 3226},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 2376,
+            "completion_tokens": 431,
+            "prompt_cache_hit_tokens": 1920,
+            "prompt_cache_miss_tokens": 456,
+            "completion_tokens_details": {"reasoning_tokens": 200},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00033276
+          }
+        },
+        {
+          "index": 5,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 5238, "assistant": 4137},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 2671,
+            "completion_tokens": 454,
+            "prompt_cache_hit_tokens": 2304,
+            "prompt_cache_miss_tokens": 367,
+            "completion_tokens_details": {"reasoning_tokens": 24},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00033436
+          }
+        },
+        {
+          "index": 6,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 7566, "assistant": 4399},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 3411,
+            "completion_tokens": 423,
+            "prompt_cache_hit_tokens": 2560,
+            "prompt_cache_miss_tokens": 851,
+            "completion_tokens_details": {"reasoning_tokens": 114},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00038913
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 0,
+        "session_id_hash": "cbcb652c0615fd32",
+        "compactions": 0,
+        "tools": [
+          {"tool": "list_files", "success": true, "flow": "blocking"},
+          {
+            "tool": "read",
+            "success": false,
+            "flow": "blocking",
+            "target": "README.md",
+            "path_form": "relative",
+            "error": "读取失败: file not found or not a regular file"
+          },
+          {"tool": "read", "success": true, "flow": "blocking", "target": "freight.py", "path_form": "relative"},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "rates.json", "path_form": "relative"},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "shipping.py", "path_form": "relative"},
+          {"tool": "edit", "success": false, "flow": "delayed", "target": "freight.py", "path_form": "relative", "error": "oldText 必须唯一且非空（包括重叠匹配）"},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "ac303900101f9b79", "looks_like_verification": true},
+          {"tool": "bash", "success": true, "flow": "blocking", "cmd_hash": "7171684cecdf6cf8", "looks_like_verification": true}
+        ],
+        "issues": [["error", null], ["error", null], ["parser_error", null], ["error", null]],
+        "python_stdin_resolved": [],
+        "visible_final_excerpt": "发布 A 已完成。\n\n**变更**（`freight.py`，模块中唯一的改动）：\n- `quote(route, grams)` 现在会通过 `route.strip().upper()` 对路线做规范化，再以该键查询费率目录；未知路线会从目录查找中自然抛出 `KeyError`。\n- 零克 → 返回 `0`；否则按启动的 500 克分段计费，公式为 `base + rate * ceil(grams / 500)`，并返回整数分值。\n\n**有意保持不变：** `shipping.py`（其 JSON CLI 输出 `quote()` 返回的内容，因此仍然兼容）和 `rates.json`。数据目录仍是唯一事实来源；未添加 CSV 命令（买方约定按记录保留到未来的 CSV 发布）。\n\n**验证**（标准库，针对当前项目运行）：\n- API 用例全部通过：0 g → 0；`\"  cedar  \"` @500 → 91；1 g → 91（启动的分段）；恰好 500 → 91；501 → 102；DELTA 1000 → 134；DELTA 1001 → 151；返回类型为 `int`；未知路线 → `KeyError`。\n- CLI：`shipping.py quote \"  delta \" 500` 退出码为 0，打印 `117`，且其解析后的值与 `freight.quote(\"delta\", 500)` 一致。",
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {"started-half-kilo-boundaries": true, "legacy-route": true, "unknown-route-and-draft-alias": true, "legacy-json-cli": true}
+    },
+    {
+      "stage": 2,
+      "prompt_sha256": "eb2c9a09c9ead1ab",
+      "user_input_chars": 13362,
+      "wall_seconds": 68.031,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 7,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 21420, "assistant": 5571},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 9155,
+            "completion_tokens": 2939,
+            "prompt_cache_hit_tokens": 3328,
+            "prompt_cache_miss_tokens": 5827,
+            "completion_tokens_details": {"reasoning_tokens": 1643},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00264743
+          }
+        },
+        {
+          "index": 8,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 27029, "assistant": 11646},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 11100,
+            "completion_tokens": 626,
+            "prompt_cache_hit_tokens": 9088,
+            "prompt_cache_miss_tokens": 2012,
+            "completion_tokens_details": {"reasoning_tokens": 139},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00070466
+          }
+        },
+        {
+          "index": 9,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 30180, "assistant": 12414},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 12145,
+            "completion_tokens": 935,
+            "prompt_cache_hit_tokens": 11008,
+            "prompt_cache_miss_tokens": 1137,
+            "completion_tokens_details": {"reasoning_tokens": 245},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00076457
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 1,
+        "session_id_hash": "cbcb652c0615fd32",
+        "compactions": 0,
+        "tools": [
+          {"tool": "write", "success": true, "flow": "delayed", "target": "rates.json", "path_form": "relative"},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "e1b83c4dc99b750e", "looks_like_verification": true},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "77215792facedb13", "looks_like_verification": false}
+        ],
+        "issues": [],
+        "python_stdin_resolved": [{"ref": "request:2", "chars": 13362}],
+        "visible_final_excerpt": "Release B 已完成并验证。\n\n**目录更新（`rates.json`）**——我重新解析了公告并确认：150 行中恰好有 5 行为 `LIVE`。按发布顺序应用这些行：\n- `DSP-8009` LARCH 35/7 别名 `LC`\n- `DSP-8035` CEDAR 85/13 别名 `CD`\n- `DSP-8071` FEN 58/21 别名 `FN`\n- `DSP-8114` LARCH 40/9 别名 `LR`——较晚的 LIVE 记录覆盖了 DSP-8009 的费率，因此 LARCH 为 40/9\n- `DSP-8147` FJORD 76/15 别名 `FJ`\n\n两条 LIVE 记录中的别名都保持有效，所以 LARCH 同时保留 `LC` 和 `LR`。所有 DRAFT/VOID/SUPERSEDED 行均被忽略；DELTA 保留原有 100/17 的费率，且没有其他旧路线被删除。\n\n**`freight.py` 中的代码变更：**\n- 规范化辅助函数统一应用 `strip().upper()`，路线键和别名键均按此处理；`quote()` 通过共享表查询费率。\n- 目录中的每个别名都映射到对应路线的费率条目；空别名会被跳过。\n- 现有 `quote()` 语义保持不变：0 g → 0，否则按已开始计费的 500 g 单位计价（`base + rate * ceil(grams/500)`），返回整数分值，未知路线抛出 `KeyError`。\n- 新增 `manifest(rows)`：按输入顺序逐行计算 `charge_cents`，仅返回包含 `way",
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {
+        "started-half-kilo-boundaries": true,
+        "legacy-route": true,
+        "unknown-route-and-draft-alias": true,
+        "legacy-json-cli": true,
+        "published-prices-and-sticky-aliases": true,
+        "alias-json-cli": true,
+        "empty-manifest": true,
+        "ordered-manifest-schema": true
+      }
+    },
+    {
+      "stage": 3,
+      "prompt_sha256": "71cd2bd1c45a4be8",
+      "user_input_chars": 1036,
+      "wall_seconds": 161.64,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 10,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 31468, "assistant": 14843},
+          "client_disconnected": true,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 13109,
+            "completion_tokens": 9373,
+            "prompt_cache_hit_tokens": 12032,
+            "prompt_cache_miss_tokens": 1077,
+            "completion_tokens_details": {"reasoning_tokens": 7502},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00582145
+          }
+        },
+        {
+          "index": 11,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 35183, "assistant": 44926},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 14225,
+            "completion_tokens": 1930,
+            "prompt_cache_hit_tokens": 13056,
+            "prompt_cache_miss_tokens": 1169,
+            "completion_tokens_details": {"reasoning_tokens": 658},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00137252
+          }
+        },
+        {
+          "index": 12,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 41563, "assistant": 47969},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 16272,
+            "completion_tokens": 318,
+            "prompt_cache_hit_tokens": 14208,
+            "prompt_cache_miss_tokens": 2064,
+            "completion_tokens_details": {"reasoning_tokens": 288},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00054302
+          }
+        },
+        {
+          "index": 13,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 44579, "assistant": 49332},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"thinking": {"type": "enabled"}, "reasoning_effort": "high", "temperature": 0, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\"", "file not found"],
+          "usage": {
+            "prompt_tokens": 17130,
+            "completion_tokens": 872,
+            "prompt_cache_hit_tokens": 16256,
+            "prompt_cache_miss_tokens": 874,
+            "completion_tokens_details": {"reasoning_tokens": 154},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00070307
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 2,
+        "session_id_hash": "cbcb652c0615fd32",
+        "compactions": 0,
+        "tools": [
+          {"tool": "edit", "success": true, "flow": "delayed", "target": "rates.json", "path_form": "relative"},
+          {"tool": "edit", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "edit", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "append", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "edit", "success": true, "flow": "delayed", "target": "shipping.py", "path_form": "relative"},
+          {"tool": "edit", "success": false, "flow": "delayed", "target": "shipping.py", "path_form": "relative", "error": "oldText 必须唯一且非空（包括重叠匹配）"},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "shipping.py", "path_form": "relative"},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "24ab42bc3b715c67", "looks_like_verification": true},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "freight.py", "path_form": "relative"},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "rates.json", "path_form": "relative"}
+        ],
+        "issues": [["error", null]],
+        "python_stdin_resolved": [],
+        "visible_final_excerpt": "Release C 已完成并验证（所有检查均通过）。\n\n**目录（`rates.json`）** — 仅按调度更正修改 CEDAR：`base` 仍为 85，`rate` 从 13 变为 23（每开始一个半公斤 23 美分）。`CD` 别名保留。DELTA、FEN、FJORD、LARCH 及其别名均未改动。\n\n**`freight.py`**\n- `quote()` 逻辑不变，因此 JSON 报价行为（0 g → 0、整数分、剥离并大写、未知 → `KeyError`）得以保留。现在 CEDAR 为：1 g → 108、500 → 108、501 → 131。\n- `manifest(rows)` 现在按运单折叠事件：\n  - 取消（`cancelled=true`）仅标记该运单并在不读取 `route`/`grams` 的情况下继续执行；重复取消和未知运单取消不产生效果。\n  - 更正会更新绝存的 `route`/`grams`，同时运单保持首次预订位置。\n  - 后续预订会清除取消标记，并恢复在该运单**原始**首次预订位置。\n  - 输出仅包含存活的运单，顺序为首次出现顺序，且每个对象仅包含 `waybill` 和 `charge_cents`；空输入 → `[]`。\n- `export_csv(rows)` 生成约定的 CSV：头部字面量为 `batch,waybill,charge_cents`，每行 `batch` 字段字面量为 `BW-73`，字段通过 `csv` 模块正确加引号/转义，行以 LF 结束，且整个文档仅有一个最终换行符。\n\n**`shipping.p",
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {
+        "started-half-kilo-boundaries": true,
+        "legacy-route": true,
+        "unknown-route-and-draft-alias": true,
+        "legacy-json-cli": true,
+        "published-prices-and-sticky-aliases": true,
+        "alias-json-cli": true,
+        "empty-manifest": true,
+        "ordered-manifest-schema": true,
+        "restore-correction-cancel-order": true,
+        "csv-release-contract": true,
+        "csv-utf8": true,
+        "csv-empty": true
+      }
+    }
+  ],
+  "thinkflow_revision": "be766c0d72e65fb306f866d517b07a6ac7640973",
+  "src_git_tree": "f74f6c8921613a222de43458d67e3ccef7092842",
+  "usage": {
+    "prompt_tokens": 106546,
+    "cached_tokens": 88576,
+    "uncached_tokens": 17970,
+    "completion_tokens": 19449,
+    "reasoning_tokens": 11660,
+    "total_tokens": 125995,
+    "api_requests": 13,
+    "successful_requests": 13,
+    "usage_reported_requests": 13,
+    "usage_complete": true,
+    "unknown_usage_requests": 0,
+    "cache_usage_complete": true,
+    "cache_reported_requests": 13,
+    "reasoning_reported_requests": 13,
+    "abandoned_requests": 2,
+    "failed_requests": 0,
+    "cache_creation_tokens": 0,
+    "provider_input_excluding_cache_tokens": 0,
+    "protocol": "openai",
+    "input_usage_complete": true,
+    "totals_are_partial": false
+  },
+  "seconds": 294.875,
+  "temporary_workspace_removed": true
+}

@@ -1,0 +1,285 @@
+{
+  "fixture_sha256": "4252d2c5e45d18d5a4e26493bb5ab7d17cc2a52a9b54cbc926f1c68ca9cfa8dd",
+  "driver_sha256": "61c36a97c6ffddade5bc552d946725beed39bf5e7fbb85ceb2288ac1e3fc4175",
+  "model": "deepseek-v4.1-flash",
+  "harness": "thinkflow",
+  "automatic_compaction": "native defaults; no manual compaction",
+  "caps": {"requests": 36, "per_response_tokens": 4096, "run_seconds": 540, "stop_before_next_request_at_total_observed_tokens": 380000, "max_request_bytes": 350000},
+  "stages": [
+    {
+      "stage": 1,
+      "prompt_sha256": "dd9600fed0aa938e",
+      "user_input_chars": 905,
+      "wall_seconds": 52.14,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 1,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 1098},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 1323,
+            "completion_tokens": 66,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 1323,
+            "completion_tokens_details": {"reasoning_tokens": 8},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00023805
+          }
+        },
+        {
+          "index": 2,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 2004, "assistant": 114},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 1625,
+            "completion_tokens": 70,
+            "prompt_cache_hit_tokens": 1280,
+            "prompt_cache_miss_tokens": 345,
+            "completion_tokens_details": {"reasoning_tokens": 7},
+            "provider_cost": 0,
+            "provider_list_cost": 9.759e-05
+          }
+        },
+        {
+          "index": 3,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 3704, "assistant": 203},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 2206,
+            "completion_tokens": 1238,
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 670,
+            "completion_tokens_details": {"reasoning_tokens": 851},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00084791
+          }
+        },
+        {
+          "index": 4,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 5351, "assistant": 3790},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 2673,
+            "completion_tokens": 505,
+            "prompt_cache_hit_tokens": 2176,
+            "prompt_cache_miss_tokens": 497,
+            "completion_tokens_details": {"reasoning_tokens": 194},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00038408
+          }
+        },
+        {
+          "index": 5,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 6838, "assistant": 4683},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 3190,
+            "completion_tokens": 467,
+            "prompt_cache_hit_tokens": 2560,
+            "prompt_cache_miss_tokens": 630,
+            "completion_tokens_details": {"reasoning_tokens": 139},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00038238
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 0,
+        "session_id_hash": "ac8b76910eee05b4",
+        "compactions": 0,
+        "tools": [
+          {"tool": "list_files", "success": true, "flow": "blocking"},
+          {"tool": "bash", "success": true, "flow": "blocking", "cmd_hash": "b6abddde02a86a27", "looks_like_verification": false},
+          {"tool": "read", "success": false, "flow": "blocking"},
+          {"tool": "read", "success": true, "flow": "blocking"},
+          {"tool": "read", "success": true, "flow": "blocking"},
+          {"tool": "read", "success": true, "flow": "blocking"},
+          {"tool": "bash", "success": true, "flow": "blocking", "cmd_hash": "c2ca6ac9ce2d9598", "looks_like_verification": false},
+          {"tool": "write", "success": true, "flow": "delayed"},
+          {"tool": "write", "success": true, "flow": "delayed"},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "0ea8c83a79746e4b", "looks_like_verification": false}
+        ],
+        "issues": [["error", null], ["parser_error", null], ["error", null]],
+        "python_stdin_resolved": [],
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {"started-half-kilo-boundaries": true, "legacy-route": true, "unknown-route-and-draft-alias": true, "legacy-json-cli": true}
+    },
+    {
+      "stage": 2,
+      "prompt_sha256": "eb2c9a09c9ead1ab",
+      "user_input_chars": 13362,
+      "wall_seconds": 33.391,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 6,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 20554, "assistant": 6505},
+          "client_disconnected": true,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 8904,
+            "completion_tokens": 2565,
+            "prompt_cache_hit_tokens": 3072,
+            "prompt_cache_miss_tokens": 5832,
+            "completion_tokens_details": {"reasoning_tokens": 1347},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00242302
+          }
+        },
+        {
+          "index": 7,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 21362, "assistant": 11858},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 9276,
+            "completion_tokens": 154,
+            "prompt_cache_hit_tokens": 8832,
+            "prompt_cache_miss_tokens": 444,
+            "completion_tokens_details": {"reasoning_tokens": 114},
+            "provider_cost": 0,
+            "provider_list_cost": 0.0001855
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 1,
+        "session_id_hash": "ac8b76910eee05b4",
+        "compactions": 0,
+        "tools": [{"tool": "write", "success": false, "flow": "delayed"}],
+        "issues": [["error", null]],
+        "python_stdin_resolved": [],
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {
+        "started-half-kilo-boundaries": false,
+        "legacy-route": true,
+        "unknown-route-and-draft-alias": true,
+        "legacy-json-cli": true,
+        "published-prices-and-sticky-aliases": false,
+        "alias-json-cli": false,
+        "empty-manifest": false,
+        "ordered-manifest-schema": false
+      }
+    },
+    {
+      "stage": 3,
+      "prompt_sha256": "71cd2bd1c45a4be8",
+      "user_input_chars": 1036,
+      "wall_seconds": 7.734,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 8,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2398, "user": 22592, "assistant": 12571},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 4096},
+          "usage": {
+            "prompt_tokens": 9574,
+            "completion_tokens": 180,
+            "prompt_cache_hit_tokens": 9216,
+            "prompt_cache_miss_tokens": 358,
+            "completion_tokens_details": {"reasoning_tokens": 125},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00018935
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 2,
+        "session_id_hash": "ac8b76910eee05b4",
+        "compactions": 0,
+        "tools": [],
+        "issues": [],
+        "python_stdin_resolved": [],
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {
+        "started-half-kilo-boundaries": false,
+        "legacy-route": true,
+        "unknown-route-and-draft-alias": true,
+        "legacy-json-cli": true,
+        "published-prices-and-sticky-aliases": false,
+        "alias-json-cli": false,
+        "empty-manifest": false,
+        "ordered-manifest-schema": false,
+        "restore-correction-cancel-order": false,
+        "csv-release-contract": false,
+        "csv-utf8": false,
+        "csv-empty": false
+      }
+    }
+  ],
+  "thinkflow_revision": "c47b652c588e2567fccb273dbc200c87ed3b4c5b",
+  "src_git_tree": "2a534c852b77640789f3d0f9ebf27b87f889575e",
+  "usage": {
+    "prompt_tokens": 38771,
+    "cached_tokens": 28672,
+    "uncached_tokens": 10099,
+    "completion_tokens": 5245,
+    "reasoning_tokens": 2785,
+    "total_tokens": 44016,
+    "api_requests": 8,
+    "successful_requests": 8,
+    "usage_reported_requests": 8,
+    "usage_complete": true,
+    "unknown_usage_requests": 0,
+    "cache_usage_complete": true,
+    "cache_reported_requests": 8,
+    "reasoning_reported_requests": 8,
+    "abandoned_requests": 1,
+    "failed_requests": 0,
+    "cache_creation_tokens": 0,
+    "provider_input_excluding_cache_tokens": 0,
+    "protocol": "openai",
+    "input_usage_complete": true,
+    "totals_are_partial": false
+  },
+  "seconds": 93.609,
+  "temporary_workspace_removed": true
+}

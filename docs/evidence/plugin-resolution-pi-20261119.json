@@ -1,0 +1,661 @@
+{
+  "harness": "pi",
+  "model": "deepseek-v4.1-flash",
+  "fixture_sha256": "7ddd2022e0a6af5e548ec90810cc5b7ab244883e9702a7796f66b5994bc0555f",
+  "driver_sha256": "47f173a090c17f9d791bf96dd99f7f4d42a92d4c5ba555ad99274e4eddcd7d09",
+  "base_driver_sha256": "c447c2ed53133f8b417cc7fa50cd83ba42110cff6cb4b98b6049755deb2255bc",
+  "caps": {"requests": 24, "output_tokens": 16384, "run_seconds": 720, "observed_tokens": 240000, "request_bytes": 350000},
+  "explicit_compaction_before_stage": 3,
+  "recent_tokens_target": 512,
+  "stages": [
+    {
+      "stage": 1,
+      "prompt_sha256": "089ae81436ebacb457f59f17b8e0b2c0f13dd000045495e137d882892cfe3761",
+      "seconds": 93.81,
+      "exit_code": 0,
+      "stderr_bytes": 100,
+      "prior_requests": 0,
+      "session": "4d0936962197fdda",
+      "compactions": 0,
+      "explicit_compaction": null,
+      "stop": "completed",
+      "error": false,
+      "checks": {"numeric-normalization": true, "invalid-components": true, "legacy-tie-and-iterator": true, "legacy-no-match": true, "legacy-cli": true},
+      "requests": [
+        {
+          "index": 1,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 1807,
+            "completion_tokens": 99,
+            "total_tokens": 1906,
+            "prompt_tokens_details": {"cached_tokens": 0},
+            "completion_tokens_details": {"reasoning_tokens": 0},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00033045,
+              "allowance": 0.00019827,
+              "tokens": {"input": 1807, "output": 99, "reasoning": 0, "cache_read": 0, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 2,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 2211,
+            "completion_tokens": 144,
+            "total_tokens": 2355,
+            "prompt_tokens_details": {"cached_tokens": 1792},
+            "completion_tokens_details": {"reasoning_tokens": 44},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00015463,
+              "allowance": 9.278e-05,
+              "tokens": {"input": 419, "output": 144, "reasoning": 44, "cache_read": 1792, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 3,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 2507,
+            "completion_tokens": 1619,
+            "total_tokens": 4126,
+            "prompt_tokens_details": {"cached_tokens": 2176},
+            "completion_tokens_details": {"reasoning_tokens": 1153},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00102758,
+              "allowance": 0.00061655,
+              "tokens": {"input": 331, "output": 1619, "reasoning": 1153, "cache_read": 2176, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 4,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 4159,
+            "completion_tokens": 1065,
+            "total_tokens": 5224,
+            "prompt_tokens_details": {"cached_tokens": 2432},
+            "completion_tokens_details": {"reasoning_tokens": 39},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00090535,
+              "allowance": 0.00054321,
+              "tokens": {"input": 1727, "output": 1065, "reasoning": 39, "cache_read": 2432, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 5,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 5273,
+            "completion_tokens": 688,
+            "total_tokens": 5961,
+            "prompt_tokens_details": {"cached_tokens": 4096},
+            "completion_tokens_details": {"reasoning_tokens": 128},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00060164,
+              "allowance": 0.00036098,
+              "tokens": {"input": 1177, "output": 688, "reasoning": 128, "cache_read": 4096, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 6,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 6023,
+            "completion_tokens": 1083,
+            "total_tokens": 7106,
+            "prompt_tokens_details": {"cached_tokens": 5248},
+            "completion_tokens_details": {"reasoning_tokens": 27},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00078179,
+              "allowance": 0.00046908,
+              "tokens": {"input": 775, "output": 1083, "reasoning": 27, "cache_read": 5248, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 7,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 7337,
+            "completion_tokens": 1145,
+            "total_tokens": 8482,
+            "prompt_tokens_details": {"cached_tokens": 6016},
+            "completion_tokens_details": {"reasoning_tokens": 83},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.0009032,
+              "allowance": 0.00054192,
+              "tokens": {"input": 1321, "output": 1145, "reasoning": 83, "cache_read": 6016, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 8,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 8632,
+            "completion_tokens": 484,
+            "total_tokens": 9116,
+            "prompt_tokens_details": {"cached_tokens": 7296},
+            "completion_tokens_details": {"reasoning_tokens": 223},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00051269,
+              "allowance": 0.00030761,
+              "tokens": {"input": 1336, "output": 484, "reasoning": 223, "cache_read": 7296, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "prompt_sha256": "483335502b20d6556212f2c766c6469737176bbd94c9485206a6e3e3a48d4ef4",
+      "seconds": 114.45,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "prior_requests": 1,
+      "session": "4d0936962197fdda",
+      "compactions": 0,
+      "explicit_compaction": null,
+      "stop": "completed",
+      "error": false,
+      "checks": {
+        "numeric-normalization": true,
+        "invalid-components": true,
+        "legacy-tie-and-iterator": true,
+        "legacy-no-match": true,
+        "legacy-cli": true,
+        "range-boundaries": true,
+        "reject-invalid-clauses": true,
+        "sdk-iterator-and-ties": true
+      },
+      "requests": [
+        {
+          "index": 9,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 9283,
+            "completion_tokens": 2846,
+            "total_tokens": 12129,
+            "prompt_tokens_details": {"cached_tokens": 8576},
+            "completion_tokens_details": {"reasoning_tokens": 2746},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00183938,
+              "allowance": 0.00110363,
+              "tokens": {"input": 707, "output": 2846, "reasoning": 2746, "cache_read": 8576, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 10,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 12568,
+            "completion_tokens": 1130,
+            "total_tokens": 13698,
+            "prompt_tokens_details": {"cached_tokens": 9216},
+            "completion_tokens_details": {"reasoning_tokens": 2},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00120845,
+              "allowance": 0.00072507,
+              "tokens": {"input": 3352, "output": 1130, "reasoning": 2, "cache_read": 9216, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 11,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 13741,
+            "completion_tokens": 78,
+            "total_tokens": 13819,
+            "prompt_tokens_details": {"cached_tokens": 12544},
+            "completion_tokens_details": {"reasoning_tokens": 9},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00026398,
+              "allowance": 0.00015839,
+              "tokens": {"input": 1197, "output": 78, "reasoning": 9, "cache_read": 12544, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 12,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 14728,
+            "completion_tokens": 2230,
+            "total_tokens": 16958,
+            "prompt_tokens_details": {"cached_tokens": 13696},
+            "completion_tokens_details": {"reasoning_tokens": 448},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00153389,
+              "allowance": 0.00092033,
+              "tokens": {"input": 1032, "output": 2230, "reasoning": 448, "cache_read": 13696, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 13,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 16987,
+            "completion_tokens": 762,
+            "total_tokens": 17749,
+            "prompt_tokens_details": {"cached_tokens": 14720},
+            "completion_tokens_details": {"reasoning_tokens": 673},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00084141,
+              "allowance": 0.00050485,
+              "tokens": {"input": 2267, "output": 762, "reasoning": 673, "cache_read": 14720, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 14,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 17912,
+            "completion_tokens": 299,
+            "total_tokens": 18211,
+            "prompt_tokens_details": {"cached_tokens": 16896},
+            "completion_tokens_details": {"reasoning_tokens": 0},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00038249,
+              "allowance": 0.00022949,
+              "tokens": {"input": 1016, "output": 299, "reasoning": 0, "cache_read": 16896, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "prompt_sha256": "6291d874e420bd462e4803e39f4a4264aa5aae7f614db0c8c467d0cb14c212da",
+      "seconds": 203.45,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "prior_requests": 2,
+      "session": "4d0936962197fdda",
+      "compactions": 1,
+      "explicit_compaction": {"success": true, "tokens_before": 18211, "error": null, "request_count": 2},
+      "stop": "completed",
+      "error": false,
+      "checks": {
+        "numeric-normalization": true,
+        "invalid-components": true,
+        "legacy-tie-and-iterator": true,
+        "legacy-no-match": true,
+        "legacy-cli": true,
+        "range-boundaries": true,
+        "reject-invalid-clauses": true,
+        "sdk-iterator-and-ties": true,
+        "excluded-labels-and-case": true,
+        "launcher-utf8-lf": true,
+        "launcher-no-candidates-original-contract": true,
+        "launcher-incompatible-original-contract": true
+      },
+      "requests": [
+        {
+          "index": 15,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 8057,
+            "completion_tokens": 1464,
+            "total_tokens": 9521,
+            "prompt_tokens_details": {"cached_tokens": 0},
+            "completion_tokens_details": {"reasoning_tokens": 478},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00208695,
+              "allowance": 0.00125217,
+              "tokens": {"input": 8057, "output": 1464, "reasoning": 478, "cache_read": 0, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 16,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 7970,
+            "completion_tokens": 732,
+            "total_tokens": 8702,
+            "prompt_tokens_details": {"cached_tokens": 0},
+            "completion_tokens_details": {"reasoning_tokens": 124},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.0016347,
+              "allowance": 0.00098082,
+              "tokens": {"input": 7970, "output": 732, "reasoning": 124, "cache_read": 0, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 17,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 4651,
+            "completion_tokens": 774,
+            "total_tokens": 5425,
+            "prompt_tokens_details": {"cached_tokens": 1536},
+            "completion_tokens_details": {"reasoning_tokens": 685},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00093626,
+              "allowance": 0.00056175,
+              "tokens": {"input": 3115, "output": 774, "reasoning": 685, "cache_read": 1536, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 18,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 6402,
+            "completion_tokens": 3629,
+            "total_tokens": 10031,
+            "prompt_tokens_details": {"cached_tokens": 4608},
+            "completion_tokens_details": {"reasoning_tokens": 3275},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00246032,
+              "allowance": 0.00147619,
+              "tokens": {"input": 1794, "output": 3629, "reasoning": 3275, "cache_read": 4608, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 19,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 10054,
+            "completion_tokens": 1831,
+            "total_tokens": 11885,
+            "prompt_tokens_details": {"cached_tokens": 6400},
+            "completion_tokens_details": {"reasoning_tokens": 1247},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.0016659,
+              "allowance": 0.00099954,
+              "tokens": {"input": 3654, "output": 1831, "reasoning": 1247, "cache_read": 6400, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 20,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 11902,
+            "completion_tokens": 1506,
+            "total_tokens": 13408,
+            "prompt_tokens_details": {"cached_tokens": 9984},
+            "completion_tokens_details": {"reasoning_tokens": 314},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00122125,
+              "allowance": 0.00073275,
+              "tokens": {"input": 1918, "output": 1506, "reasoning": 314, "cache_read": 9984, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 21,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 13482,
+            "completion_tokens": 1408,
+            "total_tokens": 14890,
+            "prompt_tokens_details": {"cached_tokens": 11776},
+            "completion_tokens_details": {"reasoning_tokens": 154},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00113603,
+              "allowance": 0.00068162,
+              "tokens": {"input": 1706, "output": 1408, "reasoning": 154, "cache_read": 11776, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 22,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "tool_calls",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 14929,
+            "completion_tokens": 1096,
+            "total_tokens": 16025,
+            "prompt_tokens_details": {"cached_tokens": 13440},
+            "completion_tokens_details": {"reasoning_tokens": 1028},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00092127,
+              "allowance": 0.00055276,
+              "tokens": {"input": 1489, "output": 1096, "reasoning": 1028, "cache_read": 13440, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        },
+        {
+          "index": 23,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "transport_error": null,
+          "client_disconnected": null,
+          "forwarded_generation": {"model": "deepseek-v4.1-flash", "reasoning_effort": "high", "temperature": 0, "thinking": {"type": "enabled"}, "max_tokens": 16384},
+          "response_model": "deepseek-v4.1-flash",
+          "usage": {
+            "prompt_tokens": 16910,
+            "completion_tokens": 1276,
+            "total_tokens": 18186,
+            "prompt_tokens_details": {"cached_tokens": 14848},
+            "completion_tokens_details": {"reasoning_tokens": 967},
+            "cost": 0,
+            "opencode": {
+              "billing_source": "go",
+              "list_cost": 0.00111944,
+              "allowance": 0.00067167,
+              "tokens": {"input": 2062, "output": 1276, "reasoning": 967, "cache_read": 14848, "cache_write_5m": 0, "cache_write_1h": 0}
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "pi_version": "1.0.1",
+  "pi_cli_sha256": "8189b66abc4f9f431dbb70941dcba690d76d040de1fbfff212886be35a53639d",
+  "usage": {
+    "prompt_tokens": 217525,
+    "cached_tokens": 167296,
+    "uncached_tokens": 50229,
+    "completion_tokens": 27388,
+    "reasoning_tokens": 13847,
+    "total_tokens": 244913,
+    "api_requests": 23,
+    "successful_requests": 23,
+    "usage_reported_requests": 23,
+    "usage_complete": true,
+    "unknown_usage_requests": 0,
+    "cache_usage_complete": true,
+    "cache_reported_requests": 23,
+    "reasoning_reported_requests": 23,
+    "abandoned_requests": 0,
+    "failed_requests": 0,
+    "cache_creation_tokens": 0,
+    "provider_input_excluding_cache_tokens": 0,
+    "protocol": "openai",
+    "input_usage_complete": true,
+    "totals_are_partial": false
+  },
+  "seconds": 411.86,
+  "temporary_workspace_removed": true
+}

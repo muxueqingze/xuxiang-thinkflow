@@ -1,0 +1,39 @@
+{
+  "revision": "0ad09e2b899bce7396316b4588dc86867a4bb755",
+  "fixture": "plugin_resolution_task.py",
+  "source": "Native session.json inspected after release C loaded and compacted the release B snapshot",
+  "receipts": [
+    {"id": "1", "tool": "list_files", "path": null, "evidence_ref": "receipt:1", "status": "success", "error": "", "bytes_written": 0},
+    {"id": "6", "tool": "write", "path": "versioning.py", "evidence_ref": "receipt:5", "status": "success", "error": "", "bytes_written": 480},
+    {"id": "7", "tool": "write", "path": "chooser.py", "evidence_ref": "receipt:6", "status": "success", "error": "", "bytes_written": 397},
+    {
+      "id": "1",
+      "tool": "write",
+      "path": "versioning.py",
+      "evidence_ref": "receipt:9",
+      "status": "failed",
+      "error": "Command id=1 conflicts with an earlier or unresolved command; use a new id.",
+      "bytes_written": 0
+    },
+    {"id": "5", "tool": "read", "path": "versioning.py", "evidence_ref": "receipt:10", "status": "success", "error": "", "bytes_written": 480},
+    {
+      "id": "6",
+      "tool": "read",
+      "path": "chooser.py",
+      "evidence_ref": "receipt:11",
+      "status": "failed",
+      "error": "Command id=6 conflicts with an earlier or unresolved command; use a new id.",
+      "bytes_written": 0
+    },
+    {
+      "id": "7",
+      "tool": "read",
+      "path": "inspect_plugin.py",
+      "evidence_ref": "receipt:12",
+      "status": "failed",
+      "error": "Command id=7 conflicts with an earlier or unresolved command; use a new id.",
+      "bytes_written": 0
+    }
+  ],
+  "last_release_b_assistant_retained_in_c": "<read id=\"3\" path=\"versioning.py\" />\n<read id=\"4\" path=\"chooser.py\" />\n<read id=\"5\" path=\"inspect_plugin.py\" />"
+}
