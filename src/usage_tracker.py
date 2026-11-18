@@ -87,18 +87,24 @@ class TurnUsage:
             completion = _token_count(counts.get("completion_tokens"), counts.get("output_tokens"), counts.get("output"))
             final_output = _token_count(usage.get("completion_tokens"), usage.get("output_tokens"), usage.get("output"))
             cache_miss = _token_count(counts.get("prompt_cache_miss_tokens"))
+            if prompt is not None and cache_miss is not None and cache_miss > prompt:
+                cache_miss = None
             cached = _token_count(
                 counts.get("prompt_tokens_details", {}).get("cached_tokens"),
+                counts.get("input_tokens_details", {}).get("cached_tokens"),
                 counts.get("prompt_cache_hit_tokens"),
                 counts.get("cache_read_input_tokens"),
             )
+            if prompt is not None and cached is not None and cached > prompt:
+                cached = None
             if cached is None and prompt is not None and cache_miss is not None:
                 cached = prompt - cache_miss
             self.cache_miss_tokens = cache_miss or 0
             self.cache_write_tokens = _token_count(counts.get("cache_creation_input_tokens"))
-            self.non_cached_input_tokens = cache_miss
-            if self.non_cached_input_tokens is None and prompt is not None and cached is not None:
+            if prompt is not None and cached is not None:
                 self.non_cached_input_tokens = prompt - cached
+            else:
+                self.non_cached_input_tokens = cache_miss
             self.prompt_tokens = prompt or 0
         input_complete = prompt is not None
         if anthropic:
@@ -221,6 +227,24 @@ class SessionUsage:
         unknown = attempts - reported - partial
         legacy = len(self.turns) - len(tracked)
         cache_writes = [t.cache_write_tokens for t in self.turns if t.cache_write_tokens is not None]
+        cache_observed = [
+            t for t in self.turns
+            if (t.input_reported or t.prompt_tokens > 0)
+            and (t.cache_read_reported or t.cached_tokens > 0)
+            and 0 <= t.cached_tokens <= t.prompt_tokens
+        ]
+        cache_denominator = sum(t.prompt_tokens for t in cache_observed)
+        cache_hits = sum(t.cached_tokens for t in cache_observed)
+        input_denominator = sum(
+            t.prompt_tokens for t in self.turns if t.input_reported or t.prompt_tokens > 0
+        )
+        cache_unobserved = max(0, input_denominator - cache_denominator)
+        cache_successful = sum(t.successful_responses for t in cache_observed if t.successful_responses)
+        successful_calls = sum(t.successful_responses for t in tracked)
+        cache_usage_complete = (
+            attempts > 0 and not legacy and attempts == successful_calls
+            and cache_successful == successful_calls
+        )
         return {
             "logical_turns": len(self.turns),
             "api_calls": attempts,
@@ -238,6 +262,14 @@ class SessionUsage:
             "text_tokens": self.total_text_tokens,
             "cached_tokens": self.total_cached_tokens,
             "cache_read_reported": any(t.cache_read_reported or t.cached_tokens > 0 for t in self.turns),
+            "cache_hit_tokens": cache_hits,
+            "cache_denominator_tokens": cache_denominator,
+            "cache_hit_ratio": (cache_hits / cache_denominator if cache_denominator else None),
+            "cache_input_tokens": input_denominator,
+            "cache_unobserved_input_tokens": cache_unobserved,
+            "cache_coverage": (cache_denominator / input_denominator if input_denominator else None),
+            "cache_observed_turns": len(cache_observed),
+            "cache_usage_complete": cache_usage_complete,
             "cache_write_tokens": sum(cache_writes) if cache_writes else None,
             "non_cached_input_tokens": self.total_effective_input,
             "effective_input": self.total_effective_input,

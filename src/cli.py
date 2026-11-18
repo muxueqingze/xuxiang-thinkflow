@@ -678,6 +678,26 @@ def render_status(agent: AgentLoop, store: SessionStore = None):
     renderer.console.print(f"  messages   {stats['messages']} ({stats['chars']:,} chars)")
     renderer.console.print(f"  compact    enabled={compaction.enabled} count={stats['compactions']}")
     renderer.console.print(f"  input est. last={stats['last_input_tokens_estimate']} trigger={compaction.max_input_tokens or 'off'} tokens")
+    cache = agent.usage.totals()
+    cache_ratio = cache["cache_hit_ratio"]
+    if cache_ratio is None:
+        cache_hit_status = "unknown (no cache denominator)"
+    else:
+        cache_hit_status = (
+            f"{cache_ratio:.1%} ({cache['cache_hit_tokens']:,}/"
+            f"{cache['cache_denominator_tokens']:,} tokens)"
+        )
+    coverage = cache["cache_coverage"]
+    if coverage is None:
+        cache_coverage_status = "unknown (no input denominator)"
+    else:
+        cache_coverage_status = (
+            f"{coverage:.1%} ({cache['cache_denominator_tokens']:,}/"
+            f"{cache['cache_input_tokens']:,} input tokens; gap "
+            f"{cache['cache_unobserved_input_tokens']:,})"
+        )
+    renderer.console.print(f"  prompt cache hit {cache_hit_status}")
+    renderer.console.print(f"  cache coverage   {cache_coverage_status}")
     renderer.console.print(f"  security   bash={security.bash_policy} approval={security.approval_mode} roots={security.allowed_roots}")
     renderer.console.print()
 
