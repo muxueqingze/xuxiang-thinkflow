@@ -44,7 +44,7 @@ thinkflow --system-prompt my-guidance.md
 
 常用连接、模型、思考、权限及工程指引继续使用表单。「更多运行配置」编辑一个JSON对象，可配置：
 
-`compaction`、`context`、`interfaces`、`tool_protocol`、`max_read_chars`、`max_retries`、`retry_backoff_seconds`、`max_auto_continues`、`max_consecutive_failures`、`delivery_verify`、`auto_verify_runnable_artifacts`、`max_delivery_fix_attempts`、`native_tools`、`disabled_native_tools`。
+`compaction`、`context`、`interfaces`、`tool_protocol`、`max_read_chars`、`max_retries`、`retry_backoff_seconds`、`max_auto_continues`、`max_consecutive_failures`、`delivery_verify`、`auto_verify_runnable_artifacts`、`max_delivery_fix_attempts`、`native_tools`、`disabled_native_tools`、`prompt_cache_key`、`anthropic_prompt_cache`。
 
 例如：
 
@@ -61,6 +61,27 @@ thinkflow --system-prompt my-guidance.md
 运行轮数和运行秒数可留空，保存为 `null` 表示不设该项限制；秒数可用小数，例如 `0.25`。切换 OpenAI/Anthropic 时，已有工具调用与结果在发送时转换为目标协议，保存的历史保持原样。
 
 桌面用户设置保存在应用自己的settings.json，凭据继续使用safeStorage；它不自动读取CLI的全局或项目配置文件。两种入口共用核心参数及装配，但各自选择持久配置来源。
+
+## 提示缓存
+
+提示缓存选项默认关闭，可按供应商或网关支持的字段启用。
+
+CLI 可在命名配置中为不同端点设置缓存。单端点可直接在配置顶层设置。桌面端在「更多运行配置」里编辑，切换端点时沿用这组设置。
+
+```json
+{
+  "active_provider": "chat",
+  "providers": {
+    "chat": {"provider": "openai", "prompt_cache_key": "review-v1"},
+    "claude": {"provider": "anthropic", "max_tokens": 4096, "anthropic_prompt_cache": true}
+  }
+}
+```
+
+- **OpenAI 兼容接口**用 `prompt_cache_key` 帮助路由共用提示前缀的请求。填一个稳定的分组名即可。省略、设为 `null` 或留空都会移除该路由提示。[OpenAI 提示缓存](https://developers.openai.com/api/docs/guides/prompt-caching)
+- **Anthropic Messages** 将 `anthropic_prompt_cache` 设为 `true` 后，请求顶层会带上 `"cache_control": {"type": "ephemeral"}`。服务端在最后一个可缓存块设置断点，默认有效期为 5 分钟。[Anthropic 自动缓存](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
+
+临时关闭可用 `--set prompt_cache_key=null` 或 `--set anthropic_prompt_cache=false`。通过 `/model` 切换命名配置时，本次运行的覆盖继续生效。用 `/status` 查看供应商实际报告的缓存命中量和统计范围。
 
 ## 上下文预算
 

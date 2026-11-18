@@ -21,7 +21,8 @@ def main():
     for pattern in ('test_cli_persistence.py', 'test_process_contracts.py', 'test_python_runtime.py',
                     'test_task_context.py', 'test_stream_state.py', 'test_stream_markdown_examples.py', 'test_steering.py',
                     'test_message_projection.py', 'test_dispatch_contracts.py', 'test_workspace_search.py',
-                    'test_anthropic_roundtrip.py', 'test_session_incremental.py'):
+                    'test_anthropic_roundtrip.py', 'test_session_incremental.py',
+                    'test_prompt_cache_options.py'):
         suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern=pattern))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_desktop_catalog.py"))
     suite.addTests(unittest.defaultTestLoader.discover(os.path.dirname(__file__), pattern="test_cli_interaction.py"))

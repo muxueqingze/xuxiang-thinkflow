@@ -90,13 +90,16 @@ def build_provider_profiles(config: dict) -> list[ProviderProfileConfig]:
                     "reasoning_effort",
                     "max_tokens",
                     "stream_options_include_usage",
+                    "prompt_cache_key",
+                    "anthropic_prompt_cache",
                     "enable_native_tools",
                     "native_tools",
                     "disabled_native_tools",
                     "model_discovery",
                 ):
                     value = config.get(key)
-                    if (key in ("max_tokens", "native_tools", "disabled_native_tools") and key in config) or value not in ("", None, [], {}):
+                    if key in ("max_tokens", "native_tools", "disabled_native_tools", "prompt_cache_key",
+                               "anthropic_prompt_cache") and key in config or value not in ("", None, [], {}):
                         effective[key] = value
                 models = _config_list(config.get("_resolved_models") or config.get("models") or profile.get("models"))
                 source = str(config.get("_resolved_model_source", "") or "configured")
@@ -122,6 +125,8 @@ def build_provider_profiles(config: dict) -> list[ProviderProfileConfig]:
                     thinking_mode=effective.get('thinking_mode', 'disabled'),
                     reasoning_effort=effective.get('reasoning_effort', 'high'),
                     max_tokens=effective.get("max_tokens"),
+                    prompt_cache_key=effective.get("prompt_cache_key"),
+                    anthropic_prompt_cache=effective.get("anthropic_prompt_cache", False),
                     stream_options_include_usage=_config_bool(effective.get("stream_options_include_usage"), False),
                     enable_native_tools=_config_bool(effective.get("enable_native_tools"), False),
                     native_tools=_config_list(effective.get("native_tools")),
@@ -146,6 +151,8 @@ def build_provider_profiles(config: dict) -> list[ProviderProfileConfig]:
                 thinking_mode=config.get('thinking_mode', 'disabled'),
                 reasoning_effort=config.get('reasoning_effort', 'high'),
                 max_tokens=config.get("max_tokens"),
+                prompt_cache_key=config.get("prompt_cache_key"),
+                anthropic_prompt_cache=config.get("anthropic_prompt_cache", False),
                 stream_options_include_usage=bool(config.get("stream_options_include_usage", False)),
                 enable_native_tools=bool(config.get("enable_native_tools", False)),
                 native_tools=_config_list(config.get("native_tools")),
@@ -175,6 +182,8 @@ def build_agent_config(config: dict, system_prompt: str | None = None, cwd: str 
         thinking_mode=config.get("thinking_mode", "disabled"),
         reasoning_effort=config.get("reasoning_effort", "high"),
         max_tokens=config.get("max_tokens"),
+        prompt_cache_key=config.get("prompt_cache_key"),
+        anthropic_prompt_cache=config.get("anthropic_prompt_cache", False),
         stream_options_include_usage=bool(config.get("stream_options_include_usage", False)),
         enable_native_tools=bool(config.get("enable_native_tools", False)),
         native_tools=_config_list(config.get("native_tools")),
@@ -228,7 +237,7 @@ def effective_config(config: dict, cwd: str = None) -> dict:
     provider = asdict(runtime.provider)
     for key in ('base_url', 'api_path', 'api_key', 'model', 'thinking_budget', 'thinking_mode',
                 'reasoning_effort', 'max_tokens', 'stream_options_include_usage',
-                'enable_native_tools', 'native_tools', 'disabled_native_tools'):
+                'enable_native_tools', 'native_tools', 'disabled_native_tools', 'prompt_cache_key', 'anthropic_prompt_cache'):
         result[key] = provider[key]
     result['provider'] = provider['format']
     result['active_provider'] = provider['profile_name']

@@ -25,6 +25,7 @@ RUNTIME_CONFIG_FIELDS = (
     'compaction', 'context', 'interfaces', 'tool_protocol', 'max_read_chars', 'max_retries',
     'retry_backoff_seconds', 'max_auto_continues', 'max_consecutive_failures', 'delivery_verify',
     'auto_verify_runnable_artifacts', 'max_delivery_fix_attempts', 'native_tools', 'disabled_native_tools',
+    'prompt_cache_key', 'anthropic_prompt_cache',
 )
 
 
@@ -223,6 +224,20 @@ class Configuration:
             merged = merge_settings(merged, overrides)
             for key, _ in leaf_paths(overrides):
                 sources[key] = 'command line'
+        # /model uses the stored profiles. Apply the same layer precedence as a
+        # fresh invocation selecting that profile, including explicit null/false.
+        for key in ('prompt_cache_key', 'anthropic_prompt_cache'):
+            if not any(key in layer for _, layer in layers):
+                continue
+            for name, profile in (merged.get('providers') or {}).items():
+                if not isinstance(profile, dict):
+                    continue
+                for origin, layer in reversed(layers):
+                    settings = layer if layer is overrides and key in layer else merge_active_provider(layer, name)
+                    if key in settings:
+                        profile[key] = settings[key]
+                        sources[f'providers.{name}.{key}'] = origin
+                        break
         return merged, sources
 
 

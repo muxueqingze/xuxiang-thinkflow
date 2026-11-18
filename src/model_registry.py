@@ -132,6 +132,8 @@ def merge_active_provider(config: dict, active_provider: str | None = None) -> d
         "reasoning_effort",
         "max_tokens",
         "stream_options_include_usage",
+        "prompt_cache_key",
+        "anthropic_prompt_cache",
         "enable_native_tools",
         "native_tools",
         "disabled_native_tools",
@@ -141,7 +143,7 @@ def merge_active_provider(config: dict, active_provider: str | None = None) -> d
     ):
         if key in profile:
             value = profile[key]
-            if key == "max_tokens" or value not in ("", None, [], {}) or not merged.get(key):
+            if key in ("max_tokens", "prompt_cache_key", "anthropic_prompt_cache") or value not in ("", None, [], {}) or not merged.get(key):
                 merged[key] = value
     merged["active_provider"] = str(selected)
     return merged
