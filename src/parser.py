@@ -9,7 +9,7 @@ import re
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
+from typing import Callable, Optional
 
 
 # 支持的工具类型。append/touch/copy 属于可预测的确定性流式工具。
@@ -49,6 +49,7 @@ class Command:
     limit: Optional[int] = None
     query: Optional[str] = None
     match: Optional[str] = None  # edit: "file" requires the complete previous UTF-8 contents.
+    repeated_id: bool = False  # The FIFO must find the original receipt before proceeding.
 
 
 PARSER_ERROR_KINDS = frozenset({
@@ -127,11 +128,12 @@ class StreamingParser:
         incomplete = parser.flush()  # 检查残留
     """
 
-    def __init__(self, allow_legacy_tags: bool = True):
+    def __init__(self, allow_legacy_tags: bool = True, *, check_receipt: Callable[[str], bool] | None = None):
         self.buffer: str = ""
         self.errors: list[ParseError] = []
         self._seen_ids: set[str] = set()
         self._seen_ids_order: deque[str] = deque()
+        self._check_receipt = check_receipt
         self.allow_legacy_tags = allow_legacy_tags
         self._open_tag_re = build_open_tag_re(allow_legacy_tags)
 
@@ -344,7 +346,8 @@ class StreamingParser:
             return None
 
         # 检查 id 重复（滚动窗口，只防近期重复）
-        if cmd_id in self._seen_ids:
+        repeated = cmd_id in self._seen_ids
+        if repeated and not (self._check_receipt and self._check_receipt(tool)):
             self.errors.append(ParseError(
                 message=f"id={cmd_id} 重复",
                 kind="duplicate_id",
@@ -402,6 +405,7 @@ class StreamingParser:
             injected=injected,
             match=attrs.get("match"),
             raw=raw,
+            repeated_id=repeated,
         )
 
         if tool == "recall":
@@ -472,6 +476,8 @@ class StreamingParser:
 
         # Only accepted commands own an ID. A malformed command has no effect
         # and may be corrected using the same ID on the next response.
+        if repeated:
+            return command
         self._seen_ids.add(cmd_id)
         self._seen_ids_order.append(cmd_id)
         if len(self._seen_ids_order) > MAX_SEEN_IDS:

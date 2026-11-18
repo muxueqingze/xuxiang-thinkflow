@@ -1,0 +1,1475 @@
+{
+  "model": "deepseek-v4.1-flash",
+  "endpoint": "https://opencode.ai/inference/go/openai/v1",
+  "generation": {"thinking": "enabled", "effort": "high", "temperature": 0, "requests": 6, "max_tokens_per_request": 2048, "worker_seconds": 100},
+  "task": {
+    "source": "docs/evidence/verified-edits-20261118.json",
+    "prompt": "请更新当前目录的 release.cfg。交接记录给出的完整旧正文是两行：第一行 channel=amber，第二行 epoch=1。两行都以 LF 结尾，UTF-8 无 BOM。仅当文件逐字节等于这份记录时，把它整体改成 channel=blue 和 epoch=2 两行，仍然每行以 LF 结尾。成功后新建 applied.txt，内容为 APPLIED 六个 ASCII 字符，无换行。若有任何差异，请保留原文件，不创建 applied.txt，并在最终答复中告诉我旧正文不符。只处理当前目录这两个文件。",
+    "fixture_bytes": {
+      "match_seed_hex": "6368616e6e656c3d616d6265720a65706f63683d310a",
+      "mismatch_seed_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+      "expected_target_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+      "expected_marker_hex": "4150504c494544"
+    }
+  },
+  "historical_arms": {
+    "source": "docs/evidence/verified-edits-20261118.json",
+    "pi": "1.0.1",
+    "baseline": "bb6778e64e600fe40ab364074089735cc5dc9fd2",
+    "repeats_per_scenario": 1,
+    "jobs": [
+      {
+        "arm": "pi",
+        "scenario": "match",
+        "seconds": 19.0,
+        "exit": 0,
+        "stop": "completed",
+        "expected_bytes_pass": true,
+        "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+        "actual_marker_hex": "4150504c494544",
+        "tools": [["bash", "success"], ["bash", "success"]],
+        "used_file_match": null,
+        "usage": {
+          "api_requests": 3,
+          "successful_requests": 3,
+          "usage_complete": true,
+          "prompt_tokens": 5792,
+          "completion_tokens": 418,
+          "total_tokens": 6210,
+          "abandoned_requests": 0
+        },
+        "cost_usd": {"list_cost": 0.00059276, "allowance": 0.00035565}
+      },
+      {
+        "arm": "baseline",
+        "scenario": "match",
+        "seconds": 29.84,
+        "exit": 0,
+        "stop": "completed",
+        "expected_bytes_pass": true,
+        "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+        "actual_marker_hex": "4150504c494544",
+        "tools": [["read", "success"], ["list_files", "success"], ["python", "success"], ["python", "success"]],
+        "used_file_match": null,
+        "usage": {
+          "api_requests": 4,
+          "successful_requests": 4,
+          "usage_complete": true,
+          "prompt_tokens": 7330,
+          "completion_tokens": 997,
+          "total_tokens": 8327,
+          "abandoned_requests": 0
+        },
+        "cost_usd": {"list_cost": 0.00100151, "allowance": 0.0006009}
+      },
+      {
+        "arm": "pi",
+        "scenario": "mismatch",
+        "seconds": 24.19,
+        "exit": 0,
+        "stop": "completed",
+        "expected_bytes_pass": true,
+        "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+        "actual_marker_hex": null,
+        "tools": [["bash", "success"]],
+        "used_file_match": null,
+        "usage": {
+          "api_requests": 2,
+          "successful_requests": 2,
+          "usage_complete": true,
+          "prompt_tokens": 3544,
+          "completion_tokens": 317,
+          "total_tokens": 3861,
+          "abandoned_requests": 0
+        },
+        "cost_usd": {"list_cost": 0.00045838, "allowance": 0.00027502}
+      },
+      {
+        "arm": "baseline",
+        "scenario": "mismatch",
+        "seconds": 17.36,
+        "exit": 0,
+        "stop": "completed",
+        "expected_bytes_pass": true,
+        "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+        "actual_marker_hex": null,
+        "tools": [["bash", "success"], ["bash", "success"], ["read", "success"]],
+        "used_file_match": null,
+        "usage": {
+          "api_requests": 2,
+          "successful_requests": 2,
+          "usage_complete": true,
+          "prompt_tokens": 3261,
+          "completion_tokens": 534,
+          "total_tokens": 3795,
+          "abandoned_requests": 1
+        },
+        "cost_usd": {"list_cost": 0.00062139, "allowance": 0.00037283}
+      }
+    ]
+  },
+  "new_arms": [
+    {
+      "name": "prior_main",
+      "base_commit": "9404f5df1eb7301d30037f7fd3a39761bbcd19d3",
+      "jobs": [
+        {
+          "scenario": "match",
+          "repeat": 1,
+          "seconds": 22.157,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "visible_text_in_any_turn": true,
+          "mismatch_phrasing_in_any_turn": false,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": "4150504c494544",
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": null
+          },
+          "usage": {
+            "api_requests": 3,
+            "successful_requests": 3,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 5214,
+            "completion_tokens": 652,
+            "total_tokens": 5866,
+            "cached_tokens": 3072
+          },
+          "upstream_http_responses": 3,
+          "cost_usd": {"list_cost": 0.00072171, "allowance": 0.00043303},
+          "parsed_file_match": false,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "read", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 1, "tool": "list_files", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 1, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 2, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 2, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "read", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 1, "tool": "read", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 1, "tool": "list_files", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 1, "tool": "list_files", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 1, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 1, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 3}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1440, "completion_tokens": 208, "total_tokens": 1648, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 107, "go": {"billing_source": "go", "list_cost": 0.0003408, "allowance": 0.00020448}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1745, "completion_tokens": 293, "total_tokens": 2038, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 185, "go": {"billing_source": "go", "list_cost": 0.00023057, "allowance": 0.00013834}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2029, "completion_tokens": 151, "total_tokens": 2180, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 13, "go": {"billing_source": "go", "list_cost": 0.00015034, "allowance": 9.021e-05}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 1,
+          "seconds": 63.5,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "visible_text_in_any_turn": true,
+          "mismatch_phrasing_in_any_turn": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": null
+          },
+          "usage": {
+            "api_requests": 5,
+            "successful_requests": 5,
+            "usage_complete": true,
+            "abandoned_requests": 1,
+            "prompt_tokens": 9985,
+            "completion_tokens": 1823,
+            "total_tokens": 11808,
+            "cached_tokens": 7296
+          },
+          "upstream_http_responses": 5,
+          "cost_usd": {"list_cost": 0.00151903, "allowance": 0.00091143},
+          "parsed_file_match": false,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [{"turn": 1, "tool": "edit", "channel": "thinking", "input_relation": "different_input"}],
+          "deepseek_markup_events": 1,
+          "orphan_tool_close_events": 0,
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "write", "channel": "thinking", "match": null, "id_source": "explicit"},
+            {"turn": 1, "tool": "write", "channel": "thinking", "match": null, "id_source": "explicit"},
+            {"turn": 2, "tool": "list_files", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 2, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 4, "tool": "bash", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 4, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success"},
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success"},
+            {"type": "parser_error", "turn": 1, "channel": "thinking", "error_kind": "duplicate_id", "phase": "feed"},
+            {"type": "stream_finished", "turn": 1, "reason": "tool_failed", "finish_reason": ""},
+            {"type": "error", "turn": 1},
+            {"type": "tool_started", "turn": 2, "tool": "list_files", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 2, "tool": "list_files", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "provider_protocol_error", "turn": 3, "kind": "deepseek_tool_markup"},
+            {"type": "error", "turn": 3},
+            {"type": "tool_started", "turn": 4, "tool": "bash", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 4, "tool": "bash", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 4, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 4, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "stream_finished", "turn": 5, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 5}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "client_disconnected": true, "prompt_tokens": 1440, "completion_tokens": 810, "total_tokens": 2250, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 680, "go": {"billing_source": "go", "list_cost": 0.000702, "allowance": 0.0004212}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1670, "completion_tokens": 202, "total_tokens": 1872, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 100, "go": {"billing_source": "go", "list_cost": 0.00016472, "allowance": 9.883e-05}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2060, "completion_tokens": 264, "total_tokens": 2324, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 176, "go": {"billing_source": "go", "list_cost": 0.00022279, "allowance": 0.00013368}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2254, "completion_tokens": 367, "total_tokens": 2621, "cost": 0, "cached_tokens": 2048, "reasoning_tokens": 262, "go": {"billing_source": "go", "list_cost": 0.00025724, "allowance": 0.00015435}},
+            {"index": 5, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2561, "completion_tokens": 180, "total_tokens": 2741, "cost": 0, "cached_tokens": 2176, "reasoning_tokens": 83, "go": {"billing_source": "go", "list_cost": 0.00017228, "allowance": 0.00010337}}
+          ]
+        },
+        {
+          "scenario": "match",
+          "repeat": 2,
+          "seconds": 37.937,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "visible_text_in_any_turn": true,
+          "mismatch_phrasing_in_any_turn": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": "4150504c494544",
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": null
+          },
+          "usage": {
+            "api_requests": 4,
+            "successful_requests": 4,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 8397,
+            "completion_tokens": 1399,
+            "total_tokens": 9796,
+            "cached_tokens": 5376
+          },
+          "upstream_http_responses": 4,
+          "cost_usd": {"list_cost": 0.00130867, "allowance": 0.00078521},
+          "parsed_file_match": false,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "read", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 1, "tool": "bash", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 1, "tool": "list_files", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 2, "tool": "bash", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 3, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "read", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 1, "tool": "read", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 1, "tool": "bash", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 1, "tool": "bash", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 1, "tool": "list_files", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 1, "tool": "list_files", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "tool_started", "turn": 2, "tool": "bash", "channel": "text", "flow": "blocking"},
+            {"type": "tool_completed", "turn": 2, "tool": "bash", "channel": "text", "flow": "blocking", "status": "failed"},
+            {"type": "stream_finished", "turn": 2, "reason": "none", "finish_reason": ""},
+            {"type": "parser_error", "turn": 2, "channel": "text", "error_kind": "unclosed_block", "phase": "flush"},
+            {"type": "error", "turn": 2},
+            {"type": "tool_started", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 4}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1440, "completion_tokens": 66, "total_tokens": 1506, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 0.0002556, "allowance": 0.00015336}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1722, "completion_tokens": 170, "total_tokens": 1892, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 80, "go": {"billing_source": "go", "list_cost": 0.00015332, "allowance": 9.199e-05}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2395, "completion_tokens": 834, "total_tokens": 3229, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 598, "go": {"billing_source": "go", "list_cost": 0.00061504, "allowance": 0.00036903}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2840, "completion_tokens": 329, "total_tokens": 3169, "cost": 0, "cached_tokens": 2304, "reasoning_tokens": 84, "go": {"billing_source": "go", "list_cost": 0.00028471, "allowance": 0.00017083}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 2,
+          "seconds": 53.109,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "visible_text_in_any_turn": true,
+          "mismatch_phrasing_in_any_turn": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": null
+          },
+          "usage": {
+            "api_requests": 6,
+            "successful_requests": 6,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 11985,
+            "completion_tokens": 1661,
+            "total_tokens": 13646,
+            "cached_tokens": 9216
+          },
+          "upstream_http_responses": 6,
+          "cost_usd": {"list_cost": 0.00143958, "allowance": 0.00086377},
+          "parsed_file_match": false,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [{"turn": 4, "tool": "python", "channel": "text", "input_relation": "different_input"}],
+          "deepseek_markup_events": 1,
+          "orphan_tool_close_events": 0,
+          "parsed_text_tags": [
+            {"turn": 2, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"},
+            {"turn": 5, "tool": "python", "channel": "text", "match": null, "id_source": "explicit"}
+          ],
+          "events": [
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "provider_protocol_error", "turn": 1, "kind": "deepseek_tool_markup"},
+            {"type": "error", "turn": 1},
+            {"type": "tool_started", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "parser_error", "turn": 3, "channel": "text", "error_kind": "incomplete_tag", "phase": "flush"},
+            {"type": "error", "turn": 3},
+            {"type": "parser_error", "turn": 4, "channel": "text", "error_kind": "duplicate_id", "phase": "feed"},
+            {"type": "stream_finished", "turn": 4, "reason": "tool_failed", "finish_reason": "stop"},
+            {"type": "error", "turn": 4},
+            {"type": "tool_started", "turn": 5, "tool": "python", "channel": "text", "flow": "blocking"},
+            {"type": "stream_finished", "turn": 5, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 5, "tool": "python", "channel": "text", "flow": "blocking", "status": "success"},
+            {"type": "stream_finished", "turn": 6, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 6}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1440, "completion_tokens": 575, "total_tokens": 2015, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 369, "go": {"billing_source": "go", "list_cost": 0.000561, "allowance": 0.0003366}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1752, "completion_tokens": 283, "total_tokens": 2035, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 93, "go": {"billing_source": "go", "list_cost": 0.00022562, "allowance": 0.00013537}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2091, "completion_tokens": 199, "total_tokens": 2290, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 41, "go": {"billing_source": "go", "list_cost": 0.00018844, "allowance": 0.00011307}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2137, "completion_tokens": 175, "total_tokens": 2312, "cost": 0, "cached_tokens": 2048, "reasoning_tokens": 119, "go": {"billing_source": "go", "list_cost": 0.00012449, "allowance": 7.47e-05}},
+            {"index": 5, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2173, "completion_tokens": 193, "total_tokens": 2366, "cost": 0, "cached_tokens": 2048, "reasoning_tokens": 121, "go": {"billing_source": "go", "list_cost": 0.00014069, "allowance": 8.442e-05}},
+            {"index": 6, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2392, "completion_tokens": 236, "total_tokens": 2628, "cost": 0, "cached_tokens": 2048, "reasoning_tokens": 37, "go": {"billing_source": "go", "list_cost": 0.00019934, "allowance": 0.00011961}}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "initial_candidate",
+      "base_commit": "9404f5df1eb7301d30037f7fd3a39761bbcd19d3",
+      "changed_source_sha256": {
+        "src/agent_loop.py": "28d5c0a557f93f876bde66e73f54b40eb0ce48e4aedb2c5d57f6b32e74504676",
+        "src/context.py": "ab46342a88b4a35be0e0132288fd8ba9877d04232a136296b63064d10cebed56",
+        "src/parser.py": "7f96c6ec579cd5af23f7de08270e3d5f27a0a5321de0f859c46800880f29b769",
+        "src/prompts.py": "87c457f9de48d0e0ecf69a37941fcac6c3d6e63cb368d6c8f946b102dc69ab07",
+        "src/tool_registry.py": "53acee7befa647ed28b6b47958cdbb192a9679eab64959ee8b3120fb751c18fa"
+      },
+      "jobs": [
+        {
+          "scenario": "match",
+          "repeat": 1,
+          "seconds": 10.782,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": false,
+          "mismatch_reported_in_final_text": false,
+          "grade": {
+            "expected_bytes_pass": false,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 1,
+            "successful_requests": 1,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 1191,
+            "completion_tokens": 331,
+            "total_tokens": 1522,
+            "cached_tokens": 0
+          },
+          "upstream_http_responses": 1,
+          "cost_usd": {"list_cost": 0.00037725, "allowance": 0.00022635},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "target", "fixture_state": ["changed", "absent", false]},
+            {"type": "run_finished", "turn": 1}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1191, "completion_tokens": 331, "total_tokens": 1522, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 280, "go": {"billing_source": "go", "list_cost": 0.00037725, "allowance": 0.00022635}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 1,
+          "seconds": 39.281,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": true,
+            "transient_target_change_observed_on_mismatch": false,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 4,
+            "successful_requests": 4,
+            "usage_complete": true,
+            "abandoned_requests": 1,
+            "prompt_tokens": 6480,
+            "completion_tokens": 1444,
+            "total_tokens": 7924,
+            "cached_tokens": 5376
+          },
+          "upstream_http_responses": 4,
+          "cost_usd": {"list_cost": 0.00104813, "allowance": 0.00062887},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 1,
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "write", "channel": "thinking", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "inline"},
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "python", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"},
+            {"turn": 3, "tool": "bash", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"},
+            {"turn": 3, "tool": "python", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "path_scope": "marker"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "marker", "fixture_state": ["seed", "expected", false]},
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "conflict", "path_scope": "target", "fixture_state": ["seed", "expected", false]},
+            {"type": "stream_finished", "turn": 1, "reason": "none", "finish_reason": ""},
+            {"type": "error", "turn": 1},
+            {"type": "tool_started", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "status": "success", "path_scope": "target"},
+            {"type": "tool_started", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 2, "tool": "python", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null, "fixture_state": ["seed", "expected", false]},
+            {"type": "provider_protocol_error", "turn": 2, "kind": "orphan_tool_close"},
+            {"type": "error", "turn": 2},
+            {"type": "tool_started", "turn": 3, "tool": "bash", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "tool_completed", "turn": 3, "tool": "bash", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+            {"type": "tool_started", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 4}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "client_disconnected": true, "prompt_tokens": 1191, "completion_tokens": 656, "total_tokens": 1847, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 584, "go": {"billing_source": "go", "list_cost": 0.00040291, "allowance": 0.00024174}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1454, "completion_tokens": 318, "total_tokens": 1772, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 245, "go": {"billing_source": "go", "list_cost": 0.00023956, "allowance": 0.00014373}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1788, "completion_tokens": 238, "total_tokens": 2026, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 168, "go": {"billing_source": "go", "list_cost": 0.00020402, "allowance": 0.00012241}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2047, "completion_tokens": 232, "total_tokens": 2279, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 72, "go": {"billing_source": "go", "list_cost": 0.00020164, "allowance": 0.00012099}}
+          ]
+        },
+        {
+          "scenario": "match",
+          "repeat": 2,
+          "seconds": 8.141,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": false,
+          "mismatch_reported_in_final_text": false,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": "4150504c494544",
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 1,
+            "successful_requests": 1,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 1191,
+            "completion_tokens": 217,
+            "total_tokens": 1408,
+            "cached_tokens": 0
+          },
+          "upstream_http_responses": 1,
+          "cost_usd": {"list_cost": 0.00030885, "allowance": 0.00018531},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "write", "channel": "text", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "target", "fixture_state": ["changed", "absent", false]},
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "path_scope": "marker"},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "marker", "fixture_state": ["changed", "expected", false]},
+            {"type": "run_finished", "turn": 1}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1191, "completion_tokens": 217, "total_tokens": 1408, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 146, "go": {"billing_source": "go", "list_cost": 0.00030885, "allowance": 0.00018531}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 2,
+          "seconds": 22.203,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": false,
+            "transient_target_change_observed_on_mismatch": false,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 4,
+            "successful_requests": 4,
+            "usage_complete": true,
+            "abandoned_requests": 1,
+            "prompt_tokens": 6099,
+            "completion_tokens": 982,
+            "total_tokens": 7081,
+            "cached_tokens": 3968
+          },
+          "upstream_http_responses": 4,
+          "cost_usd": {"list_cost": 0.00092076, "allowance": 0.00055244},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [{"turn": 2, "tool": "read", "channel": "text", "input_relation": "different_input"}],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 1,
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "thinking", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "inline"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "list_files", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"},
+            {"turn": 3, "tool": "read", "channel": "text", "match": null, "path_scope": "target", "id_source": "explicit", "placement": "inline"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "conflict", "path_scope": "target", "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 1, "reason": "none", "finish_reason": ""},
+            {"type": "error", "turn": 1},
+            {"type": "tool_replay", "turn": 2, "tool": "read", "disposition": "different_input"},
+            {"type": "tool_started", "turn": 2, "tool": "list_files", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 2, "tool": "list_files", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null},
+            {"type": "error", "turn": 2},
+            {"type": "tool_started", "turn": 3, "tool": "read", "channel": "text", "flow": "blocking", "path_scope": "target"},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 3, "tool": "read", "channel": "text", "flow": "blocking", "status": "success", "path_scope": "target"},
+            {"type": "provider_protocol_error", "turn": 3, "kind": "orphan_tool_close"},
+            {"type": "error", "turn": 3},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 4}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "client_disconnected": true, "prompt_tokens": 1191, "completion_tokens": 565, "total_tokens": 1756, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 493, "go": {"billing_source": "go", "list_cost": 0.00051765, "allowance": 0.00031059}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1370, "completion_tokens": 122, "total_tokens": 1492, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 83, "go": {"billing_source": "go", "list_cost": 0.00010936, "allowance": 6.561e-05}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1663, "completion_tokens": 32, "total_tokens": 1695, "cost": 0, "cached_tokens": 1280, "reasoning_tokens": 12, "go": {"billing_source": "go", "list_cost": 8.049e-05, "allowance": 4.829e-05}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1875, "completion_tokens": 263, "total_tokens": 2138, "cost": 0, "cached_tokens": 1536, "reasoning_tokens": 161, "go": {"billing_source": "go", "list_cost": 0.00021326, "allowance": 0.00012795}}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "pre_delivery_candidate",
+      "base_commit": "9404f5df1eb7301d30037f7fd3a39761bbcd19d3",
+      "changed_source_sha256": {
+        "src/agent_loop.py": "c77728dcb29d6a72cca3d5a4f656db618aa5d1623a6ad078430ee4bfceea048f",
+        "src/context.py": "043e22735a0b4c7d684c4738a2bb2d5cb3ccfc0483df71b9925a940e221bd7b3",
+        "src/delivery.py": "8b6da7acd932d610a9c9848fe644518d65894b94876e6cefd4e639bac61636af",
+        "src/parser.py": "3d197cad7766840f2a2543a4fbca665b50a0ceffdf45b1d5d7a36a15ef3619c5",
+        "src/prompts.py": "513b4014d6c9d9bb9e67324d838a921f5de90dcde822e9047bb0b484e7b8dc43",
+        "src/runtime.py": "18a0acc6f6f625e1c52f9757394d052da2707d474f3005a26d01aaf03f23d145",
+        "src/skills/thinkflow/SKILL.md": "7b61912486cf891c8d8268dcf1e9a8a08779fa61146465b9a4f4ad4a35d223c1",
+        "src/streaming.py": "c44daebb7306a023c0261c14dbff4368ab120d1e778c6e59afce282f84e9120c",
+        "src/text_filter.py": "2a63286a9ee198b3a031397e0a93eea71eac2637c8f819501e5573b12aee7d78",
+        "src/tool_registry.py": "53acee7befa647ed28b6b47958cdbb192a9679eab64959ee8b3120fb751c18fa"
+      },
+      "jobs": [
+        {
+          "scenario": "match",
+          "repeat": 1,
+          "seconds": 35.25,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": false,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": "4150504c494544",
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 4,
+            "successful_requests": 4,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 6050,
+            "completion_tokens": 1052,
+            "total_tokens": 7102,
+            "cached_tokens": 4096
+          },
+          "upstream_http_responses": 4,
+          "cost_usd": {"list_cost": 0.00093659, "allowance": 0.00056194},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [
+            {"turn": 1, "tool": "edit", "channel": "text", "input_relation": "same_input"},
+            {"turn": 3, "tool": "python", "channel": "text", "input_relation": "different_input"}
+          ],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "final_turn_structure": {
+            "turn": 4,
+            "channel_chars": {"text": 187, "thinking": 625},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {
+            "1": {"text": ["edit", "write"], "thinking": ["edit"]},
+            "2": {"text": ["read", "read"], "thinking": []},
+            "3": {"text": ["python"], "thinking": []},
+            "4": {"text": [], "thinking": []}
+          },
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "thinking", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "write", "channel": "text", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "target", "fixture_state": ["changed", "absent", false]},
+            {"type": "tool_replay", "turn": 1, "tool": "edit", "disposition": "same_input"},
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "path_scope": "marker"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "marker", "fixture_state": ["changed", "expected", false]},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_started", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "status": "success", "path_scope": "target"},
+            {"type": "tool_started", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "path_scope": "marker"},
+            {"type": "tool_completed", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "status": "success", "path_scope": "marker"},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "parser_error", "turn": 3, "channel": "text", "error_kind": "duplicate_id", "phase": "feed"},
+            {"type": "stream_finished", "turn": 3, "reason": "tool_failed", "finish_reason": ""},
+            {"type": "error", "turn": 3},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 4}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1218, "completion_tokens": 338, "total_tokens": 1556, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 267, "go": {"billing_source": "go", "list_cost": 0.0003855, "allowance": 0.0002313}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1476, "completion_tokens": 105, "total_tokens": 1581, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 74, "go": {"billing_source": "go", "list_cost": 0.00011506, "allowance": 6.903e-05}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1660, "completion_tokens": 193, "total_tokens": 1853, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 145, "go": {"billing_source": "go", "list_cost": 0.00015782, "allowance": 9.469e-05}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1696, "completion_tokens": 416, "total_tokens": 2112, "cost": 0, "cached_tokens": 1536, "reasoning_tokens": 317, "go": {"billing_source": "go", "list_cost": 0.00027821, "allowance": 0.00016692}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 1,
+          "seconds": 25.687,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": false,
+            "transient_target_change_observed_on_mismatch": false,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 4,
+            "successful_requests": 4,
+            "usage_complete": true,
+            "abandoned_requests": 1,
+            "prompt_tokens": 5753,
+            "completion_tokens": 1192,
+            "total_tokens": 6945,
+            "cached_tokens": 3840
+          },
+          "upstream_http_responses": 4,
+          "cost_usd": {"list_cost": 0.00101367, "allowance": 0.00060819},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [{"turn": 2, "tool": "read", "channel": "text", "input_relation": "different_input"}],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "final_turn_structure": {
+            "turn": 4,
+            "channel_chars": {"text": 160, "thinking": 447},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {
+            "1": {"text": [], "thinking": ["edit"]},
+            "2": {"text": ["read"], "thinking": []},
+            "3": {"text": ["read"], "thinking": []},
+            "4": {"text": [], "thinking": []}
+          },
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "thinking", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "path_scope": "target", "id_source": "explicit", "placement": "inline_prose"},
+            {"turn": 3, "tool": "read", "channel": "text", "match": null, "path_scope": "target", "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "conflict", "path_scope": "target", "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 1, "reason": "none", "finish_reason": ""},
+            {"type": "error", "turn": 1},
+            {"type": "tool_replay", "turn": 2, "tool": "read", "disposition": "different_input"},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "error", "turn": 2},
+            {"type": "tool_started", "turn": 3, "tool": "read", "channel": "text", "flow": "blocking", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 3, "tool": "read", "channel": "text", "flow": "blocking", "status": "success", "path_scope": "target"},
+            {"type": "stream_finished", "turn": 3, "reason": "need_result", "finish_reason": ""},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 4}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "client_disconnected": true, "prompt_tokens": 1218, "completion_tokens": 868, "total_tokens": 2086, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 700, "go": {"billing_source": "go", "list_cost": 0.0007035, "allowance": 0.0004221}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1397, "completion_tokens": 106, "total_tokens": 1503, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 86, "go": {"billing_source": "go", "list_cost": 0.00010381, "allowance": 6.228e-05}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1502, "completion_tokens": 43, "total_tokens": 1545, "cost": 0, "cached_tokens": 1280, "reasoning_tokens": 21, "go": {"billing_source": "go", "list_cost": 6.294e-05, "allowance": 3.776e-05}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1636, "completion_tokens": 175, "total_tokens": 1811, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 97, "go": {"billing_source": "go", "list_cost": 0.00014342, "allowance": 8.605e-05}}
+          ]
+        },
+        {
+          "scenario": "match",
+          "repeat": 2,
+          "seconds": 17.5,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": false,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": "4150504c494544",
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 2,
+            "successful_requests": 2,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 2694,
+            "completion_tokens": 476,
+            "total_tokens": 3170,
+            "cached_tokens": 1152
+          },
+          "upstream_http_responses": 2,
+          "cost_usd": {"list_cost": 0.00052036, "allowance": 0.00031221},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "final_turn_structure": {
+            "turn": 2,
+            "channel_chars": {"text": 192, "thinking": 511},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {"1": {"text": ["edit", "write"], "thinking": []}, "2": {"text": [], "thinking": []}},
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "write", "channel": "text", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "target", "fixture_state": ["changed", "absent", false]},
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "path_scope": "marker"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "marker", "fixture_state": ["changed", "expected", false]},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 2}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1218, "completion_tokens": 258, "total_tokens": 1476, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 186, "go": {"billing_source": "go", "list_cost": 0.0003375, "allowance": 0.0002025}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1476, "completion_tokens": 218, "total_tokens": 1694, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 117, "go": {"billing_source": "go", "list_cost": 0.00018286, "allowance": 0.00010971}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 2,
+          "seconds": 33.531,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": false,
+            "transient_target_change_observed_on_mismatch": false,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 4,
+            "successful_requests": 4,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 5894,
+            "completion_tokens": 1052,
+            "total_tokens": 6946,
+            "cached_tokens": 5120
+          },
+          "upstream_http_responses": 4,
+          "cost_usd": {"list_cost": 0.00076266, "allowance": 0.00045758},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [{"turn": 2, "tool": "python", "channel": "text", "input_relation": "different_input"}],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 1,
+          "final_turn_structure": {
+            "turn": 4,
+            "channel_chars": {"text": 345, "thinking": 502},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {
+            "1": {"text": ["edit", "write"], "thinking": []},
+            "2": {"text": ["python"], "thinking": []},
+            "3": {"text": ["python"], "thinking": []},
+            "4": {"text": [], "thinking": []}
+          },
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 3, "tool": "python", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "conflict", "path_scope": "target", "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 1, "reason": "none", "finish_reason": ""},
+            {"type": "parser_error", "turn": 1, "channel": "text", "error_kind": "unclosed_block", "phase": "flush"},
+            {"type": "error", "turn": 1},
+            {"type": "parser_error", "turn": 2, "channel": "text", "error_kind": "duplicate_id", "phase": "feed"},
+            {"type": "stream_finished", "turn": 2, "reason": "tool_failed", "finish_reason": ""},
+            {"type": "error", "turn": 2},
+            {"type": "tool_started", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "tool_completed", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "provider_protocol_error", "turn": 3, "kind": "orphan_tool_close"},
+            {"type": "error", "turn": 3},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 4}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1218, "completion_tokens": 236, "total_tokens": 1454, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 165, "go": {"billing_source": "go", "list_cost": 0.00015496, "allowance": 9.297e-05}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1437, "completion_tokens": 291, "total_tokens": 1728, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 202, "go": {"billing_source": "go", "list_cost": 0.00022081, "allowance": 0.00013248}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1473, "completion_tokens": 245, "total_tokens": 1718, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 161, "go": {"billing_source": "go", "list_cost": 0.00016097, "allowance": 9.658e-05}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1766, "completion_tokens": 280, "total_tokens": 2046, "cost": 0, "cached_tokens": 1408, "reasoning_tokens": 103, "go": {"billing_source": "go", "list_cost": 0.00022592, "allowance": 0.00013555}}
+          ]
+        }
+      ]
+    },
+    {
+      "name": "delivery",
+      "base_commit": "9404f5df1eb7301d30037f7fd3a39761bbcd19d3",
+      "source_tree_sha256": "6276904748a85ebeed2778b4101dde1aa67d89bf57e4cd1af98546b95c996796",
+      "changed_source_sha256": {
+        "src/agent_loop.py": "b3b29ac646d669a9e175edebc297b5fccf83d60716f9f49a1ee6fa1f4b1cffb7",
+        "src/context.py": "043e22735a0b4c7d684c4738a2bb2d5cb3ccfc0483df71b9925a940e221bd7b3",
+        "src/executor.py": "f15af53139cf3ee28589251c9e872d6383b3e101ed5e411cb3c5e5ae62110297",
+        "src/parser.py": "3d197cad7766840f2a2543a4fbca665b50a0ceffdf45b1d5d7a36a15ef3619c5",
+        "src/prompts.py": "513b4014d6c9d9bb9e67324d838a921f5de90dcde822e9047bb0b484e7b8dc43",
+        "src/runtime.py": "18a0acc6f6f625e1c52f9757394d052da2707d474f3005a26d01aaf03f23d145",
+        "src/skills/thinkflow/SKILL.md": "7b61912486cf891c8d8268dcf1e9a8a08779fa61146465b9a4f4ad4a35d223c1",
+        "src/text_filter.py": "2a63286a9ee198b3a031397e0a93eea71eac2637c8f819501e5573b12aee7d78",
+        "src/tool_registry.py": "53acee7befa647ed28b6b47958cdbb192a9679eab64959ee8b3120fb751c18fa"
+      },
+      "jobs": [
+        {
+          "scenario": "match",
+          "repeat": 1,
+          "seconds": 24.672,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": null,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": "4150504c494544",
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 2,
+            "successful_requests": 2,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 2794,
+            "completion_tokens": 1075,
+            "total_tokens": 3869,
+            "cached_tokens": 1152
+          },
+          "upstream_http_responses": 2,
+          "cost_usd": {"list_cost": 0.00089476, "allowance": 0.00053685},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "final_turn_structure": {
+            "turn": 2,
+            "channel_chars": {"text": 194, "thinking": 130},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {"1": {"text": ["edit", "write", "python"], "thinking": ["edit", "write", "write"]}, "2": {"text": [], "thinking": []}},
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "write", "channel": "text", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "python", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "target", "fixture_state": ["changed", "absent", false]},
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "path_scope": "marker"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "marker", "fixture_state": ["changed", "expected", false]},
+            {"type": "tool_started", "turn": 1, "tool": "python", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 1, "tool": "python", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null, "fixture_state": ["changed", "expected", false]},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 2}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1218, "completion_tokens": 943, "total_tokens": 2161, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 812, "go": {"billing_source": "go", "list_cost": 0.0007485, "allowance": 0.0004491}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1576, "completion_tokens": 132, "total_tokens": 1708, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 26, "go": {"billing_source": "go", "list_cost": 0.00014626, "allowance": 8.775e-05}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 1,
+          "seconds": 31.485,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": false,
+            "transient_target_change_observed_on_mismatch": false,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 4,
+            "successful_requests": 4,
+            "usage_complete": true,
+            "abandoned_requests": 1,
+            "prompt_tokens": 5939,
+            "completion_tokens": 1327,
+            "total_tokens": 7266,
+            "cached_tokens": 3968
+          },
+          "upstream_http_responses": 4,
+          "cost_usd": {"list_cost": 0.00110376, "allowance": 0.00066224},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [{"turn": 2, "tool": "python", "channel": "text", "input_relation": "different_input"}],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "final_turn_structure": {
+            "turn": 4,
+            "channel_chars": {"text": 241, "thinking": 202},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {
+            "1": {"text": [], "thinking": ["edit"]},
+            "2": {"text": ["python"], "thinking": []},
+            "3": {"text": ["python"], "thinking": []},
+            "4": {"text": [], "thinking": []}
+          },
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "thinking", "match": "file", "path_scope": "other_workspace", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "python", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"},
+            {"turn": 3, "tool": "python", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "other_workspace"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "conflict", "path_scope": "other_workspace", "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 1, "reason": "none", "finish_reason": ""},
+            {"type": "error", "turn": 1},
+            {"type": "tool_replay", "turn": 2, "tool": "python", "disposition": "different_input"},
+            {"type": "stream_finished", "turn": 2, "reason": "none", "finish_reason": ""},
+            {"type": "error", "turn": 2},
+            {"type": "tool_started", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 3, "tool": "python", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 4, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 4}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "client_disconnected": true, "prompt_tokens": 1218, "completion_tokens": 843, "total_tokens": 2061, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 699, "go": {"billing_source": "go", "list_cost": 0.0006885, "allowance": 0.0004131}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1387, "completion_tokens": 145, "total_tokens": 1532, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 58, "go": {"billing_source": "go", "list_cost": 0.00012571, "allowance": 7.542e-05}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1560, "completion_tokens": 182, "total_tokens": 1742, "cost": 0, "cached_tokens": 1280, "reasoning_tokens": 107, "go": {"billing_source": "go", "list_cost": 0.00015504, "allowance": 9.302e-05}},
+            {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1774, "completion_tokens": 157, "total_tokens": 1931, "cost": 0, "cached_tokens": 1536, "reasoning_tokens": 40, "go": {"billing_source": "go", "list_cost": 0.00013451, "allowance": 8.07e-05}}
+          ]
+        },
+        {
+          "scenario": "match",
+          "repeat": 2,
+          "seconds": 26.719,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": null,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+            "actual_marker_hex": "4150504c494544",
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": null,
+            "transient_target_change_observed_on_mismatch": null,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 2,
+            "successful_requests": 2,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 2808,
+            "completion_tokens": 757,
+            "total_tokens": 3565,
+            "cached_tokens": 1152
+          },
+          "upstream_http_responses": 2,
+          "cost_usd": {"list_cost": 0.00070606, "allowance": 0.00042363},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [
+            {"turn": 1, "tool": "edit", "channel": "text", "input_relation": "same_input"},
+            {"turn": 1, "tool": "write", "channel": "text", "input_relation": "same_input"}
+          ],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "final_turn_structure": {
+            "turn": 2,
+            "channel_chars": {"text": 178, "thinking": 181},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {"1": {"text": ["edit", "write", "python"], "thinking": ["edit", "write"]}, "2": {"text": [], "thinking": []}},
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "thinking", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "write", "channel": "thinking", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "write", "channel": "text", "match": null, "path_scope": "marker", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 1, "tool": "python", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "target", "fixture_state": ["changed", "absent", false]},
+            {"type": "tool_started", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "path_scope": "marker"},
+            {"type": "tool_completed", "turn": 1, "tool": "write", "channel": "text", "flow": "delayed", "status": "success", "path_scope": "marker", "fixture_state": ["changed", "expected", false]},
+            {"type": "tool_replay", "turn": 1, "tool": "edit", "disposition": "same_input"},
+            {"type": "tool_replay", "turn": 1, "tool": "write", "disposition": "same_input"},
+            {"type": "tool_started", "turn": 1, "tool": "python", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "stream_finished", "turn": 1, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 1, "tool": "python", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null, "fixture_state": ["changed", "expected", false]},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 2}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1218, "completion_tokens": 617, "total_tokens": 1835, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 493, "go": {"billing_source": "go", "list_cost": 0.0005529, "allowance": 0.00033174}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1590, "completion_tokens": 140, "total_tokens": 1730, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 44, "go": {"billing_source": "go", "list_cost": 0.00015316, "allowance": 9.189e-05}}
+          ]
+        },
+        {
+          "scenario": "mismatch",
+          "repeat": 2,
+          "seconds": 22.093,
+          "exit": 0,
+          "worker_error": null,
+          "stop": "completed",
+          "normal_termination": true,
+          "final_visible_text": true,
+          "mismatch_reported_in_final_text": true,
+          "grade": {
+            "expected_bytes_pass": true,
+            "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+            "actual_marker_hex": null,
+            "unexpected_files_at_end": false,
+            "transient_marker_observed_on_mismatch": false,
+            "transient_target_change_observed_on_mismatch": false,
+            "other_top_level_files_observed": false
+          },
+          "usage": {
+            "api_requests": 3,
+            "successful_requests": 3,
+            "usage_complete": true,
+            "abandoned_requests": 0,
+            "prompt_tokens": 4207,
+            "completion_tokens": 639,
+            "total_tokens": 4846,
+            "cached_tokens": 2432
+          },
+          "upstream_http_responses": 3,
+          "cost_usd": {"list_cost": 0.00065695, "allowance": 0.00039416},
+          "parsed_file_match": true,
+          "implicit_id_count": 0,
+          "explicit_id_repeats": [],
+          "deepseek_markup_events": 0,
+          "orphan_tool_close_events": 0,
+          "final_turn_structure": {
+            "turn": 3,
+            "channel_chars": {"text": 196, "thinking": 291},
+            "channel_tag_names": {"text": [], "thinking": []},
+            "native_tools": [],
+            "parsed_tags": []
+          },
+          "channel_tag_names_by_turn": {
+            "1": {"text": ["edit", "write"], "thinking": []},
+            "2": {"text": ["read", "list_files"], "thinking": []},
+            "3": {"text": [], "thinking": []}
+          },
+          "parsed_text_tags": [
+            {"turn": 1, "tool": "edit", "channel": "text", "match": "file", "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "read", "channel": "text", "match": null, "path_scope": "target", "id_source": "explicit", "placement": "standalone"},
+            {"turn": 2, "tool": "list_files", "channel": "text", "match": null, "path_scope": null, "id_source": "explicit", "placement": "standalone"}
+          ],
+          "events": [
+            {"type": "tool_started", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 1, "tool": "edit", "channel": "text", "flow": "delayed", "status": "conflict", "path_scope": "target", "fixture_state": ["seed", "absent", false]},
+            {"type": "stream_finished", "turn": 1, "reason": "none", "finish_reason": ""},
+            {"type": "error", "turn": 1},
+            {"type": "tool_started", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "path_scope": "target"},
+            {"type": "tool_completed", "turn": 2, "tool": "read", "channel": "text", "flow": "blocking", "status": "success", "path_scope": "target"},
+            {"type": "tool_started", "turn": 2, "tool": "list_files", "channel": "text", "flow": "blocking", "path_scope": null},
+            {"type": "stream_finished", "turn": 2, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "tool_completed", "turn": 2, "tool": "list_files", "channel": "text", "flow": "blocking", "status": "success", "path_scope": null},
+            {"type": "stream_finished", "turn": 3, "reason": "end_turn", "finish_reason": "stop"},
+            {"type": "run_finished", "turn": 3}
+          ],
+          "requests": [
+            {"index": 1, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1218, "completion_tokens": 296, "total_tokens": 1514, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 224, "go": {"billing_source": "go", "list_cost": 0.0003603, "allowance": 0.00021618}},
+            {"index": 2, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1402, "completion_tokens": 173, "total_tokens": 1575, "cost": 0, "cached_tokens": 1152, "reasoning_tokens": 134, "go": {"billing_source": "go", "list_cost": 0.00014476, "allowance": 8.685e-05}},
+            {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 1587, "completion_tokens": 170, "total_tokens": 1757, "cost": 0, "cached_tokens": 1280, "reasoning_tokens": 66, "go": {"billing_source": "go", "list_cost": 0.00015189, "allowance": 9.113e-05}}
+          ]
+        }
+      ]
+    }
+  ],
+  "method": [
+    "Two fresh isolated synthetic workspaces per scenario and arm, in alternating match and mismatch order. Prior main was loaded from git archive and the initial candidate from a frozen worktree snapshot.",
+    "Provider usage is from all upstream requests, including drained requests when ThinkFlow stopped consuming a stream. Normal termination requires a completed worker run, HTTP 200 with SSE finish reason and [DONE], and complete usage. Final visible text and on-disk byte grading are separate.",
+    "Repeated explicit IDs are compared with the first decoded command for the ID using the arm command hash. Only tool name, turn, channel, and the equality class are retained. Product replay events are retained separately.",
+    "Scope and placement observation was introduced with the initial candidate. The prior main output records final fixture bytes, tools, status, and turn. Its mismatch repetition 1 did two successful writes whose paths, placement, and transient effects are unknown.",
+    "Placement is inferred from the received command span and surrounding line or fence. Each observed side effect records [target state, marker state, other top-level fixture entries present]. These checkpoints cannot detect all changes within a tool invocation.",
+    "The original prompt describes APPLIED as six characters. The check uses the exact seven-byte literal, as in the historical comparison.",
+    "The initial candidate is the hashed source snapshot, before later edits to replay handling and task termination. Its inline placement does not distinguish backticked code from adjacent prose; the final observer distinguishes these.",
+    "The delivery snapshot adds specific full-file conflict feedback and preserves it when aborting the upstream generation. The pre-delivery candidate records the earlier snapshot, before either change. The terminal mismatch report is a phrase check on visible text.",
+    "Pi 1.0.1 was rerun in the same session with the same model, generation caps and fixture bytes. Native tool events report path category when Pi supplies a path, and the fixture state is sampled after the whole native tool returns. Bash internals have no separate checkpoints. Pi final text is inspected only in memory, and only answer classifications are retained.",
+    "After the measured delivery snapshot, the source changed only in src/agent_loop.py. The new AgentConfig.require_final_response field became keyword-only to preserve SDK positional parameter order. The value, execution paths and model prompts are unchanged."
+  ],
+  "contemporaneous_pi": {
+    "version": "1.0.1",
+    "cli_sha256": "8189b66abc4f9f431dbb70941dcba690d76d040de1fbfff212886be35a53639d",
+    "repeats_per_scenario": 2,
+    "jobs": [
+      {
+        "scenario": "match",
+        "repeat": 1,
+        "seconds": 18.062,
+        "exit": 0,
+        "worker_error": null,
+        "stop": "completed",
+        "final_stop_reason": "stop",
+        "normal_termination": true,
+        "final_visible_text": true,
+        "mismatch_reported_in_final_text": null,
+        "grade": {
+          "expected_bytes_pass": true,
+          "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+          "actual_marker_hex": "4150504c494544",
+          "unexpected_files_at_end": false,
+          "transient_marker_observed_on_mismatch": null,
+          "transient_target_change_observed_on_mismatch": null,
+          "other_top_level_files_observed": false
+        },
+        "usage": {
+          "api_requests": 3,
+          "successful_requests": 3,
+          "usage_complete": true,
+          "abandoned_requests": 0,
+          "prompt_tokens": 5803,
+          "completion_tokens": 274,
+          "total_tokens": 6077,
+          "cached_tokens": 3584
+        },
+        "cost_usd": {"list_cost": 0.000508, "allowance": 0.00030481},
+        "tools": [
+          {"turn": 1, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 2, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["changed", "expected", false]}
+        ],
+        "turns": [{"turn": 1, "reason": "toolUse"}, {"turn": 2, "reason": "toolUse"}, {"turn": 3, "reason": "stop"}],
+        "requests": [
+          {"index": 1, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1718, "completion_tokens": 76, "total_tokens": 1794, "cost": 0, "cached_tokens": 0, "reasoning_tokens": 11, "go": {"billing_source": "go", "list_cost": 0.0003033, "allowance": 0.00018198}},
+          {"index": 2, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1939, "completion_tokens": 117, "total_tokens": 2056, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 40, "go": {"billing_source": "go", "list_cost": 0.00011644, "allowance": 6.987e-05}},
+          {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2146, "completion_tokens": 81, "total_tokens": 2227, "cost": 0, "cached_tokens": 1920, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 8.826e-05, "allowance": 5.296e-05}}
+        ]
+      },
+      {
+        "scenario": "mismatch",
+        "repeat": 1,
+        "seconds": 14.641,
+        "exit": 0,
+        "worker_error": null,
+        "stop": "completed",
+        "final_stop_reason": "stop",
+        "normal_termination": true,
+        "final_visible_text": true,
+        "mismatch_reported_in_final_text": true,
+        "grade": {
+          "expected_bytes_pass": true,
+          "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+          "actual_marker_hex": null,
+          "unexpected_files_at_end": false,
+          "transient_marker_observed_on_mismatch": false,
+          "transient_target_change_observed_on_mismatch": false,
+          "other_top_level_files_observed": false
+        },
+        "usage": {
+          "api_requests": 3,
+          "successful_requests": 3,
+          "usage_complete": true,
+          "abandoned_requests": 0,
+          "prompt_tokens": 5740,
+          "completion_tokens": 254,
+          "total_tokens": 5994,
+          "cached_tokens": 3840
+        },
+        "cost_usd": {"list_cost": 0.00044892, "allowance": 0.00026936},
+        "tools": [
+          {"turn": 1, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 2, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]}
+        ],
+        "turns": [{"turn": 1, "reason": "toolUse"}, {"turn": 2, "reason": "toolUse"}, {"turn": 3, "reason": "stop"}],
+        "requests": [
+          {"index": 1, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1718, "completion_tokens": 61, "total_tokens": 1779, "cost": 0, "cached_tokens": 256, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 0.00025667, "allowance": 0.000154}},
+          {"index": 2, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1956, "completion_tokens": 94, "total_tokens": 2050, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 36, "go": {"billing_source": "go", "list_cost": 0.00010519, "allowance": 6.312e-05}},
+          {"index": 3, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2066, "completion_tokens": 99, "total_tokens": 2165, "cost": 0, "cached_tokens": 1920, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 8.706e-05, "allowance": 5.224e-05}}
+        ]
+      },
+      {
+        "scenario": "match",
+        "repeat": 2,
+        "seconds": 34.859,
+        "exit": 0,
+        "worker_error": null,
+        "stop": "completed",
+        "final_stop_reason": "stop",
+        "normal_termination": true,
+        "final_visible_text": true,
+        "mismatch_reported_in_final_text": null,
+        "grade": {
+          "expected_bytes_pass": true,
+          "actual_file_hex": "6368616e6e656c3d626c75650a65706f63683d320a",
+          "actual_marker_hex": "4150504c494544",
+          "unexpected_files_at_end": false,
+          "transient_marker_observed_on_mismatch": null,
+          "transient_target_change_observed_on_mismatch": null,
+          "other_top_level_files_observed": false
+        },
+        "usage": {
+          "api_requests": 5,
+          "successful_requests": 5,
+          "usage_complete": true,
+          "abandoned_requests": 0,
+          "prompt_tokens": 10786,
+          "completion_tokens": 594,
+          "total_tokens": 11380,
+          "cached_tokens": 8192
+        },
+        "cost_usd": {"list_cost": 0.00077007, "allowance": 0.00046206},
+        "tools": [
+          {"turn": 1, "tool": "bash", "status": "failed", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 1, "tool": "bash", "status": "failed", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 2, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 3, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 4, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["changed", "expected", false]}
+        ],
+        "turns": [
+          {"turn": 1, "reason": "toolUse"},
+          {"turn": 2, "reason": "toolUse"},
+          {"turn": 3, "reason": "toolUse"},
+          {"turn": 4, "reason": "toolUse"},
+          {"turn": 5, "reason": "stop"}
+        ],
+        "requests": [
+          {"index": 1, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1718, "completion_tokens": 134, "total_tokens": 1852, "cost": 0, "cached_tokens": 256, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 0.00030047, "allowance": 0.00018028}},
+          {"index": 2, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1931, "completion_tokens": 55, "total_tokens": 1986, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 12, "go": {"billing_source": "go", "list_cost": 7.804e-05, "allowance": 4.683e-05}},
+          {"index": 3, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 2104, "completion_tokens": 92, "total_tokens": 2196, "cost": 0, "cached_tokens": 1920, "reasoning_tokens": 44, "go": {"billing_source": "go", "list_cost": 8.856e-05, "allowance": 5.314e-05}},
+          {"index": 4, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 2310, "completion_tokens": 166, "total_tokens": 2476, "cost": 0, "cached_tokens": 2048, "reasoning_tokens": 36, "go": {"billing_source": "go", "list_cost": 0.00014504, "allowance": 8.703e-05}},
+          {"index": 5, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2723, "completion_tokens": 147, "total_tokens": 2870, "cost": 0, "cached_tokens": 2304, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 0.00015796, "allowance": 9.478e-05}}
+        ]
+      },
+      {
+        "scenario": "mismatch",
+        "repeat": 2,
+        "seconds": 26.329,
+        "exit": 0,
+        "worker_error": null,
+        "stop": "completed",
+        "final_stop_reason": "stop",
+        "normal_termination": true,
+        "final_visible_text": true,
+        "mismatch_reported_in_final_text": true,
+        "grade": {
+          "expected_bytes_pass": true,
+          "actual_file_hex": "6368616e6e656c3d616d6265720a65706f63683d310a6f776e65723d6e696768740a",
+          "actual_marker_hex": null,
+          "unexpected_files_at_end": false,
+          "transient_marker_observed_on_mismatch": false,
+          "transient_target_change_observed_on_mismatch": false,
+          "other_top_level_files_observed": false
+        },
+        "usage": {
+          "api_requests": 4,
+          "successful_requests": 4,
+          "usage_complete": true,
+          "abandoned_requests": 0,
+          "prompt_tokens": 7726,
+          "completion_tokens": 344,
+          "total_tokens": 8070,
+          "cached_tokens": 5632
+        },
+        "cost_usd": {"list_cost": 0.0005374, "allowance": 0.00032245},
+        "tools": [
+          {"turn": 1, "tool": "bash", "status": "failed", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 2, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]},
+          {"turn": 3, "tool": "bash", "status": "success", "path_scope": null, "fixture_state": ["seed", "absent", false]}
+        ],
+        "turns": [{"turn": 1, "reason": "toolUse"}, {"turn": 2, "reason": "toolUse"}, {"turn": 3, "reason": "toolUse"}, {"turn": 4, "reason": "stop"}],
+        "requests": [
+          {"index": 1, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1718, "completion_tokens": 66, "total_tokens": 1784, "cost": 0, "cached_tokens": 256, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 0.00025967, "allowance": 0.0001558}},
+          {"index": 2, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 1825, "completion_tokens": 67, "total_tokens": 1892, "cost": 0, "cached_tokens": 1664, "reasoning_tokens": 24, "go": {"billing_source": "go", "list_cost": 6.934e-05, "allowance": 4.161e-05}},
+          {"index": 3, "http_status": 200, "finish_reason": "tool_calls", "sse_done": true, "prompt_tokens": 2012, "completion_tokens": 55, "total_tokens": 2067, "cost": 0, "cached_tokens": 1792, "reasoning_tokens": 0, "go": {"billing_source": "go", "list_cost": 7.138e-05, "allowance": 4.283e-05}},
+          {"index": 4, "http_status": 200, "finish_reason": "stop", "sse_done": true, "prompt_tokens": 2171, "completion_tokens": 156, "total_tokens": 2327, "cost": 0, "cached_tokens": 1920, "reasoning_tokens": 28, "go": {"billing_source": "go", "list_cost": 0.00013701, "allowance": 8.221e-05}}
+        ]
+      }
+    ]
+  }
+}

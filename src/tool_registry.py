@@ -311,7 +311,7 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="edit",
-        description="精确替换当前版本已读取范围内的唯一文本片段。",
+        description="按已知完整旧正文逐字节校验并替换整文件（match=file），或替换已读范围内的唯一文本片段。",
         kind=TOOL_KIND_OUTPUT,
         flow=TOOL_FLOW_DELAYED,
         risk=TOOL_RISK_MEDIUM,

@@ -201,6 +201,7 @@ def build_agent_config(config: dict, system_prompt: str | None = None, cwd: str 
         retry_backoff_seconds=float(config.get("retry_backoff_seconds", 1.0)),
         max_auto_continues=(None if config.get("max_auto_continues", 8) is None else int(config.get("max_auto_continues", 8))),
         delivery_verify=bool(config.get("delivery_verify", False)),
+        require_final_response=bool((config.get('tool_protocol') or {}).get('require_final_response', True)),
         auto_verify_runnable_artifacts=bool(config.get("auto_verify_runnable_artifacts", False)),
         max_delivery_fix_attempts=int(config.get("max_delivery_fix_attempts", 3)),
         max_run_turns=(None if config.get("max_run_turns", 40) is None else int(config.get("max_run_turns", 40))),

@@ -525,7 +525,8 @@ class Executor:
                                 or (not self.security.allow_sensitive_paths and self.security.redact_text(old) != old)):
                             raise FileRevisionConflict("read_required: full-file match requires unredacted text")
                         if before != old.encode("utf-8"):
-                            raise FileRevisionConflict("revision_conflict: complete file differs from old_text or is missing; read before revising")
+                            condition = "file is missing" if before is None else "complete file differs from old_text"
+                            raise FileRevisionConflict(f"revision_conflict: {condition}. No replacement was made. Follow the requested non-match branch.")
                         after = command.new_text.encode("utf-8")
                     elif command.tool == "write":
                         after = command.content.encode("utf-8")
