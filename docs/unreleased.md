@@ -4,11 +4,11 @@
 
 ## 外部贡献
 
-- CLI 补全加入 `/models refresh`。[@x1051445024](https://github.com/x1051445024) · [#5](https://github.com/muxueqingze/xuxiang-thinkflow/pull/5)
-- 会话回放保留中文、换行和字面标记。合并时保留了同一会话的不同历史版本，从历史续接会单独保存进度和工具输出。[@x1051445024](https://github.com/x1051445024) · [#6](https://github.com/muxueqingze/xuxiang-thinkflow/pull/6)
-- 流式响应在服务端确认结束后断线仍能交付，Anthropic 起始文本也能完整显示。合并时补齐了 CLI 和 SDK 的空答复行为。[@x1051445024](https://github.com/x1051445024) · [#7](https://github.com/muxueqingze/xuxiang-thinkflow/pull/7)
-- `/status` 显示缓存命中率和统计覆盖范围。计算按 token 加权，只纳入命中量和完整输入量都可确定的响应。[@x1051445024](https://github.com/x1051445024) · [#8](https://github.com/muxueqingze/xuxiang-thinkflow/pull/8)
-- 可为 OpenAI 兼容接口配置缓存路由键，为 Anthropic Messages 显式开启提示缓存。合并时修正了临时覆盖在切换模型后失效的问题。[@x1051445024](https://github.com/x1051445024) · [#10](https://github.com/muxueqingze/xuxiang-thinkflow/pull/10)
+以下改进由 [@x1051445024](https://github.com/x1051445024) 贡献，维护者在合并时补齐了历史版本续接、空答复和切换模型时的行为。
+
+- 终端可补全 `/models refresh`。会话回放保留中文、换行和字面标记，从历史版本继续时，后续进度和工具输出单独保存。[#5](https://github.com/muxueqingze/xuxiang-thinkflow/pull/5) · [#6](https://github.com/muxueqingze/xuxiang-thinkflow/pull/6)
+- 服务端确认流式响应结束后断线，ThinkFlow 仍能交付。Anthropic 起始文本也能完整显示。[#7](https://github.com/muxueqingze/xuxiang-thinkflow/pull/7)
+- `/status` 按 token 显示缓存命中率和统计覆盖范围。可为 OpenAI 兼容接口配置路由键，为 Anthropic Messages 显式开启缓存。临时覆盖在切换模型后继续生效。[#8](https://github.com/muxueqingze/xuxiang-thinkflow/pull/8) · [#10](https://github.com/muxueqingze/xuxiang-thinkflow/pull/10)
 
 ## 维护者更新
 
