@@ -31,6 +31,17 @@ async def wait_for(predicate):
 
 
 class CliInteractionTests(unittest.IsolatedAsyncioTestCase):
+    def test_refresh_completion_replaces_command_or_argument(self):
+        from prompt_toolkit.document import Document
+
+        completer = build_slash_completer()
+        for prefix in ('/', '/mod', '/models ', '/models r'):
+            with self.subTest(prefix=prefix):
+                results = [prefix[:len(prefix) + item.start_position] + item.text
+                           for item in completer.get_completions(Document(prefix), None)]
+                self.assertEqual(results.count('/models refresh'), 1)
+        self.assertFalse(list(completer.get_completions(Document('/models unrelated'), None)))
+
     def make_agent(self, cwd, provider=None):
         agent = AgentLoop(AgentConfig(
             cwd=str(cwd), provider=provider or ProviderConfig(model="fixture-model"),
