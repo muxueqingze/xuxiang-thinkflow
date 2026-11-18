@@ -14,10 +14,12 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
 
 from .agent_loop import AgentLoop, AgentConfig
 from .compaction import CompactionConfig
+from .console_title import session_title
 from .interfaces import InterfaceConfig
 from .interactive_controller import InteractiveController, add_input_bindings, slash_parts
 from .model_registry import (
@@ -250,13 +252,15 @@ def build_resume_selection_items(store: SessionStore, sessions: list[Path]) -> l
     return items
 
 
-def select_session(agent: AgentLoop, selected: Path, store: SessionStore = None):
+def select_session(agent: AgentLoop, selected: Path, store: SessionStore = None, *, on_session_change=None):
     selected_store = SessionStore(str(selected), cwd=agent.executor.cwd)
     if not selected_store.exists():
         renderer.render_error("session 不存在")
         return
     snapshot = selected_store.load()
     agent.load_snapshot(snapshot)
+    if on_session_change is not None:
+        on_session_change()
     if store is not None:
         store.path = selected_store.path
         if getattr(agent, "session_store", None) is store:
@@ -344,7 +348,7 @@ def set_thinking(agent: AgentLoop, value: str | int):
     renderer.render_info(f"思考：{thinking_label(provider)}")
 
 
-def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None) -> bool:
+def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None, *, on_session_change=None) -> bool:
     """处理 slash command。返回 True = 继续循环，False = 退出。"""
     parts = cmd.strip().split(maxsplit=1)
     command = parts[0].lower()
@@ -366,6 +370,8 @@ def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None)
 
     elif command in ("/new", "/clear"):
         agent.reset_session()
+        if on_session_change is not None:
+            on_session_change()
         if store and command == "/new":
             store.save(agent.to_snapshot())
             renderer.render_info(f"已开始新会话: {store.path}")
@@ -396,7 +402,7 @@ def handle_slash_command(cmd: str, agent: AgentLoop, store: SessionStore = None)
                 renderer.render_error(f"没有找到 session：{store.path.parent}")
 
             if selected is not None:
-                select_session(agent, selected, store)
+                select_session(agent, selected, store, on_session_change=on_session_change)
 
     elif command == "/usage":
         renderer.console.print(agent.usage.summary())
@@ -950,7 +956,7 @@ def load_discovered_config(config_candidates: list[tuple[str, bool]]) -> dict:
 
 
 
-async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosave: bool = True):
+async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosave: bool = True, *, on_session_change=None):
     """交互式对话。"""
     from prompt_toolkit import PromptSession
     from prompt_toolkit.history import InMemoryHistory
@@ -1019,7 +1025,7 @@ async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosav
 
             # Slash commands
             if user_input.strip().startswith("/"):
-                should_continue = handle_slash_command(user_input, agent, store)
+                should_continue = handle_slash_command(user_input, agent, store, on_session_change=on_session_change)
                 if not should_continue:
                     break
                 continue
@@ -1036,7 +1042,7 @@ async def interactive_loop(agent: AgentLoop, store: SessionStore = None, autosav
             break
 
 
-async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, autosave: bool = True):
+async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, autosave: bool = True, *, on_session_change=None):
     """Interactive loop that keeps an editable prompt visible while work runs."""
     from prompt_toolkit import PromptSession
     from prompt_toolkit.history import InMemoryHistory
@@ -1231,7 +1237,7 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
             default_value=items[0].value,
         )
         if selected:
-            select_session(agent, Path(selected), store)
+            select_session(agent, Path(selected), store, on_session_change=on_session_change)
         return True
 
     async def choose_model() -> bool:
@@ -1274,7 +1280,7 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
             return await choose_model()
         if command == "/thinking" and not has_arg:
             return await choose_thinking()
-        return handle_slash_command(stripped, agent, store)
+        return handle_slash_command(stripped, agent, store, on_session_change=on_session_change)
 
     with patch_stdout(raw=True), renderer.prompt_stream_preview():
         try:
@@ -1667,19 +1673,17 @@ def main():
                     return await single_run(agent, f.read(), store=store, autosave=autosave)
             elif args.prompt:
                 return await single_run(agent, args.prompt, store=store, autosave=autosave)
-            elif args.tui:
-                await run_tui(
-                    agent,
-                    store=store,
-                    autosave=autosave,
-                    handle_slash=handle_slash_command,
-                    current_permission_mode=current_permission_mode,
-                    completer=build_slash_completer(agent, store),
-                )
-            elif args.legacy_ui:
-                await interactive_loop(agent, store=store, autosave=autosave)
-            else:
-                await interactive_loop_v2(agent, store=store, autosave=autosave)
+            with session_title(agent) as refresh_title:
+                if args.tui:
+                    await run_tui(
+                        agent, store=store, autosave=autosave,
+                        handle_slash=partial(handle_slash_command, on_session_change=refresh_title),
+                        current_permission_mode=current_permission_mode,
+                        completer=build_slash_completer(agent, store),
+                    )
+                else:
+                    loop = interactive_loop if args.legacy_ui else interactive_loop_v2
+                    await loop(agent, store=store, autosave=autosave, on_session_change=refresh_title)
         finally:
             await agent.close()
 
