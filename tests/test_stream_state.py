@@ -53,6 +53,25 @@ class Wire(httpx.AsyncByteStream):
 
 
 class StreamStateTests(unittest.IsolatedAsyncioTestCase):
+    async def test_command_markup_after_an_id_collision_cannot_finish_the_next_release(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bare = '<read id="3" path="a" />\n<read id="4" path="b" />'
+            agent, requests = await self.scripted_agent(directory, [
+                '<tf-write id="10" path="a">one</tf-write>Delivered A.',
+                '<tf-write id="10" path="b">two</tf-write>',
+                bare,
+                '<tf-write id="11" path="b">two</tf-write>Delivered B.',
+            ], require_final_response=True)
+            await agent.run('Release A')
+            await agent.run('Release B')
+            self.assertEqual(len(requests), 4)
+            self.assertEqual(agent.stopped_reason, 'completed')
+            self.assertEqual(Path(directory, 'b').read_bytes(), b'two')
+            self.assertNotIn('read', [r.tool for r in agent.context.records])
+            self.assertIn('id="11"', requests[1]['messages'][-1]['content'])
+            self.assertIn('id="11"', requests[2]['messages'][-1]['content'])
+            self.assertIn('没有执行', requests[3]['messages'][-1]['content'])
+
     async def test_unfinished_followup_tag_cannot_hide_a_real_file_conflict(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory, 'flag')

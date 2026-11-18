@@ -757,6 +757,8 @@ class AgentLoop:
     def build_runtime_status_message(self) -> dict:
         """Build the runtime state the next request needs."""
         content = self.context.build_system_prompt_suffix()
+        if len(self.conversation.requests) > 1 and self.context.start_stamp > 1:
+            content += f'\n{self.conversation.current_ref}: next new tf-* command id="{self.context.start_stamp}".'
         if self.conversation.requests and len(self.conversation.current_input) > 8000:
             ref = self.conversation.current_ref
             if 'execution_input' in self.conversation.requests[-1]:
@@ -916,6 +918,7 @@ class AgentLoop:
             raise RuntimeError("This agent already has an active run")
         self._run_active = True
         self.last_error = ""
+        self._last_turn_failed = False
         self.native_write_fallback = False
         self._final_response_requested = False
         self.stopped_reason = "completed"
@@ -1037,18 +1040,19 @@ class AgentLoop:
 
     async def _run_one_turn(self) -> bool:
         self._delivered_answer = False
+        recovering = self._last_turn_failed
         self._last_turn_failed = False
         self._replayed_unknown_effect = False
         self.events.turn = self._turn_count + 1
         self.events.emit("turn_started")
         try:
-            return await self._run_one_turn_impl()
+            return await self._run_one_turn_impl(recovering)
         finally:
             self.usage.turns[-1].end_time = time.time()
             self.events.emit("turn_finished", error=self.last_error,
                              failed=self._last_turn_failed)
 
-    async def _run_one_turn_impl(self) -> bool:
+    async def _run_one_turn_impl(self, recovering: bool) -> bool:
         """运行一轮。"""
         self._turn_count += 1
         turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time(), http_attempts=0)
@@ -1318,9 +1322,17 @@ class AgentLoop:
 
         # 3. 记录 assistant 输出
         clean_text = self.view.strip_command_blocks(assistant_text) if assistant_text else ''
+        unexecuted_tags = False
         if abort_reason == AbortReason.END_TURN:
             gate = MarkdownFenceCommandGate()
             plain_text = gate.feed(clean_text) + gate.flush()
+            # During recovery, a response made entirely of unprefixed tool
+            # markup is an attempted action. It has produced no new receipt.
+            if ((recovering or self._final_response_requested) and not self.config.allow_legacy_tool_tags
+                    and clean_text.startswith('<') and plain_text.strip() == clean_text
+                    and self._CMD_TAG_RE.match(clean_text)):
+                legacy_view = SafeTextStreamFilter(allow_legacy_tags=True)
+                unexecuted_tags = not (legacy_view.feed(clean_text) + legacy_view.flush()).strip()
             if (is_deepseek(self.config.provider) and not assistant_text.strip() and not commands_this_turn
                     and not self._final_response_requested):
                 parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
@@ -1385,7 +1397,7 @@ class AgentLoop:
                     "content": (
                         "[THINKFLOW PARSER ERROR — 命令格式错误，思考被打断]\n"
                         f"{parser_error_message}\n\n"
-                        "请修正命令格式后继续。"
+                        f'请使用完整 tf-* 标签；新操作从 id="{self.context.start_stamp}" 开始。'
                     ),
                 })
                 self.view.render_error("命令格式错误，推理已打断")
@@ -1395,7 +1407,8 @@ class AgentLoop:
                     failed = self.context.last_failure
                     if failed:
                         failed.injected = 1
-                    self.messages.append({"role": "user", "content": msg})
+                    self.messages.append({"role": "user", "content":
+                        msg + f'\n如需新操作，使用 tf-* 标签，从 id="{self.context.start_stamp}" 开始。'})
                     self.view.render_error("命令执行失败，推理已打断")
             self.context.clear_flags()
             return True
@@ -1503,8 +1516,8 @@ class AgentLoop:
             self.context.clear_flags()
             if self._continue_open_plan(turn_records):
                 return True
-            if (self.config.require_final_response and not clean_text and self.stopped_reason == 'completed'
-                    and (commands_this_turn or self._final_response_requested)):
+            if (self.config.require_final_response and self.stopped_reason == 'completed'
+                    and (unexecuted_tags or (not clean_text and (commands_this_turn or self._final_response_requested)))):
                 if self._final_response_requested or (self.config.max_auto_continues is not None
                         and self._auto_continue_count >= self.config.max_auto_continues):
                     self.stopped_reason = 'incomplete_response'
@@ -1513,8 +1526,10 @@ class AgentLoop:
                     return False
                 self._final_response_requested = True
                 self._auto_continue_count += 1
+                feedback = (f'上次的无前缀标签没有执行。若要继续，请使用完整 tf-* 标签，从 id="{self.context.start_stamp}" 开始。'
+                            if unexecuted_tags else '上次回复只有工具操作。')
                 self.messages.append({'role': 'user', 'content':
-                    '[THINKFLOW CONTINUE] 上次回复只有工具操作。对照用户请求与实际回执，'
+                    f'[THINKFLOW CONTINUE] {feedback}对照用户请求与实际回执，'
                     '继续遗漏的工作，完成后直接用正文交付。'})
                 return True
             self._delivered_answer = bool(clean_text)
