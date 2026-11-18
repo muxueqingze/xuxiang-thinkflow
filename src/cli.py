@@ -146,6 +146,8 @@ def apply_provider_profile(agent: AgentLoop, profile: ProviderProfileConfig, mod
     provider.reasoning_effort = profile.reasoning_effort
     provider.max_tokens = profile.max_tokens
     provider.stream_options_include_usage = profile.stream_options_include_usage
+    provider.prompt_cache_key = profile.prompt_cache_key
+    provider.anthropic_prompt_cache = profile.anthropic_prompt_cache
     provider.enable_native_tools = profile.enable_native_tools
     provider.native_tools = list(profile.native_tools)
     provider.disabled_native_tools = list(profile.disabled_native_tools)
@@ -179,6 +181,8 @@ def build_model_selection_items(agent: AgentLoop) -> list[SelectionItem]:
             reasoning_effort=provider.reasoning_effort,
             max_tokens=provider.max_tokens,
             stream_options_include_usage=provider.stream_options_include_usage,
+            prompt_cache_key=provider.prompt_cache_key,
+            anthropic_prompt_cache=provider.anthropic_prompt_cache,
             enable_native_tools=provider.enable_native_tools,
             native_tools=list(provider.native_tools),
             disabled_native_tools=list(provider.disabled_native_tools),

@@ -30,7 +30,7 @@ from .conversation import ConversationContext
 from .output_store import OutputStore
 from .streaming import EventType, StreamEvent
 from .provider import (ProviderConfig, anthropic_thinking_options, is_deepseek,
-                       openai_thinking_options, output_budget_options)
+                       openai_thinking_options, output_budget_options, prompt_cache_options)
 from .prompts import build_protocol_prompt
 from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
@@ -804,6 +804,7 @@ class AgentLoop:
             body = {
                 "model": p.model,
                 **output_budget_options(p),
+                **prompt_cache_options(p, p.format),
                 "messages": request_messages,
                 "stream": True,
             }
@@ -824,6 +825,7 @@ class AgentLoop:
             body = {
                 "model": p.model,
                 **output_budget_options(p),
+                **prompt_cache_options(p, p.format),
                 "messages": full_messages,
                 "stream": True,
             }

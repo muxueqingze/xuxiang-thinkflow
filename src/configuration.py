@@ -25,6 +25,7 @@ RUNTIME_CONFIG_FIELDS = (
     'compaction', 'context', 'interfaces', 'tool_protocol', 'max_read_chars', 'max_retries',
     'retry_backoff_seconds', 'max_auto_continues', 'max_consecutive_failures', 'delivery_verify',
     'auto_verify_runnable_artifacts', 'max_delivery_fix_attempts', 'native_tools', 'disabled_native_tools',
+    'prompt_cache_key', 'anthropic_prompt_cache',
 )
 
 

@@ -42,7 +42,7 @@ thinkflow --system-prompt my-guidance.md
 
 常用连接、模型、思考、权限及工程指引继续使用表单。「更多运行配置」编辑一个JSON对象，可配置：
 
-`compaction`、`context`、`interfaces`、`tool_protocol`、`max_read_chars`、`max_retries`、`retry_backoff_seconds`、`max_auto_continues`、`max_consecutive_failures`、`delivery_verify`、`auto_verify_runnable_artifacts`、`max_delivery_fix_attempts`、`native_tools`、`disabled_native_tools`。
+`compaction`、`context`、`interfaces`、`tool_protocol`、`max_read_chars`、`max_retries`、`retry_backoff_seconds`、`max_auto_continues`、`max_consecutive_failures`、`delivery_verify`、`auto_verify_runnable_artifacts`、`max_delivery_fix_attempts`、`native_tools`、`disabled_native_tools`、`prompt_cache_key`、`anthropic_prompt_cache`。
 
 例如：
 
@@ -59,6 +59,27 @@ thinkflow --system-prompt my-guidance.md
 运行轮数和运行秒数可留空，保存为 `null` 表示不设该项限制；秒数可用小数，例如 `0.25`。切换 OpenAI/Anthropic 时，已有工具调用与结果在发送时转换为目标协议，保存的历史保持原样。
 
 桌面用户设置保存在应用自己的settings.json，凭据继续使用safeStorage；它不自动读取CLI的全局或项目配置文件。两种入口共用核心参数及装配，但各自选择持久配置来源。
+
+## 提示缓存
+
+默认不发送任何缓存字段。使用第三方网关时，只有网关文档明确支持对应字段才配置；兼容 Chat Completions 或 Messages 不代表支持其所有可选字段。
+
+以下是 CLI 命名配置的片段，可合并到已有的 `providers` 中。只为需要的端点设置；单端点配置可将对应字段直接放在顶层，桌面端可填在「更多运行配置」里。
+
+```json
+{
+  "active_provider": "chat",
+  "providers": {
+    "chat": {"provider": "openai", "prompt_cache_key": "review-v1"},
+    "claude": {"provider": "anthropic", "max_tokens": 4096, "anthropic_prompt_cache": true}
+  }
+}
+```
+
+- **OpenAI 兼容接口**：`prompt_cache_key` 是[路由提示](https://developers.openai.com/api/docs/guides/prompt-caching)，不是缓存开关。可为共用提示前缀的请求指定稳定、非敏感的标签；非空字符串原样发送，缺省、`null`、空串或纯空白均不发送。ThinkFlow 不从路径、账号或会话内容生成 key，也不在此协议里发送 `cache_control`。
+- **原生 Anthropic Messages**：仅当 `anthropic_prompt_cache` 为 `true` 时，才在请求顶层发送 `"cache_control": {"type": "ephemeral"}`。按[官方自动缓存规则](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)，服务端在最后一个可缓存块设置断点，默认有效期为 5 分钟。不发送 `prompt_cache_key`；关闭时设为 `false`。
+
+相同的 key 或缓存断点都不保证命中。实际复用取决于模型、前缀长度、工具和消息是否一致、请求间隔及供应商策略。历史压缩会改写前缀；实际读写量和费用以供应商的 `usage` 与计费口径为准。
 
 ## 上下文预算
 
