@@ -53,6 +53,70 @@ class Wire(httpx.AsyncByteStream):
 
 
 class StreamStateTests(unittest.IsolatedAsyncioTestCase):
+    async def scripted_agent(self, directory, replies, *, protocol='openai', **settings):
+        agent = AgentLoop(AgentConfig(cwd=directory, **settings, provider=ProviderConfig(
+            format=protocol, model='fixture', max_tokens=4096, enable_native_tools=False)), event_sink=lambda _: None)
+        requests = []
+        async def request(req):
+            requests.append(json.loads(req.content))
+            return httpx.Response(200, stream=Wire([replies[len(requests) - 1]], protocol))
+        await agent.client.aclose()
+        agent.client = httpx.AsyncClient(transport=httpx.MockTransport(request), base_url='http://fixture')
+        self.addAsyncCleanup(agent.close)
+        return agent, requests
+
+    async def test_unfinished_plan_continues_across_delayed_work_until_completed(self):
+        for protocol in ('openai', 'anthropic'):
+            with self.subTest(protocol=protocol), tempfile.TemporaryDirectory() as directory:
+                replies = [
+                    tag('1', 'update_plan', plan('pending')) + '等待工具回执。',
+                    '<tf-write id="2" path="one.txt">1</tf-write>',
+                    '<tf-write id="3" path="two.txt">2</tf-write>',
+                    '<tf-write id="4" path="three.txt">3</tf-write>\n' +
+                    tag('5', 'update_plan', plan('completed', ['2', '3', '4'])) + '完成。',
+                ]
+                agent, requests = await self.scripted_agent(directory, replies, protocol=protocol)
+                await agent.run('按计划生成三个文件。')
+                self.assertEqual(len(requests), 4)
+                self.assertEqual(agent.stopped_reason, 'completed')
+                self.assertEqual(agent.task_plan['steps'][0]['evidence'], ['2', '3', '4'])
+                self.assertEqual(sorted(p.read_text() for p in Path(directory).glob('*.txt')), ['1', '2', '3'])
+
+    async def test_blocked_question_can_stop_with_later_pending_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            waiting = plan('blocked')
+            waiting['steps'].append({**plan('pending')['steps'][0], 'id': 'later'})
+            agent, requests = await self.scripted_agent(directory, [
+                tag('1', 'update_plan', waiting) + '您想采用哪种格式？'])
+            await agent.run('先问我需要的格式，等我回复。')
+            self.assertEqual(len(requests), 1)
+            self.assertEqual(agent.task_plan, waiting)
+
+    async def test_pending_plan_respects_budget_and_stops_on_repeated_empty_turns(self):
+        for budget, expected, reason in ((0, 1, 'max_auto_continues'), (1, 2, 'max_auto_continues'), (None, 3, 'incomplete_plan')):
+            with self.subTest(budget=budget), tempfile.TemporaryDirectory() as directory:
+                agent, requests = await self.scripted_agent(directory, [
+                    tag('1', 'update_plan', plan()), '等待执行回执。', '等待执行回执。',
+                ], max_auto_continues=budget)
+                await agent.run('生成目标文件。')
+                self.assertEqual(len(requests), expected)
+                self.assertEqual(agent.stopped_reason, reason)
+
+    async def test_no_repeat_without_progress_or_carryover_to_next_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            agent, requests = await self.scripted_agent(directory, [
+                tag('1', 'update_plan', plan()),
+                tag('2', 'update_plan', {**plan(), 'explanation': '仍在等待'}) + '请提供所需名称。',
+                '<tf-write id="3" path="unrelated.txt">other</tf-write>\n完成。',
+                '已发出命令，正在等待回执。',
+            ], max_auto_continues=None, max_run_turns=None)
+            await agent.run('先写计划。')
+            self.assertEqual(len(requests), 2)
+            await agent.run('另建一个不相关的文件。')
+            await agent.run('原样复述一句等待回执的话。')
+            self.assertEqual(len(requests), 4)
+            self.assertEqual((Path(directory) / 'unrelated.txt').read_text(), 'other')
+
     async def test_plan_write_and_completion_share_one_live_response(self):
         for protocol in ('openai', 'anthropic'):
             with self.subTest(protocol=protocol), tempfile.TemporaryDirectory(prefix='tf-stream-plan-') as directory:
@@ -119,6 +183,21 @@ class StreamStateTests(unittest.IsolatedAsyncioTestCase):
             finally:
                 await agent.close()
 
+    async def test_failed_plan_receipt_can_be_corrected_before_completion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            agent, requests = await self.scripted_agent(directory, [
+                tag('1', 'update_plan', plan()) +
+                '<tf-write id="2" path="proof.txt">ok</tf-write>\n' +
+                tag('3', 'update_plan', plan('completed', ['missing'])),
+                tag('4', 'update_plan', plan('completed', ['2'])) + '完成。',
+            ])
+            await agent.run('生成文件，并根据回执更新计划。')
+            self.assertEqual(len(requests), 2)
+            self.assertIn('最近成功回执', json.dumps(requests[1], ensure_ascii=False))
+            self.assertEqual([r.status for r in agent.context.records], ['success', 'success', 'failed', 'success'])
+            self.assertEqual((Path(directory) / 'proof.txt').read_text(), 'ok')
+            self.assertEqual(agent.task_plan, plan('completed', ['2']))
+
     async def test_explicit_result_boundary_and_read_only_state_update(self):
         with tempfile.TemporaryDirectory(prefix='tf-plan-boundary-') as directory:
             agent = AgentLoop(AgentConfig(cwd=directory, security=SecurityPolicy(read_only=True),
@@ -126,7 +205,7 @@ class StreamStateTests(unittest.IsolatedAsyncioTestCase):
             requests = []
             async def request(req):
                 requests.append(json.loads(req.content))
-                text = tag('1', 'update_plan', plan(), ' need_result="true"') if len(requests) == 1 else '完成。'
+                text = tag('1', 'update_plan', plan('blocked'), ' need_result="true"') if len(requests) == 1 else '计划已保存，等您确认。'
                 return httpx.Response(200, stream=Wire([text]))
             await agent.client.aclose()
             agent.client = httpx.AsyncClient(transport=httpx.MockTransport(request), base_url='http://fixture')

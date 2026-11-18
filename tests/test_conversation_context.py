@@ -237,22 +237,16 @@ class ConversationRuntimeTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await service.close()
 
-    async def test_recall_is_exposed_after_compaction_and_both_adapters_match(self):
-        self.agent.conversation.summary = '[THINKFLOW COMPACTED CONTEXT] legacy snapshot'
-        self.assertNotIn('recall', self.agent._enabled_native_tool_names())
-        self.agent.conversation.summary = ''
+    async def test_recall_schema_and_protocol_stay_stable_across_first_compaction(self):
+        protocol = self.agent.build_system_prompt()
+        tools = self.agent.build_request_body('')['tools']
+        self.assertIn('<tf-recall', protocol)
+        self.assertIn('recall', {t['function']['name'] for t in tools})
         await self.admit('Original requirement: preserve Unicode 中文.')
-        before = self.agent.build_request_body('')
-        self.assertNotIn('recall', {t['function']['name'] for t in before['tools']})
-        self.assertNotIn('<tf-recall', self.agent.build_system_prompt())
-        await self.agent._load_tools({'names': ['recall']})
-        self.assertIn('recall', self.agent._enabled_native_tool_names())
-        self.assertIn('<tf-recall', self.agent.build_system_prompt())
-        self.agent.additional_native_tools.clear()
         progress(self.agent.messages)
         self.agent.compact(force=True)
-        self.assertIn('recall', {t['function']['name'] for t in self.agent.build_request_body('')['tools']})
-        self.assertIn('<tf-recall', self.agent.build_system_prompt())
+        self.assertEqual(self.agent.build_system_prompt(), protocol)
+        self.assertEqual(self.agent.build_request_body('')['tools'], tools)
         text_command = StreamingParser(allow_legacy_tags=False).feed(
             '<tf-recall id="7" ref="request:1" offset="0" limit="100" />')[0]
         streamed = await self.agent._execute_command(text_command)

@@ -1129,7 +1129,7 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
                 rows.append("<style fg='#8a8a8a'>    Up/Down/Left/Right  Enter  Esc</style>")
             selector_html = "\n" + "\n".join(rows)
         return HTML(
-            "\n"
+            f"{html.escape(renderer.stream_preview(width))}\n"
             "<style bg='#0b2239' fg='#9cdcfe'> "
             f"{html.escape(status)}"
             "</style>"
@@ -1276,7 +1276,7 @@ async def interactive_loop_v2(agent: AgentLoop, store: SessionStore = None, auto
             return await choose_thinking()
         return handle_slash_command(stripped, agent, store)
 
-    with patch_stdout(raw=True):
+    with patch_stdout(raw=True), renderer.prompt_stream_preview():
         try:
             while True:
                 user_input = await session.prompt_async(prompt_message)

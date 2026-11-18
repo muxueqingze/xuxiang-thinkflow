@@ -283,7 +283,6 @@ class OutputRecallTests(unittest.IsolatedAsyncioTestCase):
         self.agent.messages.append({'role': 'user', 'content': 'old request'})
         result = await self.produce('short')
         self.assertNotIn('Original', self.agent._format_tool_result(result))
-        self.assertNotIn('<tf-recall', self.agent.build_system_prompt())
         old_root = self.agent.outputs.root
         self.agent.reset_session()
         self.assertFalse(old_root.exists())

@@ -34,7 +34,7 @@ from .prompts import build_protocol_prompt
 from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
 from .compaction import CompactionConfig, CompactionStats, compact_messages, estimate_message_chars
-from .context_budget import estimate_request_tokens
+from .context_budget import estimate_message_tokens, estimate_request_tokens
 from .text_filter import MarkdownFenceCommandGate, SafeTextStreamFilter
 from .interfaces import ExternalInterfaces, InterfaceConfig
 from .skills import SkillConfig, SkillManager
@@ -271,6 +271,7 @@ class AgentLoop:
         self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd, executor=self.executor)
         self.skill_manager = SkillManager(config.cwd, config.skills)
         self.task_plan = {'explanation': '', 'steps': []}
+        self._plan_continuation_progress: set[tuple] | None = None
         self.conversation = ConversationContext()
         self.native_write_fallback = False
         self.additional_native_tools: set[str] = set()
@@ -672,6 +673,8 @@ class AgentLoop:
         except Exception:
             self.task_plan = previous
             raise
+        if self._plan_continuation_progress is None:
+            self._plan_continuation_progress = set()
         return '任务计划已保存。完成标记附有执行回执，但不代替用户对验收条件的核对。'
 
     async def _list_skills_tool(self, tool_input: dict) -> str:
@@ -728,13 +731,11 @@ class AgentLoop:
         the first message every turn prevents provider-side prompt cache hits.
         """
         names = self._enabled_native_tool_names()
-        recall_available = (bool(self.conversation.summary and self.conversation.requests)
-                            or self.context.has_archived_output or 'recall' in names)
-        protocol = build_protocol_prompt(names, recall_available=recall_available)
+        protocol = build_protocol_prompt(names)
         return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
     def build_runtime_status_message(self) -> dict:
-        """Build per-request runtime state without persisting it in session history."""
+        """Build the runtime state the next request needs."""
         content = self.context.build_system_prompt_suffix()
         shell = os.path.basename(os.environ.get('COMSPEC', 'cmd.exe')) if os.name == 'nt' else '/bin/sh'
         content += '\n[EXECUTION ENVIRONMENT]\n' + json.dumps({
@@ -747,18 +748,43 @@ class AgentLoop:
             content += '\n[PROTOCOL FALLBACK] 本次任务出现流式协议错误，现已提供原生文件工具作为保底。原生函数名用write/edit/bash等，不含tf-、id属性或尖括号。先核对已有回执，不要重放已成功操作。'
         return {"role": "user", "content": content}
 
-    def _messages_with_runtime_status(self) -> list[dict]:
+    def _messages_with_current_runtime(self) -> list[dict]:
+        """Freeze each state change at its original place in the conversation."""
+        current = self.build_runtime_status_message()['content']
+        previous = next((m['_thinkflow_runtime'] for m in reversed(self.messages)
+                         if '_thinkflow_runtime' in m), None)
+        if previous == current:
+            return self.messages
+        # A preview or retry can see the same tail again. Keep the sent state
+        # and place the new one after it when no new history has arrived.
+        if not self.messages or '_thinkflow_runtime' in self.messages[-1]:
+            return [*self.messages, {'role': 'user', 'content': '', '_thinkflow_runtime': current}]
+        return [*self.messages[:-1], {**self.messages[-1], '_thinkflow_runtime': current}]
+
+    def _projected_history(self, *, report: bool = True) -> list[dict]:
         complete_reads = {record.id: record.output_chars for record in self.context.records
                           if record.tool == 'read' and record.status == 'success' and not record.truncated}
-        request_messages = project_read_results(self.messages, complete_reads)
-        replaced = [(original, projected) for original, projected in zip(self.messages, request_messages)
+        history = self._messages_with_current_runtime()
+        request_messages = project_read_results(history, complete_reads)
+        replaced = [(original, projected) for original, projected in zip(history, request_messages)
                     if original is not projected]
-        if replaced:
+        if replaced and report:
             self.events.emit('context_projection', read_results=len(replaced),
                              saved_chars=sum(len(json.dumps(original['content'], ensure_ascii=False))
                                              - len(json.dumps(projected['content'], ensure_ascii=False))
                                              for original, projected in replaced))
-        return with_observation(request_messages, self.build_runtime_status_message()['content'])
+        return request_messages
+
+    @staticmethod
+    def _attach_saved_runtime(message: dict) -> list[dict]:
+        if '_thinkflow_runtime' not in message:
+            return [message]
+        message = message.copy()
+        status = message.pop('_thinkflow_runtime')
+        return with_observation([message], status)
+
+    def _messages_with_runtime_status(self) -> list[dict]:
+        return [item for message in self._projected_history() for item in self._attach_saved_runtime(message)]
 
     def build_request_body(self, system: str) -> dict:
         """Build the provider request body."""
@@ -834,8 +860,6 @@ class AgentLoop:
         if allow:
             return (allow - deny) & registered
         names = set(CORE_NATIVE_TOOLS)
-        if not ((self.conversation.summary and self.conversation.requests) or self.context.has_archived_output):
-            names.discard('recall')
         names.update(self.additional_native_tools)
         if self.native_write_fallback:
             names.update({"write", "append", "edit", "mkdir", "touch", "copy"})
@@ -868,6 +892,7 @@ class AgentLoop:
         self.last_error = ""
         self.native_write_fallback = False
         self.stopped_reason = "completed"
+        self._plan_continuation_progress = None
         self._auto_continue_count = 0
         self._delivery_fix_count = 0
         cancelled = False
@@ -952,13 +977,14 @@ class AgentLoop:
         if injection:
             self.messages = with_observation(self.messages, injection, read_spans=read_spans)
 
-    def compact(self, *, force: bool = False) -> CompactionStats:
+    def compact(self, *, force: bool = False, request_size: tuple[int, list[int]] | None = None) -> CompactionStats:
         """Run deterministic compaction and keep stats for status output."""
         compacted, stats = compact_messages(
             self.messages,
             self.config.compaction,
             force=force,
             history=self.conversation,
+            request_size=request_size,
         )
         if stats.changed:
             self.messages = compacted
@@ -1008,7 +1034,12 @@ class AgentLoop:
         input_estimate = estimate_request_tokens(body)
         budget = self.config.compaction.max_input_tokens
         if self.config.compaction.enabled and budget > 0 and input_estimate > budget:
-            budget_stats = self.compact(force=True)
+            # Attribute token pressure to the wire projection. A duplicate read
+            # may occupy megabytes on disk but only a short reference on wire.
+            costs = [sum(estimate_message_tokens(item) for item in project_messages(
+                         self._attach_saved_runtime(message), self.config.provider.format))
+                     for message in self._projected_history(report=False)[:len(self.messages)]]
+            budget_stats = self.compact(request_size=(input_estimate, costs))
             if budget_stats.changed:
                 system = self.build_system_prompt()
                 body = self.build_request_body(system)
@@ -1019,6 +1050,7 @@ class AgentLoop:
                              changed=budget_stats.changed)
             input_estimate = after_estimate
         self.last_input_tokens_estimate = input_estimate
+        self.messages = self._messages_with_current_runtime()
         record_start_index = len(self.context.records)
         path = self.get_request_path()
 
@@ -1430,11 +1462,46 @@ class AgentLoop:
             if turn_records:
                 self.view.render_tool_summary(turn_records)
             self.context.clear_flags()
+            if self._continue_open_plan(turn_records):
+                return True
             self.view.newline()
             return False
 
         self.context.clear_flags()
         return False
+
+    def _continue_open_plan(self, records: list) -> bool:
+        # Only plans adopted by this user request participate in continuation.
+        seen = self._plan_continuation_progress
+        if seen is None:
+            return False
+        steps = self.task_plan['steps']
+        step = next((s for s in steps if s['status'] == 'in_progress'), None)
+        if step is None and not any(s['status'] == 'blocked' for s in steps):
+            step = next((s for s in steps if s['status'] == 'pending'), None)
+        if step is None:
+            return False
+        progress = {('step', step['id'], step['status'])}
+        progress.update(('effect', record.content_hash) for record in records
+                        if record.status == 'success' and record.flow == TOOL_FLOW_DELAYED
+                        and record.tool != 'update_plan')
+        if not records:
+            progress.add(('missing-command', step['id']))
+        if progress <= seen:
+            self.stopped_reason = 'incomplete_plan'
+            self.last_error = f"计划步骤 {step['id']} 未完成，本轮没有新的执行进展。"
+            self.view.render_info(self.last_error)
+            return False
+        if self.config.max_auto_continues is not None and self._auto_continue_count >= self.config.max_auto_continues:
+            self.stopped_reason = 'max_auto_continues'
+            self.last_error = '计划仍有待执行步骤，已达到自动续写上限。'
+            return False
+        seen.update(progress)
+        self._auto_continue_count += 1
+        self.messages.append({'role': 'user', 'content': (
+            f"[THINKFLOW CONTINUE] 当前没有待回传的执行结果，计划步骤 {step['id']} 仍待执行。"
+            "继续时请发出实际工具调用；需要用户决定或暂停时，将当前步骤标记为 blocked。")})
+        return True
 
     def _turn_needs_delivery_check(self, records: list) -> bool:
         return any(

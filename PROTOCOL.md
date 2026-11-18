@@ -50,7 +50,9 @@
 
 前三项提供新信息，结果整批反馈；目录遍历遵循工作区内的 `.gitignore`，明确指定被忽略文件或目录时可直接搜索。`grep` 保留 Python 正则语义。
 
-`update_plan` 只保存明确提交的本地状态，成功时仅确认已知内容，走 delayed 路径，不增加模型回合。步骤采用原有 `id/title/acceptance/status/evidence` 结构；完成项仍引用真实成功回执，FIFO 中先写文件、后标记完成。错误和显式 `need_result` 沿用原反馈路径。原生 `update_plan` 继续遵守提供方的 tool call/result 回合，不改写原生协议。
+`update_plan` 保存明确提交的本地状态，成功走 delayed 路径，可在同一次生成中继续执行。步骤采用 `id/title/acceptance/status/evidence` 结构，完成项引用真实成功回执，FIFO 中可先写文件、后标记完成。错误和显式 `need_result` 沿用原反馈路径。原生 `update_plan` 遵守提供方的 tool call/result 回合。
+
+本次用户请求已调用 `update_plan`，且模型在可继续的步骤中结束生成时，框架依据新步骤状态或本批新执行的文件操作续写，沿用 `max_auto_continues` 预算。需要用户决定时，把当前步骤标成 `blocked`，再提出问题。仍有可执行步骤却只输出正文时，框架在预算内为该步骤提示一次；继续没有进展则以未完成状态退出。会话保留旧计划供参考，新用户请求需要继续该计划时可再次调用 `update_plan`。
 
 可选 `context` 保存少量阶段说明、决策和文件导航，省略沿用已有值，提供对象整体替换，`{}` 清除。已有 `steps` 负责进度和下一步；文件导航不授予读取或修改基线。context 随计划持久化并投影到当前请求，不复制进压缩摘要、不请求额外摘要模型。
 
@@ -220,14 +222,14 @@ print("checked")
 
 只读回取本会话的原始要求、冻结输入或工具输出，范围按字符计算；结果包含总长度和下一偏移。query是大小写敏感字面文本，按块定位首个匹配，返回匹配字符位置及行片段；未命中是正常结果。request编号按真实用户输入顺序递增，provider工具观察不占编号。`request:N`是用户原话，`request:N:input`是提交时含冻结附件的完整执行输入，后续文件变化不改变它。工具原文使用回执中的短引用，通常为`receipt:N:stdout/stderr`；账本裁剪的命令载荷也可有content/old_text/new_text引用。
 
-独立回取可与read同批声明，沿用信息批次反馈。压缩后或存在长输出原文时默认注入recall说明与原生schema；显式工具名单或load_tools也可开放。短结果原样反馈，长输出预览带原文引用与长度；取消/超时保存已收到的输出，保持原停止与恢复语义。原文归实际SessionStore管理，恢复/fork及导出索引见[输出生命周期](docs/output-recall-20261111.md)。
+独立回取可与read同批声明，沿用信息批次反馈。回取语法固定在协议中；启用默认原生工具时从首次请求提供recall schema，显式允许或禁用名单仍优先。短结果原样反馈，长输出预览带原文引用与长度；取消/超时保存已收到的输出，保持原停止与恢复语义。原文归实际SessionStore管理，恢复/fork及导出索引见[输出生命周期](docs/output-recall-20261111.md)。
 
 ### 4.10 原生 tool_use
 
 传统tool_call通道由`ToolRegistry`动态注册。显式启用后，首批开放read/write/edit/bash/python/read_skill/load_tools；其余从同一registry按需load_tools，显式native_tools名单优先。完整工具能力包括：
 
 - 文件/命令：`read`、`list_files`、`glob`、`grep`、`bash`、`python`、`write`、`append`、`edit`、`mkdir`、`touch`、`copy`
-- 原始要求：`recall`，压缩后默认开放
+- 原始要求：`recall`，默认原生工具之一
 - 联网：`web_search`、`fetch_url`
 - 多模态插口：`image_generate`
 - Skill：`list_skills`、`read_skill`

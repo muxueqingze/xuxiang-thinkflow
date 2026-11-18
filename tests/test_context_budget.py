@@ -93,15 +93,48 @@ class ContextBudgetTests(unittest.TestCase):
         self.assertIn('role=observation | content=[Observation] output', compacted[0]['content'])
         self.assertEqual(history.request_positions, {1: 'request:1'})
 
-    def test_zero_token_settings_preserve_message_count_and_disabled_compaction(self):
+    def test_character_pressure_makes_room_between_compactions(self):
+        history = ConversationContext()
+        config = CompactionConfig()
+        messages = []
+        boundaries = []
+        for i in range(49):
+            messages.append({'role': 'assistant', 'content': str(i) + 'x' * 9000})
+            messages, stats = compact_messages(messages, config, history=history)
+            if stats.changed:
+                self.assertLessEqual(stats.after_chars, config.max_chars * 3 // 4)
+                boundaries.append(i)
+        self.assertGreaterEqual(len(boundaries), 2)
+        self.assertTrue(all(b - a >= 5 for a, b in zip(boundaries, boundaries[1:])))
+
+    def test_oversized_active_request_and_steering_leave_a_rolling_window(self):
+        history = ConversationContext()
+        active = ['attachment with exact contents ' * 12000, 'retain the revised constraint']
+        history.record_request(0, active[0], active[0])
+        history.record_request(1, active[1], active[1], continuation=True)
+        messages = [{'role': 'user', 'content': text} for text in active]
+        messages += [{'role': 'assistant', 'content': 'x' * 1000} for _ in range(100)]
+        config = CompactionConfig(max_messages=0, max_chars=8000)
+        messages, first = compact_messages(messages, config, history=history)
+        self.assertTrue(first.changed)
+        self.assertGreater(first.after_chars, config.max_chars)
+        for _ in range(10):
+            messages.append({'role': 'assistant', 'content': 'small update'})
+            messages, stats = compact_messages(messages, config, history=history)
+            self.assertFalse(stats.changed)
+        for text in active:
+            self.assertEqual(sum(m['content'] == text for m in messages), 1)
+
+    def test_count_limit_includes_summary_and_disabled_compaction_is_respected(self):
         config = CompactionConfig.from_config({'compaction': {
             'max_messages': 2, 'keep_recent_messages': 2,
         }})
         self.assertEqual((config.max_input_tokens, config.keep_recent_tokens), (0, 0))
         messages = [{'role': 'user', 'content': str(index)} for index in range(4)]
         compacted, stats = compact_messages(messages, config)
-        self.assertEqual(stats.compacted_messages, 2)
-        self.assertEqual(compacted[1:], messages[-2:])
+        self.assertEqual(stats.compacted_messages, 3)
+        self.assertEqual(compacted[1:], messages[-1:])
+        self.assertLessEqual(len(compacted), config.max_messages)
 
         config.enabled = False
         config.max_input_tokens = config.keep_recent_tokens = 1

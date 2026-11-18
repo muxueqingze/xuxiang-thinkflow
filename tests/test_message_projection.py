@@ -181,8 +181,8 @@ class DesktopProtocolSwitchTests(unittest.IsolatedAsyncioTestCase):
                             reply = f'<tf-read id="{len(requests)}" path="source.txt"{flag} />'
                         else:
                             reply = 'Reads complete.'
-                            baseline = project_messages(with_observation(agent.messages,
-                                agent.build_runtime_status_message()['content']), protocol)
+                            baseline = project_messages([item for message in agent.messages
+                                for item in agent._attach_saved_runtime(message)], protocol)
                             actual = [m for m in body['messages'] if m['role'] != 'system']
                             size = lambda value: len(json.dumps(value, ensure_ascii=False, separators=(',', ':')))
                             measurements.append((protocol, need_result, size(baseline), size(actual)))
@@ -193,6 +193,15 @@ class DesktopProtocolSwitchTests(unittest.IsolatedAsyncioTestCase):
                     try:
                         await agent.run('Read source.txt twice and retain both successful observations.')
                         self.assertEqual(len(requests), 3)
+                        for previous, current in zip(requests, requests[1:]):
+                            prefix = previous['messages']
+                            self.assertEqual(current['messages'][:len(prefix)], prefix)
+                            self.assertEqual(current.get('system'), previous.get('system'))
+                        self.assertNotIn('_thinkflow_runtime', json.dumps(requests))
+                        agent.load_snapshot(json.loads(json.dumps(agent.to_snapshot())))
+                        resumed = agent.build_request_body(agent.build_system_prompt())['messages']
+                        prefix = requests[-1]['messages']
+                        self.assertEqual(resumed[:len(prefix)], prefix)
                         self.assertEqual([(r.id, r.status) for r in agent.context.records],
                                          [('1', 'success'), ('2', 'success')])
                         results = [m for m in agent.messages if m.get('_thinkflow_reads')]

@@ -17,7 +17,7 @@ from rich.panel import Panel
 from rich import box
 from rich.markdown import Markdown
 from rich.theme import Theme
-from rich.live import Live
+from rich.cells import cell_len, set_cell_size
 from rich.status import Status
 
 from .parser import TOOLS
@@ -98,10 +98,11 @@ TOOL_LABELS = {
 
 _in_thinking = False
 _text_buffer = ""
-_text_streamed = False
-_text_live: Optional[Live] = None
 _activity_status: Optional[Status] = None
-_last_live_update = 0.0
+_prompt_owns_preview = ContextVar("prompt_owns_stream_preview", default=False)
+_preview_drawn = False
+_last_preview_update = 0.0
+_new_stream_line = False
 _LIVE_INTERVAL = 0.08
 _strip_legacy_tool_tags = False
 _tool_kind_overrides: dict[str, str] = {}
@@ -177,18 +178,10 @@ def _stop_activity():
 
 
 def reset_transient_ui():
-    """Stop live/status renderers after cancellation or unexpected errors."""
-    global _text_live, _text_buffer, _text_streamed, _last_live_update, _in_thinking
+    """Leave a clean terminal line after cancellation or an unexpected error."""
+    global _in_thinking
     _stop_activity()
-    if _text_live is not None:
-        try:
-            _text_live.stop()
-        except Exception:
-            pass
-        _text_live = None
-    _text_buffer = ""
-    _text_streamed = False
-    _last_live_update = 0.0
+    flush_text()
     _in_thinking = False
 
 
@@ -430,7 +423,8 @@ def _command_prefix_pattern() -> str:
 
 def strip_command_blocks(text: str) -> str:
     """移除正文 fallback 中的 ThinkFlow 命令块，避免 UI 和上下文里残留工具标签。"""
-    return _strip_command_blocks_outside_fences(text)
+    visible = _strip_command_blocks_outside_fences(text)
+    return _re.sub(r'\n{3,}', '\n\n', visible).strip()
 
 
 def _strip_command_blocks_outside_fences(text: str) -> str:
@@ -466,7 +460,7 @@ def _strip_command_blocks_outside_fences(text: str) -> str:
             outside.append(line)
 
     flush_outside()
-    return _re.sub(r'\n{3,}', '\n\n', "".join(chunks)).strip()
+    return "".join(chunks)
 
 
 def _strip_command_blocks_raw(text: str) -> str:
@@ -490,72 +484,115 @@ def _fence_marker(line: str) -> str:
     return ""
 
 
+@contextmanager
+def prompt_stream_preview():
+    """The editable prompt is the only owner of the interactive cursor."""
+    token = _prompt_owns_preview.set(True)
+    try:
+        yield
+    finally:
+        _prompt_owns_preview.reset(token)
+
+
+def stream_preview(width: int) -> str:
+    """Show the unfinished Markdown tail on one physical row, even for CJK."""
+    width = max(0, width - 1)
+    tail = _text_buffer.rstrip().rsplit("\n", 1)[-1]
+    sample = tail[-width:] if width else ""
+    sample = "".join(char if char.isprintable() else " " for char in sample)
+    if len(sample) < len(tail) or cell_len(sample) > width:
+        sample = "…" + set_cell_size(sample[::-1], max(0, width - 1))[::-1]
+    return sample if width else ""
+
+
+def _clear_preview():
+    global _preview_drawn
+    if _preview_drawn:
+        console.file.write("\r" + " " * max(0, console.width - 1) + "\r")
+        console.file.flush()
+        _preview_drawn = False
+
+
+def _print_markdown(text: str):
+    if text.strip():
+        console.print()
+        console.print(Markdown(text), style="reply")
+
+
+def _commit_finished_blocks():
+    global _text_buffer
+    complete = _text_buffer[:_text_buffer.rfind("\n")]
+    parsed = Markdown(complete).parsed
+    starts = [token.map[0] for token in parsed if token.level == 0 and token.map]
+    if len(starts) < 2:
+        return
+
+    split = starts[-1]
+    lines = _text_buffer.split("\n", split)
+    prefix = "\n".join(lines[:-1])
+    # A link reference and its definition can be in different blocks, in
+    # either order. Keep these together for Markdown's final resolution.
+    if _re.search(r"(?m)^ {0,3}\[[^\]\n]+\]:", prefix) or any(
+        token.type == "inline" and token.map and token.map[0] < split
+        and _re.search(r"\[[^\]\n]*\](?!\()", token.content)
+        for token in parsed
+    ):
+        return
+    _clear_preview()
+    _print_markdown(_strip_command_blocks_outside_fences(prefix))
+    _text_buffer = lines[-1]
+
+
 def render_text_chunk(text: str):
-    """流式渲染正文 chunk。终端中用 Live Markdown 预览，结束时渲染最终 Markdown。"""
-    global _text_buffer, _text_streamed, _in_thinking, _text_live, _last_live_update
+    """Commit complete Markdown blocks to scrollback; preview only the open tail."""
+    global _text_buffer, _last_preview_update, _preview_drawn, _new_stream_line
     if not text:
         return
     _flush_compact_tools()
     _stop_activity()
     if _in_thinking:
         end_thinking()
-    _text_streamed = True
     _text_buffer += text
     if not console.is_terminal:
         return
+    _new_stream_line |= "\n" in text
     now = time.monotonic()
-    renderable = _markdown_preview(strip_command_blocks(_text_buffer))
-    if _text_live is None:
-        _text_live = Live(renderable, console=console, transient=True, auto_refresh=False)
-        _text_live.start()
-        _last_live_update = now
+    if now - _last_preview_update < _LIVE_INTERVAL:
         return
-    if now - _last_live_update >= _LIVE_INTERVAL:
-        _text_live.update(renderable, refresh=True)
-        _last_live_update = now
+    _last_preview_update = now
+
+    # The last top-level block can still change (setext headings, list
+    # continuation, unclosed fences). Keep it until the next block is known.
+    if _new_stream_line:
+        _new_stream_line = False
+        _commit_finished_blocks()
+
+    if not _prompt_owns_preview.get():
+        preview = set_cell_size(stream_preview(console.width), max(0, console.width - 1))
+        console.file.write("\r" + preview + "\r")
+        console.file.flush()
+        _preview_drawn = True
 
 
 def accumulate_text(text: str):
     """累积正文到 buffer，不输出。"""
-    global _text_buffer, _in_thinking
+    global _text_buffer
     if _in_thinking:
         end_thinking()
     _text_buffer += text
 
 
 def flush_text():
-    """正文流结束 —— 过滤命令块后用 Markdown 渲染。"""
-    global _text_buffer, _text_streamed, _text_live, _last_live_update
-    if not _text_buffer.strip():
-        _text_buffer = ""
-        _text_streamed = False
-        if _text_live is not None:
-            _text_live.stop()
-            _text_live = None
-        return
-
-    text = _text_buffer
+    """Print the remaining block once, including on tool boundaries."""
+    global _text_buffer, _last_preview_update, _new_stream_line
+    _clear_preview()
+    text = _strip_command_blocks_outside_fences(_text_buffer)
     _text_buffer = ""
-
-    text = strip_command_blocks(text)
-    if _text_live is not None:
-        _text_live.stop()
-        _text_live = None
-
-    _text_streamed = False
-    _last_live_update = 0.0
-    if text:
+    _last_preview_update = 0.0
+    _new_stream_line = False
+    if text.strip():
+        _print_markdown(text)
         console.print()
-        console.print(Markdown(text), style="reply")
-        console.print()
-
-
-def _markdown_preview(text: str):
-    """让不完整 Markdown 在 Live 预览里尽量稳定。"""
-    text = text or " "
-    if text.count("```") % 2 == 1:
-        text += "\n```"
-    return Markdown(text)
 
 
 def render_tool_call(name: str, args: dict):

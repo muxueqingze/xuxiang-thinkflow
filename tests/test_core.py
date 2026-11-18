@@ -1239,6 +1239,37 @@ def test_renderer_flushes_streamed_markdown():
         renderer.console = old_console
 
 
+def test_streaming_terminal_commits_markdown_without_replaying_scrollback():
+    from unittest.mock import patch
+    from rich.cells import cell_len
+    from rich.text import Text
+
+    output = io.StringIO()
+    terminal = Console(file=output, force_terminal=True, legacy_windows=False,
+                       width=32, height=5, theme=renderer.THEME)
+    with patch.object(renderer, "console", terminal), patch.object(renderer, "_LIVE_INTERVAL", 0):
+        with renderer.prompt_stream_preview():
+            renderer.render_text_chunk("首段 **已提交**。\n\n")
+            renderer.render_text_chunk("第二段\n\n")
+            assert "已提交" in output.getvalue()
+            renderer.render_text_chunk("未完成" * 80)
+            assert cell_len(renderer.stream_preview(16)) <= 15
+            assert "未完成" not in output.getvalue()
+            renderer.flush_text()
+        transcript = output.getvalue()
+        assert transcript.count("已提交") == 1
+        assert "**" not in transcript and "\x1b[2K" not in transcript and "\r" not in transcript
+
+        output.seek(0)
+        output.truncate()
+        with renderer.prompt_stream_preview():
+            renderer.render_text_chunk("看[资料][doc]。\n\n中间段落\n\n")
+            renderer.render_text_chunk("[doc]: https://example.org/manual\n\n末段\n")
+            renderer.flush_text()
+        assert "看资料。" in Text.from_ansi(output.getvalue()).plain
+        assert "[资料][doc]" not in output.getvalue()
+
+
 def test_renderer_tool_summary_lists_command_paths():
     old_console = renderer.console
     output = io.StringIO()
@@ -2587,6 +2618,7 @@ def run_all():
         test_filters_preserve_fenced_tool_examples_and_strip_executable_text,
         test_strict_parser_requires_tf_prefix,
         test_renderer_flushes_streamed_markdown,
+        test_streaming_terminal_commits_markdown_without_replaying_scrollback,
         test_renderer_tool_summary_lists_command_paths,
         test_renderer_distinguishes_native_tool_kinds_and_running_state,
         test_agent_notices_streaming_tool_hint_before_command_closes,

@@ -8,7 +8,7 @@ turns older history into a bounded, inspectable summary message.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from .context_budget import estimate_message_tokens
@@ -66,6 +66,7 @@ def compact_messages(
     *,
     force: bool = False,
     history: ConversationContext | None = None,
+    request_size: tuple[int, list[int]] | None = None,
 ) -> tuple[list[dict[str, Any]], CompactionStats]:
     """Compact messages if limits are exceeded.
 
@@ -74,7 +75,8 @@ def compact_messages(
     Anthropic-compatible APIs can consume it.
     """
     before_messages = len(messages)
-    before_chars = estimate_message_chars(messages)
+    chars = [len(_stable_json(message)) for message in messages]
+    before_chars = sum(chars)
     stats = CompactionStats(
         changed=False,
         before_messages=before_messages,
@@ -88,14 +90,51 @@ def compact_messages(
 
     over_messages = config.max_messages > 0 and before_messages > config.max_messages
     over_chars = config.max_chars > 0 and before_chars > config.max_chars
-    if not force and not (over_messages or over_chars):
+    over_tokens = request_size is not None and 0 < config.max_input_tokens < request_size[0]
+    if not force and not (over_messages or over_chars or over_tokens):
+        return list(messages), stats
+
+    history = history if history is not None else ConversationContext()
+    active_inputs = history.active_inputs
+    active_positions = {position: ref for position, ref in history.request_positions.items()
+                        if ref in active_inputs}
+    last_batch = _adjust_split_for_tool_messages(messages, before_messages - 1)
+    # The newest native call/results and all active user inputs are indivisible.
+    # Reserve space for both before choosing the rolling history window.
+    pinned_inputs = {i: {"role": "user", "content": active_inputs[ref]}
+                     for i, ref in active_positions.items() if i < last_batch}
+    has_summary = bool(history.summary and messages[0].get("content") == history.summary)
+    pressure = []
+    if over_chars:
+        cap = min(config.max_summary_chars, max(200, config.max_chars // 4))
+        config = replace(config, max_summary_chars=cap)
+        pressure.append(_pressure_split(chars, before_chars, config.max_chars,
+            {i: len(_stable_json(m)) for i, m in pinned_inputs.items()}, cap + 32, last_batch, has_summary))
+    if over_tokens:
+        input_tokens, message_tokens = request_size
+        cap = min(config.max_summary_chars, max(200, config.max_input_tokens))
+        config = replace(config, max_summary_chars=cap)
+        pressure.append(_pressure_split(message_tokens, input_tokens, config.max_input_tokens,
+            {i: estimate_message_tokens(m) for i, m in pinned_inputs.items()}, cap // 2, last_batch, has_summary))
+    count_split = (_pressure_split([1] * before_messages, before_messages, config.max_messages,
+                   dict.fromkeys(pinned_inputs, 1), 1, last_batch, has_summary) if over_messages else 0)
+    if not force and not count_split and not any(pressure):
         return list(messages), stats
 
     if config.keep_recent_tokens > 0:
         split_at = _split_for_recent_tokens(messages, config.keep_recent_tokens)
     else:
-        keep_count = max(1, min(config.keep_recent_messages, before_messages - 1))
-        split_at = max(1, before_messages - keep_count)
+        split_at = max(0, before_messages - max(1, config.keep_recent_messages))
+        if force and before_messages > 1:
+            split_at = max(1, split_at)
+    split_at = max(split_at, count_split)
+    size_split = max(pressure, default=0)
+    if size_split:
+        split_at = max(split_at, size_split)
+        # Under size pressure, fold a whole older batch if its result crosses
+        # the boundary. Always keep the final batch intact.
+        while split_at < last_batch and _is_tool_result(messages[split_at]):
+            split_at += 1
     split_at = _adjust_split_for_tool_messages(messages, split_at)
 
     older = messages[:split_at]
@@ -103,12 +142,8 @@ def compact_messages(
     if not older:
         return list(messages), stats
 
-    history = history if history is not None else ConversationContext()
     entries = list(history.summary_entries)
     count = history.compacted_messages
-    active_inputs = history.active_inputs
-    active_positions = {position: ref for position, ref in history.request_positions.items()
-                        if ref in active_inputs}
     pinned = {position: ref for position, ref in sorted(active_positions.items()) if position < split_at}
     expanded_requests = {entry["ref"] for entry in history.requests[:-1] if "execution_input" in entry}
     for position, message in enumerate(older):
@@ -138,7 +173,8 @@ def compact_messages(
     compacted = prefix + list(recent)
     after_chars = estimate_message_chars(compacted)
 
-    if compacted == messages:
+    if compacted == messages or (not force and over_chars and not over_messages and not over_tokens
+                                 and after_chars >= before_chars):
         return list(messages), stats
     history.summary_entries = kept_entries
     history.summary = summary
@@ -170,15 +206,38 @@ def _split_for_recent_tokens(messages: list[dict[str, Any]], budget: int) -> int
     return 0
 
 
+def _pressure_split(sizes: list[int], total: int, limit: int, pinned_sizes: dict[int, int],
+                    summary_size: int, last_batch: int, has_summary: bool) -> int:
+    """Free a quarter of the budget while protecting irreducible request data."""
+    evictable = [max(0, size - pinned_sizes.get(i, 0)) for i, size in enumerate(sizes[:last_batch])]
+    if has_summary and evictable:
+        # Rewriting the existing summary only frees its *growth* allowance.
+        evictable[0] = 0
+        summary_size = max(0, summary_size - sizes[0])
+    removable = sum(evictable)
+    fixed = max(0, total - removable)
+    # When an attachment or final tool batch consumes the entire budget, leave
+    # a small rolling window so every subsequent short turn can still append.
+    if removable <= max(limit - fixed, limit // 4):
+        return 0
+    room = max((3 * limit + 3) // 4 - fixed, limit // 8) - summary_size
+    for i in range(last_batch - 1, -1, -1):
+        room -= evictable[i]
+        if room < 0:
+            return i + 1
+    return 0
+
+
+def _is_tool_result(message: dict) -> bool:
+    content = message.get("content")
+    return (message.get("role") == "tool" or
+            (message.get("role") == "user" and isinstance(content, list)
+             and any(block.get("type") == "tool_result" for block in content)))
+
+
 def _adjust_split_for_tool_messages(messages: list[dict[str, Any]], split_at: int) -> int:
     """Avoid keeping orphan tool results without their assistant tool call."""
-    while split_at > 0 and split_at < len(messages):
-        message = messages[split_at]
-        content = message.get("content")
-        anthropic_results = (message.get("role") == "user" and isinstance(content, list)
-                             and any(block.get("type") == "tool_result" for block in content))
-        if message.get("role") != "tool" and not anthropic_results:
-            break
+    while 0 < split_at < len(messages) and _is_tool_result(messages[split_at]):
         split_at -= 1
     return split_at
 

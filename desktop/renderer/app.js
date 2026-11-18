@@ -207,38 +207,6 @@ async function selectSession(id) {
   if (running() || busy || !connected) return null;
   return perform(() => api.request('resume_session', { session_id: id }), { navigation: true });
 }
-function inlineText(parent, text) {
-  // Render an intentionally small Markdown subset without ever parsing raw HTML.
-  const pattern = /(`[^`\n]+`|\*\*[^*\n]+\*\*)/g;
-  let position = 0, match;
-  while ((match = pattern.exec(text))) {
-    parent.append(document.createTextNode(text.slice(position, match.index)));
-    if (match[0].startsWith('`')) parent.append(element('code', '', match[0].slice(1, -1)));
-    else parent.append(element('strong', '', match[0].slice(2, -2)));
-    position = match.index + match[0].length;
-  }
-  parent.append(document.createTextNode(text.slice(position)));
-}
-function renderContent(container, content) {
-  const blocks = String(content || '').split(/(```[^\n]*\n[\s\S]*?(?:\n```|$))/g);
-  for (const block of blocks) {
-    if (!block) continue;
-    if (block.startsWith('```')) {
-      const wrapper = element('div', 'code-block'); const pre = element('pre'); const code = block.replace(/^```[^\n]*\n/, '').replace(/\n```$/, ''); pre.append(element('code', '', code)); const copy = element('button', 'code-copy', '复制代码'); copy.addEventListener('click', () => api.copyText(code).then(() => toast('已复制代码')).catch(() => showError('无法写入剪贴板'))); wrapper.append(copy, pre); container.append(wrapper); continue;
-    }
-    const paragraphs = block.split(/\n\s*\n/);
-    for (const paragraph of paragraphs) {
-      if (!paragraph.trim()) continue;
-      if (/^#{1,6}\s/.test(paragraph) && !paragraph.trim().includes('\n')) {
-        const heading = element('div', 'markdown-heading'); inlineText(heading, paragraph.replace(/^#{1,6}\s/, '')); container.append(heading);
-      } else if (paragraph.split('\n').every(line => /^\s*(?:[-*]|\d+\.)\s/.test(line))) {
-        const list = element('ul', 'markdown-list');
-        for (const line of paragraph.split('\n')) { const li = element('li'); inlineText(li, line.replace(/^\s*(?:[-*]|\d+\.)\s/, '')); list.append(li); }
-        container.append(list);
-      } else { const text = element('div', 'markdown-paragraph'); inlineText(text, paragraph); container.append(text); }
-    }
-  }
-}
 function positionBottomButton() {
   const box = $('messages-scroll').getBoundingClientRect(), parent = document.querySelector('.conversation').getBoundingClientRect();
   $('back-to-bottom').style.bottom = Math.max(8, parent.bottom - box.bottom + 8) + 'px';
@@ -274,7 +242,7 @@ function renderMessages() {
     const content = String(message.content || '');
     if (content !== record.content) {
       if (isUser) record.body.textContent = content;
-      else { record.body.replaceChildren(); renderContent(record.body, content); }
+      else updateMarkdown(record, content);
       record.content = content;
     }
     record.stream.hidden = true;
@@ -541,7 +509,7 @@ function initializeNavigation() {
   $('close-recent').addEventListener('click', () => $('workspace-dialog').close());
   $('resume-queue').addEventListener('click', () => perform(() => api.request('resume_queue')));
   $('pause-queue').addEventListener('click', () => perform(() => api.request('pause_queue')));
-  $('messages-scroll').addEventListener('scroll', () => { const box = $('messages-scroll'); followBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 64; $('back-to-bottom').hidden = followBottom || !state.messages?.length; });
+  $('messages-scroll').addEventListener('scroll', () => { const box = $('messages-scroll'); followBottom = box.scrollHeight - box.scrollTop - box.clientHeight <= 1; $('back-to-bottom').hidden = followBottom || !state.messages?.length; });
   $('back-to-bottom').addEventListener('click', () => { followBottom = true; $('messages-scroll').scrollTop = $('messages-scroll').scrollHeight; $('back-to-bottom').hidden = true; });
   document.addEventListener('click',event => { if (!$('more-menu').contains(event.target)) $('more-menu').open = false; });
   document.addEventListener('keydown',event => { if (event.key === 'Escape' && $('more-menu').open) { $('more-menu').open = false; $('more-menu').querySelector('summary').focus(); } });
