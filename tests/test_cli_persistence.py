@@ -195,7 +195,7 @@ class CLIProcessTests(unittest.TestCase):
         self.assertEqual([(r["id"], r["status"]) for r in snapshot["context"]["records"]],
                          [("1", "success")])
         self.hold = False
-        self.text = '<tf-write id="2" path="second.txt">continued</tf-write>'
+        self.text = '<tf-write id="2" path="second.txt">continued</tf-write>Done.'
         resumed = self.start("--resume")
         out, err = resumed.communicate(timeout=15)
         self.assertEqual(resumed.returncode, 0, (out, err))
@@ -208,7 +208,7 @@ class CLIProcessTests(unittest.TestCase):
 
     def test_no_autosave_does_not_create_session_or_journal(self):
         self.text = '<tf-write id="1" path="effect.txt">effect</tf-write>'
-        process = self.start("--no-autosave")
+        process = self.start("--no-autosave", "--set", "tool_protocol.require_final_response=false")
         stdout, stderr = process.communicate(timeout=15)
         self.assertEqual(process.returncode, 0, (stdout, stderr))
         self.assertTrue((self.root / "effect.txt").exists())
