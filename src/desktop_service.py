@@ -747,7 +747,8 @@ class DesktopService:
                     await asyncio.to_thread(view.grant_attachment_baselines, item['attachments'])
             # The shared loop admits these messages and emits steering_applied in
             # this task, before yielding again. That event persists both states.
-            return [{'id': item['id'], 'prompt': self._input_prompt(item), 'user_request': item['prompt']}
+            return [{'id': item['id'], 'prompt': self._input_prompt(item), 'user_request': item['prompt'],
+                     'attachment_paths': [file['path'] for file in item.get('attachments', [])]}
                     for item in commands]
 
     def _schedule_queue(self):
@@ -850,7 +851,10 @@ class DesktopService:
                     from .workspace import WorkspaceView
                     view = WorkspaceView(self.cwd, executor=getattr(self.agent, "executor", None))
                     await asyncio.to_thread(view.grant_attachment_baselines, command["attachments"])
-            await self.agent.run(prompt, user_request=command['prompt'] if command_id else prompt)
+            options = {}
+            if command_id and command.get('attachments'):
+                options['attachment_paths'] = [file['path'] for file in command['attachments']]
+            await self.agent.run(prompt, user_request=command['prompt'] if command_id else prompt, **options)
             self.last_error = self.agent.last_error
             self.status = "error" if self.last_error else "idle"
         except asyncio.CancelledError:

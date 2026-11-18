@@ -408,6 +408,8 @@ class StreamingParser:
             repeated_id=repeated,
         )
 
+        if tool == "python":
+            command.ref = attrs.get("ref")
         if tool == "recall":
             command.ref = attrs.get("ref")
             command.query = attrs.get("query")

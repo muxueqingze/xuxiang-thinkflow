@@ -275,7 +275,10 @@ BUILTIN_TOOL_SPECS = [
         risk=TOOL_RISK_HIGH,
         parameters={
             "type": "object",
-            "properties": {"code": {"type": "string", "description": "多行Python源代码；print需要反馈的结果"}},
+            "properties": {
+                "code": {"type": "string", "description": "多行Python源代码；print需要反馈的结果"},
+                "ref": {"type": "string", "description": "可选，向 stdin 提供完整用户原文 request:N 或冻结附件输入 request:N:input"},
+            },
             "required": ["code"],
         },
     ),

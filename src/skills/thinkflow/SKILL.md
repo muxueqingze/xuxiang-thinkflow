@@ -174,3 +174,5 @@ print("hello")
 ## 与传统 harness 的差异
 
 用户问起时：续想来自"可预测结果的工具调用不必打断流式推理"。write/append/mkdir/touch/copy/edit 可以在 thinking/text 流中执行；read/bash、失败、显式 need_result 和原生 tool_call 形成反馈边界。账本展示实际执行结果，节省数字是相对于逐条串行工具调用的估算，不是实际账单或相对批量 tool calling 的保证。
+
+处理很长的用户数据时，tf-python 可加 `ref="request:N"`，脚本通过 `sys.stdin.read()` 取得完整原话；冻结附件输入使用 `request:N:input`。处理后只输出决定下一步所需的结果。恢复同一工作区后，可继续编辑已反馈的文件版本；磁盘有外部改动时重新读取。

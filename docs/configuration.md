@@ -72,6 +72,7 @@ thinkflow --system-prompt my-guidance.md
 | `compaction.max_input_tokens` | 0 | 按实际待发输入估算的额外触发阈值，0关闭 |
 | `compaction.keep_recent_messages` | 30 | 按消息数保留近期历史 |
 | `compaction.keep_recent_tokens` | 0 | 大于0时改为按估算token保留连续近期历史 |
+| `compaction.prior_attachment_chars` | 8000 | 已交付任务的显式冻结附件超出此字符数时，下个任务以文件名和原文引用代替重复发送。0 关闭；当前任务与运行中补充保留全文。 |
 | `compaction.max_summary_chars` | 16000 | 摘录摘要的字符预算 |
 
 输入估算在待反馈工具结果加入、请求投影完成之后进行，包括实际messages、system和tools，使用紧凑JSON的UTF-8字节数÷4向上取整。触发后只做一次本地整理并重新构建请求，不增加摘要API。供应商reported usage独立保存，不用旧轮用量冒充当前请求大小。`/status`显示最近待发请求估算；这是近似计数。

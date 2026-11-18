@@ -6,6 +6,7 @@ ThinkFlow Context Manager — 上下文管理
 """
 
 import hashlib
+from html import escape
 import json
 import re
 import time
@@ -90,6 +91,8 @@ class CommandRecord:
                 value = getattr(self, name)
                 if value is not None:
                     attrs.append(f'{name}="{value}"')
+        if self.tool == 'python' and self.ref is not None:
+            attrs.append(f'ref="{escape(self.ref)}"')
         if self.tool == 'recall':
             attrs.extend([f'ref="{self.ref}"', f'offset="{self.offset}"', f'limit="{self.limit}"'])
             if self.query is not None:
@@ -537,6 +540,8 @@ def _command_hash(command: Command) -> str:
         parts.extend([str(command.offset), str(command.limit)])
     elif command.tool == 'edit' and command.match == 'file':
         parts.append('match=file')
+    elif command.tool == 'python' and command.ref is not None:
+        parts.append(command.ref)
     # Preserve existing snapshot hashes for ordinary commands. A literal NUL
     # in an argument must not be mistaken for a boundary between arguments.
     if any("\0" in part for part in parts):

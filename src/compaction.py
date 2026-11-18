@@ -28,6 +28,7 @@ class CompactionConfig:
     max_item_chars: int = 900
     max_input_tokens: int = 0
     keep_recent_tokens: int = 0
+    prior_attachment_chars: int = 8000
 
     @classmethod
     def from_config(cls, config: dict) -> "CompactionConfig":
@@ -41,6 +42,7 @@ class CompactionConfig:
             max_item_chars=int(raw.get("max_item_chars", 900)),
             max_input_tokens=int(raw.get("max_input_tokens", 0)),
             keep_recent_tokens=int(raw.get("keep_recent_tokens", 0)),
+            prior_attachment_chars=int(raw.get("prior_attachment_chars", 8000)),
         )
 
 

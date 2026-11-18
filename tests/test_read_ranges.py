@@ -1,5 +1,6 @@
 """Read the needed code, edit it exactly, and keep the rest of the file intact."""
 import asyncio
+from contextlib import asynccontextmanager
 import json
 import os
 import secrets
@@ -19,6 +20,7 @@ from src.executor import Executor
 from src.parser import Command
 from src.provider import ProviderConfig
 from src.security import SecurityPolicy
+from src.session import SessionStore
 from test_anthropic_roundtrip import EventStream, block_events, finish
 from test_output_recall import SSE
 
@@ -303,6 +305,118 @@ class ReadRangeTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn('read_required', agent.context.records[-1].error)
         finally:
             await agent.close()
+
+    @asynccontextmanager
+    async def open_read_session(self, store, replies=(), *, max_read_chars=200_000):
+        requests = []
+        responses = iter(replies)
+
+        def receive(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, stream=SSE(next(responses)))
+
+        provider = ProviderConfig(base_url='https://example.test', model='fixture', enable_native_tools=False)
+        client = httpx.AsyncClient(base_url=provider.base_url, transport=httpx.MockTransport(receive))
+        config = AgentConfig(cwd=str(store.cwd), provider=provider, max_read_chars=max_read_chars,
+                             security=SecurityPolicy(allowed_roots=[str(self.root)]))
+        with patch.object(AgentLoop, '_new_http_client', return_value=client):
+            agent = AgentLoop(config, event_sink=lambda event: None)
+        store.bind(agent)
+        try:
+            yield agent, requests
+        finally:
+            store.unbind()
+            await agent.close()
+
+    async def test_resumed_session_grants_delivered_full_reads_at_the_saved_version(self):
+        unchanged = self.seed('stable original', 'stable.txt')
+        changed = self.seed('external version one', 'changed.txt')
+        store = SessionStore(str(self.root / 'session.json'), cwd=str(self.root))
+        reads = '<tf-read id="1" path="stable.txt" /><tf-read id="2" path="changed.txt" />'
+        async with self.open_read_session(store, (reads, 'Both reads received.')) as (agent, requests):
+            await agent.run('Read the two files.')
+            feedback = str(requests[-1]['messages'])
+            self.assertIn('stable original', feedback)
+            self.assertIn('external version one', feedback)
+
+        changed.write_bytes(b'external version two')
+        reopened = SessionStore(str(store.path), cwd=str(self.root))
+        reply = '<tf-write id="3" path="stable.txt">replacement</tf-write>Done.'
+        async with self.open_read_session(reopened, (reply,)) as (resumed, requests):
+            resumed.load_snapshot(reopened.load())
+            await resumed.run('Replace the stable file using its prior read.')
+            self.assertEqual(len(requests), 1)
+            self.assertEqual(resumed.context.records[-1].status, 'success')
+            self.assertEqual(unchanged.read_bytes(), b'replacement')
+            refused = await resumed.tool_registry.execute('write', {'path': 'changed.txt', 'content': 'blind'})
+            self.assertIn('revision_conflict', refused.error)
+            self.assertEqual(changed.read_bytes(), b'external version two')
+
+    async def test_resumed_session_keeps_range_clip_and_redaction_boundaries(self):
+        partial = self.seed('before\nedit this\nuntouched', 'partial.txt')
+        prefix = 'abcdefghijklmnopqrstuvwx'
+        clipped = self.seed(prefix + 'Zsuffix\nlast', 'clipped.txt')
+        redacted = self.seed('password=fixture-secret\n', 'redacted.txt')
+        store = SessionStore(str(self.root / 'session.json'), cwd=str(self.root))
+        reads = ('<tf-read id="1" path="partial.txt" offset="2" limit="1" />'
+                 '<tf-read id="2" path="clipped.txt" offset="1" limit="1" />'
+                 '<tf-read id="3" path="redacted.txt" />')
+        async with self.open_read_session(store, (reads, 'Reads received.'), max_read_chars=len(prefix)) as (agent, requests):
+            await agent.run('Read the three views.')
+            feedback = str(requests[-1]['messages'])
+            for visible in ('edit this', prefix, '[REDACTED]'):
+                self.assertIn(visible, feedback)
+            for hidden in ('untouched', 'Zsuffix', 'fixture-secret'):
+                self.assertNotIn(hidden, feedback)
+
+        reopened = SessionStore(str(store.path), cwd=str(self.root))
+        async with self.open_read_session(reopened) as (resumed, _):
+            resumed.load_snapshot(reopened.load())
+            for path, unseen in ((partial, 'untouched'), (clipped, 'Zsuffix'), (redacted, 'fixture-secret')):
+                with self.subTest(path=path.name):
+                    before = path.read_bytes()
+                    write = await resumed.tool_registry.execute('write', {'path': path.name, 'content': 'blind'})
+                    self.assertIn('read_required', write.error)
+                    edit = await resumed.tool_registry.execute('edit', {
+                        'path': path.name, 'old_text': unseen, 'new_text': 'blind'})
+                    self.assertIn('read_required', edit.error)
+                    self.assertEqual(path.read_bytes(), before)
+            for path, visible in ((partial, 'edit this'), (clipped, prefix)):
+                before = path.read_bytes()
+                result = await resumed.tool_registry.execute('edit', {
+                    'path': path.name, 'old_text': visible, 'new_text': 'updated'})
+                self.assertTrue(result.success, result.error)
+                self.assertEqual(path.read_bytes(), before.replace(visible.encode(), b'updated'))
+
+    async def test_pending_legacy_and_foreign_snapshots_do_not_grant_reads(self):
+        known = self.seed('already delivered', 'known.txt')
+        pending = self.seed('awaiting delivery', 'pending.txt')
+        store = SessionStore(str(self.root / 'session.json'), cwd=str(self.root))
+        replies = ('<tf-read id="1" path="known.txt" />', 'Read received.', '<tf-read id="2" path="pending.txt" />')
+        async with self.open_read_session(store, replies) as (agent, requests):
+            await agent.run('Read the known file.')
+            self.assertTrue(await agent._run_one_turn())
+            self.assertEqual(agent.context.records[-1].status, 'success')
+            self.assertIn('awaiting delivery', str(agent.messages))
+            self.assertIn('already delivered', str(requests[1]['messages']))
+            self.assertNotIn('awaiting delivery', str(requests[-1]['messages']))
+
+        reopened = SessionStore(str(store.path), cwd=str(self.root))
+        legacy = SessionStore(str(self.root / 'legacy.json'), cwd=str(self.root))
+        legacy_data = reopened.load()
+        del legacy_data['read_baselines']
+        legacy.save(legacy_data, history=False)
+        other_root = self.root / 'other-workspace'
+        other_root.mkdir()
+        foreign = SessionStore(str(store.path), cwd=str(other_root))
+        for session, target in ((reopened, pending), (legacy, known), (foreign, known)):
+            with self.subTest(session=session.path.name, workspace=session.cwd.name):
+                before = target.read_bytes()
+                async with self.open_read_session(session) as (resumed, _):
+                    resumed.load_snapshot(session.load())
+                    refused = await resumed.tool_registry.execute('write', {'path': str(target), 'content': 'blind'})
+                    self.assertIn('read_required', refused.error)
+                self.assertEqual(target.read_bytes(), before)
 
     async def test_text_and_native_paths_batch_reads_then_edit_the_visible_ranges(self):
         originals = {name: ('unchanged\n' * 500 + f'{name} = 1\n' + 'tail\n' * 500) for name in ('alpha', 'beta')}

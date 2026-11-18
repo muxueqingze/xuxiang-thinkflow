@@ -1,0 +1,78 @@
+{
+  "experiment": "Actual ThinkFlow HTTP request bytes at local MockTransport; deterministic SSE, real desktop attachment, child Python and persisted session. No provider billing.",
+  "estimator": "ceil(compact UTF-8 JSON bytes of messages, system, tools / 4)",
+  "followups": 6,
+  "cold_reopen_before_followup": 4,
+  "compaction_after_measurement": 2,
+  "fixture_file_bytes": 40827,
+  "file_sha256": "0f67e42734cec85e984354c5a3c02f9ad9100fe8fa7a59ba55f5c39e94a62074",
+  "threshold_zero": {
+    "attachment_request_http_body_bytes": 48219,
+    "following_http_body_bytes": [
+      48543,
+      48645,
+      48747,
+      48849,
+      48951,
+      49053
+    ],
+    "following_input_bytes": [
+      48471,
+      48573,
+      48675,
+      48777,
+      48879,
+      48981
+    ],
+    "following_estimated_tokens": [
+      12118,
+      12144,
+      12169,
+      12195,
+      12220,
+      12246
+    ],
+    "restored_frozen_input_sha256": "7f9ce9965989737b5eefe16887d1ba7890c4007de833c324fe98c8e9e4c73290",
+    "sum_following_input_bytes": 292356,
+    "sum_following_estimated_tokens": 73092,
+    "sum_following_http_body_bytes": 292788
+  },
+  "threshold_8000": {
+    "attachment_request_http_body_bytes": 48219,
+    "following_http_body_bytes": [
+      3960,
+      4062,
+      4164,
+      4266,
+      4368,
+      4470
+    ],
+    "following_input_bytes": [
+      3888,
+      3990,
+      4092,
+      4194,
+      4296,
+      4398
+    ],
+    "following_estimated_tokens": [
+      972,
+      998,
+      1023,
+      1049,
+      1074,
+      1100
+    ],
+    "restored_frozen_input_sha256": "7f9ce9965989737b5eefe16887d1ba7890c4007de833c324fe98c8e9e4c73290",
+    "sum_following_input_bytes": 24858,
+    "sum_following_estimated_tokens": 6216,
+    "sum_following_http_body_bytes": 25290
+  },
+  "interpretation": {
+    "savings_input_bytes": 267498,
+    "savings_estimated_tokens": 66876,
+    "percent_fewer_input_bytes": 91.5,
+    "fixture_middle": "MID_RULE=forty_seven*19+13",
+    "cold_restore": "Original SHA-256 and middle rule matched via a real tf-python process after two manual compactions and a second cold reopen; source file had changed on disk."
+  }
+}

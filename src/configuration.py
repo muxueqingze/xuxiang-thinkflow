@@ -55,7 +55,7 @@ def validate_runtime_settings(config: dict) -> None:
         value = config.get(section) or {}
         if 'enabled' in value and type(value['enabled']) is not bool:
             raise ValueError(f'{section}.enabled must be boolean')
-    for key in ('max_input_tokens', 'keep_recent_tokens'):
+    for key in ('max_input_tokens', 'keep_recent_tokens', 'prior_attachment_chars'):
         value = (config.get('compaction') or {}).get(key, 0)
         if type(value) is not int or value < 0:
             raise ValueError(f'compaction.{key} must be a non-negative integer')

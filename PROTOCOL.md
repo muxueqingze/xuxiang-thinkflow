@@ -1,6 +1,6 @@
 # ThinkFlow — 命令格式协议
 
-> 版本：1.13
+> 版本：1.14
 > 日期：2026-11-18
 
 ---
@@ -81,7 +81,7 @@
 | `path` | read/write/append/mkdir/touch/copy/edit 必需 | — | 文件/目录路径。 |
 | `dest` | copy 必需 | — | 复制目标路径。 |
 | `cmd` | bash 必需 | — | Shell 命令。 |
-| `ref` | recall 必需 | — | 原文引用，如`request:1`、冻结输入`request:1:input`或`receipt:3:stdout`。 |
+| `ref` | recall 必需，python 可选 | — | recall 可读取用户原文、冻结输入及工具回执；python 接受完整用户原文 `request:N` 或冻结输入 `request:N:input`。 |
 | `offset` | read/recall 可选 | read省略；recall为`0` | read为从1开始的行号；recall为非负字符偏移。 |
 | `limit` | read/recall 可选 | read省略；recall为`8000` | read为正整数行数；recall为字符数，范围1至200000。 |
 | `query` | recall 可选 | — | 从offset起搜索非空字面关键词，返回首个匹配行的有界片段。 |
@@ -219,6 +219,13 @@ print("checked")
 ```
 
 正文是多行Python源码，经stdin交给独立解释器；不经过shell转义、不创建临时脚本。与bash共用cwd、输出捕获、权限、超时和取消；Python子进程固定UTF-8模式及标准输入输出编码，与代码通道和结果解码一致，shell仍沿用项目环境。每次调用无持久变量。Python用于数据处理与集中检查，产物修改用受版本管理的文件工具。默认批次反馈，`need_result=true`立即反馈。
+
+Python 处理用户给定的大表或历史样本时，可把原文直接作为标准输入。例子会统计第一条用户请求的行数；只有脚本输出进入工具反馈。字符换行按原样传入，`sys.stdin.buffer` 可读取 UTF-8 字节。引用范围是当前会话，也适用于快照恢复。
+
+```xml
+<tf-python id="10" ref="request:1">import sys
+print(len(sys.stdin.read().splitlines()))</tf-python>
+```
 
 ### 4.9 recall
 
@@ -388,6 +395,7 @@ EDIT_NEW = r'<new>(?P<new>.*?)</new>'
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| 1.14 | 2026-11-19 | Python 标准输入可绑定会话原文。恢复同工作区已确认的文件版本及已读范围，修改前继续按磁盘版本核对。 |
 | 1.13 | 2026-11-18 | 两通道跳过 Markdown 示例；延迟操作按回执辨认重发；用户界面以正文交付结束，静默宿主可配置。 |
 | 1.12 | 2026-11-18 | edit 支持按完整旧正文验证的整文件替换；原生调用形成同响应文本命令的执行边界。 |
 | 1.10 | 2026-11-11 | 冻结输入request:N:input；纯信息失败批次结算；文本及两种原生格式的精确read投影与发送时协议转换。 |

@@ -268,6 +268,7 @@ class AgentLoop:
             max_read_chars=config.max_read_chars,
             security=config.security,
             output_store=self.outputs,
+            request_text=lambda ref: self.conversation.original_text(ref),
         )
         self.set_output_secrets([config.provider.api_key, *(p.api_key for p in config.provider.provider_profiles)])
         self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd, executor=self.executor)
@@ -313,6 +314,7 @@ class AgentLoop:
         self._auto_continue_count = 0
         self._delivery_fix_count = 0
         self._final_response_requested = False
+        self._delivered_answer = False
         self.compaction_count = 0
         self.last_compaction: Optional[CompactionStats] = None
         self.last_input_tokens_estimate = 0
@@ -456,6 +458,8 @@ class AgentLoop:
             return result
 
         async def python_tool(tool_input: dict) -> ExecutionResult:
+            if 'ref' in tool_input and not isinstance(tool_input['ref'], str):
+                raise ValueError('python ref must be a request reference string')
             return await self.executor.python(**tool_input)
 
         async def append_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
@@ -753,6 +757,12 @@ class AgentLoop:
     def build_runtime_status_message(self) -> dict:
         """Build the runtime state the next request needs."""
         content = self.context.build_system_prompt_suffix()
+        if self.conversation.requests and len(self.conversation.current_input) > 8000:
+            ref = self.conversation.current_ref
+            if 'execution_input' in self.conversation.requests[-1]:
+                ref += ':input'
+            content += (f'\n完整输入可直接用于数据处理：tf-python 加 ref="{ref}"，'
+                        '用 sys.stdin.read() 读取原文，无需把数据抄进代码。')
         shell = os.path.basename(os.environ.get('COMSPEC', 'cmd.exe')) if os.name == 'nt' else '/bin/sh'
         content += '\n[EXECUTION ENVIRONMENT]\n' + json.dumps({
             'platform': 'Windows' if os.name == 'nt' else sys.platform,
@@ -780,7 +790,7 @@ class AgentLoop:
     def _projected_history(self, *, report: bool = True) -> list[dict]:
         complete_reads = {record.id: record.output_chars for record in self.context.records
                           if record.tool == 'read' and record.status == 'success' and not record.truncated}
-        history = self._messages_with_current_runtime()
+        history = self._attachment_view(self._messages_with_current_runtime())
         request_messages = project_read_results(history, complete_reads)
         replaced = [(original, projected) for original, projected in zip(history, request_messages)
                     if original is not projected]
@@ -900,7 +910,7 @@ class AgentLoop:
         tools = self.tool_registry.anthropic_tools()
         return [tool for tool in tools if tool.get("name") in names]
 
-    async def run(self, user_input: str, *, user_request: Optional[str] = None):
+    async def run(self, user_input: str, *, user_request: Optional[str] = None, attachment_paths=()):
         """主入口。"""
         if self._run_active:
             raise RuntimeError("This agent already has an active run")
@@ -921,7 +931,7 @@ class AgentLoop:
         try:
             self.conversation.record_request(len(self.messages),
                                              user_input if user_request is None else user_request,
-                                             user_input)
+                                             user_input, attachment_paths=attachment_paths)
             self.messages.append({"role": "user", "content": user_input})
             while self.config.max_run_turns is None or turns < max(1, self.config.max_run_turns):
                 remaining = None if deadline is None else deadline - time.monotonic()
@@ -952,7 +962,7 @@ class AgentLoop:
                         for item in incoming:
                             text = item['prompt']
                             self.conversation.record_request(len(self.messages), item.get('user_request', text),
-                                                             text, continuation=True)
+                                                             text, continuation=True, attachment_paths=item.get('attachment_paths', ()))
                             self.messages.append({'role': 'user', 'content': text})
                         self.events.emit('steering_applied', messages=incoming)
                         should_continue = True
@@ -965,6 +975,8 @@ class AgentLoop:
             if self.stopped_reason.startswith("max_"):
                 self.last_error = f"Run stopped at configured limit: {self.stopped_reason}"
                 self.view.render_error(self.last_error)
+            if self._delivered_answer and self.stopped_reason == 'completed' and not self.last_error:
+                self.conversation.finish_attachments()
             self.compact(force=False)
         except asyncio.CancelledError:
             cancelled = True
@@ -980,9 +992,13 @@ class AgentLoop:
             self.events.emit("run_finished", cancelled=cancelled, error=self.last_error,
                              stopped_reason=self.stopped_reason, turns=turns)
 
+    def _attachment_view(self, messages):
+        config = self.config.compaction
+        return self.conversation.project_attachments(messages, config.prior_attachment_chars) if config.enabled else messages
+
     def _append_pending_injection(self):
         """把未注入的 ThinkFlow 工具日志补进消息历史。"""
-        retained = [message['content'] for message in self.messages
+        retained = [message['content'] for message in self._attachment_view(self.messages)
                     if isinstance(message.get('content'), str)]
         # DeepSeek includes reasoning in context only when tools are supplied.
         # Other adapters must keep the ledger payload unless text already has it.
@@ -1020,6 +1036,7 @@ class AgentLoop:
         }
 
     async def _run_one_turn(self) -> bool:
+        self._delivered_answer = False
         self._last_turn_failed = False
         self._replayed_unknown_effect = False
         self.events.turn = self._turn_count + 1
@@ -1466,7 +1483,11 @@ class AgentLoop:
                         self._delivery_fix_count += 1
                         self.messages.append({"role": "user", "content": verification.to_feedback()})
                         return True
-                    self.view.render_error("交付前验证失败，已达到自动修复上限")
+                    self.stopped_reason = 'delivery_verification_failed'
+                    self.last_error = "交付前验证失败，已达到自动修复上限"
+                    self.view.render_error(self.last_error)
+                    self.context.clear_flags()
+                    return False
             runnable_feedback = (
                 self._build_runnable_artifact_feedback(turn_records)
                 if self.config.auto_verify_runnable_artifacts
@@ -1496,6 +1517,7 @@ class AgentLoop:
                     '[THINKFLOW CONTINUE] 上次回复只有工具操作。对照用户请求与实际回执，'
                     '继续遗漏的工作，完成后直接用正文交付。'})
                 return True
+            self._delivered_answer = bool(clean_text)
             self.view.newline()
             return False
 
@@ -2332,6 +2354,7 @@ class AgentLoop:
             "session_id": self.session_id,
             "messages": self.messages,
             "conversation": self.conversation.to_dict(),
+            "read_baselines": self.executor.snapshot_read_baselines(),
             "outputs": self.outputs.to_dict(),
             "task_plan": self.task_plan,
             "native_write_fallback": self.native_write_fallback,
@@ -2348,7 +2371,7 @@ class AgentLoop:
 
     def load_snapshot(self, data: dict):
         """恢复会话状态。"""
-        self.executor.clear_read_baselines()
+        self.executor.restore_read_baselines(data.get('read_baselines', {}))
         self.session_id = data.get('session_id', self.session_id)
         self.client.headers.update(self._build_headers())
         self.messages = list(data.get("messages", []))
