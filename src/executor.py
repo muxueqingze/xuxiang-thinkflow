@@ -80,6 +80,7 @@ class Executor:
         change_store: Optional[ChangeStore] = None,
         require_read_revision: bool = True,
         output_store: Optional[OutputStore] = None,
+        request_text: Callable[[str], str] | None = None,
     ):
         """
         Args:
@@ -89,6 +90,7 @@ class Executor:
             security: 安全策略，默认限制在 cwd 内并拦截常见密钥读取。
         """
         self.cwd = os.path.abspath(os.path.expanduser(cwd))
+        self.request_text = request_text
         self.security = security or SecurityPolicy(allowed_roots=[self.cwd])
         if allowed_paths is not None:
             self.security.allowed_roots = allowed_paths
@@ -140,6 +142,26 @@ class Executor:
             self._read_revisions.clear()
             self._read_observations.clear()
             self._pending_reads.clear()
+
+    def snapshot_read_baselines(self) -> dict:
+        """Store acknowledged versions and ranges, never reads awaiting feedback."""
+        with self._io_lock:
+            return {
+                'workspace': self._revision_key(self.cwd),
+                'full': dict(self._read_revisions),
+                'partial': {path: {'revision': obs.revision, 'ranges': [list(pair) for pair in obs.ranges]}
+                            for path, obs in self._read_observations.items() if obs.ranges},
+            }
+
+    def restore_read_baselines(self, saved: dict) -> None:
+        with self._io_lock:
+            self.clear_read_baselines()
+            if saved.get('workspace') == self._revision_key(self.cwd):
+                self._read_revisions.update(saved['full'])
+                self._read_observations.update({
+                    path: ReadObservation(item['revision'], [tuple(pair) for pair in item['ranges']])
+                    for path, item in saved['partial'].items()
+                })
 
     @staticmethod
     def _revision_key(path: str) -> str:
@@ -525,7 +547,8 @@ class Executor:
                                 or (not self.security.allow_sensitive_paths and self.security.redact_text(old) != old)):
                             raise FileRevisionConflict("read_required: full-file match requires unredacted text")
                         if before != old.encode("utf-8"):
-                            raise FileRevisionConflict("revision_conflict: complete file differs from old_text or is missing; read before revising")
+                            condition = "file is missing" if before is None else "complete file differs from old_text"
+                            raise FileRevisionConflict(f"revision_conflict: {condition}. No replacement was made. Follow the requested non-match branch.")
                         after = command.new_text.encode("utf-8")
                     elif command.tool == "write":
                         after = command.content.encode("utf-8")
@@ -621,9 +644,9 @@ class Executor:
         return await self._run_process(command.cmd, shell=True, tool="bash")
 
     async def _python_command(self, command: Command) -> ExecutionResult:
-        return await self.python(command.cmd)
+        return await self.python(command.cmd, ref=command.ref)
 
-    async def python(self, code: str) -> ExecutionResult:
+    async def python(self, code: str, *, ref: str | None = None) -> ExecutionResult:
         """Run a Python code block directly, without shell quoting or a script file."""
         try:
             self.security.check_bash(code)
@@ -638,7 +661,27 @@ class Executor:
                        os.path.join(runtime, "thinkflow_stdin.py")]
         else:
             command = ["python", "-X", "utf8", "-"]
-        return await self._run_process(command, shell=False, tool="python", stdin=code)
+        if ref is None:
+            return await self._run_process(command, shell=False, tool="python", stdin=code)
+        if self.request_text is None:
+            return ExecutionResult(False, tool="python", error="A request reference needs a conversation.")
+        try:
+            data = self.request_text(ref)
+        except ValueError as error:
+            return ExecutionResult(False, tool="python", error=str(error))
+        # A byte length separates source from data on the same pipe. Neither
+        # payload uses a temporary file or the operating system's argv budget.
+        bootstrap = (
+            "import sys\n"
+            "source = sys.stdin.buffer.read(int(sys.stdin.buffer.readline()))\n"
+            "sys.stdin.reconfigure(encoding='utf-8', newline='')\n"
+            "if '' not in sys.path: sys.path.insert(0, '')\n"
+            "sys.argv[0] = '-'\n"
+            "__file__ = '<stdin>'\n"
+            "exec(compile(source, __file__, 'exec'))"
+        )
+        framed = f"{len(code.encode('utf-8'))}\n{code}{data}"
+        return await self._run_process([*command[:3], "-c", bootstrap], shell=False, tool="python", stdin=framed)
 
     async def run_command(self, command: list[str], *, tool: str, stdin: str,
                           timeout: float, env: dict[str, str]) -> ExecutionResult:

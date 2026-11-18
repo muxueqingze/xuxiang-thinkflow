@@ -2,13 +2,18 @@
 import copy
 import json
 import os
+from io import StringIO
 from pathlib import Path
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
+from rich.console import Console
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src import renderer
+from src.cli import build_resume_selection_items, render_session_choices, render_session_transcript
 from src.session import SessionStore
 from src.desktop_service import DesktopService
 
@@ -138,6 +143,51 @@ class IncrementalSessionTests(unittest.TestCase):
             items = service.sessions()
         self.assertEqual(items, [{'id': identifier, 'title': 'Latest title', 'pinned': True,
                                   'archived': False, 'updated_at': 2}])
+
+    def test_transcript_renders_visible_blocks_as_literal_multiline_text(self):
+        output = StringIO()
+        blocks = [{'type': 'thinking', 'signature': 'opaque-signature'},
+                  {'type': 'text', 'text': '[bold]中文[/bold]\r\n  line two'},
+                  {'type': 'tool_result', 'content': [{'type': 'text', 'text': 'tool result'}]},
+                  {'type': 'image', 'source': {'data': 'encoded-image'}},
+                  {'type': 'tool_use', 'name': 'native_read'}]
+        messages = [{'role': 'assistant', 'content': blocks},
+                    {'role': 'assistant', 'content': 'Before calling',
+                     'tool_calls': [{'function': {'name': 'get_file'}}]},
+                    {'role': 'tool', 'content': '\x1b[31mvalue\x1b[0m\x07'
+                     '\x1b]8;;https://invalid.example\x07文\x9d8;;\x9c'
+                     '\x1bPprivate-control\x1b\\字'}]
+        with patch.object(renderer, 'console', Console(file=output, width=100)):
+            render_session_transcript(messages)
+        transcript = output.getvalue()
+        self.assertIn('[bold]中文[/bold]\n  line two\ntool result\ntool_call: native_read', transcript)
+        self.assertIn('Before calling\ntool_call: get_file', transcript)
+        self.assertIn('value文字', transcript)
+        for hidden in ('opaque-signature', 'encoded-image', 'private-control', 'invalid.example',
+                       "'type':", '\x1b', '\x07', '\x9d', '\x9c'):
+            self.assertNotIn(hidden, transcript)
+
+    def test_resume_previews_show_literal_text_without_terminal_controls(self):
+        self.snapshot['messages'][0]['content'] = [
+            {'type': 'image', 'source': {'data': 'hidden-image'}},
+            {'type': 'text', 'text': '\x1b[35m[bold]中文[/bold]\x1b[0m\x07'},
+        ]
+        self.store.save(self.snapshot, history=False)
+        index_path = self.store.path.with_suffix('.index')
+        index = json.loads(index_path.read_text(encoding='utf-8'))
+        del index['version']
+        index['info']['start'] = str(self.snapshot['messages'][0]['content'])[:90]
+        index_path.write_text(json.dumps(index), encoding='utf-8')
+        output = StringIO()
+        with patch.object(renderer, 'console', Console(file=output, width=100, theme=renderer.THEME)):
+            items = build_resume_selection_items(self.store, [self.store.path])
+            render_session_choices(self.store, [self.store.path])
+        for text in (items[0].label, output.getvalue()):
+            self.assertIn('[bold]中文[/bold]', text)
+            self.assertNotIn('hidden-image', text)
+            self.assertNotIn("'type'", text)
+            self.assertNotIn('\x1b', text)
+            self.assertNotIn('\x07', text)
 
 
 if __name__ == '__main__':

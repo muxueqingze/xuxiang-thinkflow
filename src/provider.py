@@ -40,6 +40,21 @@ def output_budget_options(config, provider_format: Optional[str] = None) -> dict
     return {"max_tokens": budget}
 
 
+def validate_prompt_cache_settings(config) -> None:
+    if config.prompt_cache_key is not None and not isinstance(config.prompt_cache_key, str):
+        raise ValueError('prompt_cache_key must be a string or null')
+    if type(config.anthropic_prompt_cache) is not bool:
+        raise ValueError('anthropic_prompt_cache must be boolean')
+
+
+def prompt_cache_options(config, provider_format: str) -> dict:
+    if provider_format == 'openai' and config.prompt_cache_key and config.prompt_cache_key.strip():
+        return {'prompt_cache_key': config.prompt_cache_key}
+    if provider_format == 'anthropic' and config.anthropic_prompt_cache is True:
+        return {'cache_control': {'type': 'ephemeral'}}
+    return {}
+
+
 @dataclass
 class ProviderProfileConfig:
     """Named provider profile summary used by runtime model switching."""
@@ -61,9 +76,12 @@ class ProviderProfileConfig:
     model_source: str = ""
     model_discovery_enabled: bool = False
     model_discovery_path: str = ""
+    prompt_cache_key: str | None = None
+    anthropic_prompt_cache: bool = False
 
     def __post_init__(self):
         self.max_tokens = normalize_max_tokens(self.max_tokens)
+        validate_prompt_cache_settings(self)
 
 
 @dataclass
@@ -88,9 +106,12 @@ class ProviderConfig:
     model_discovery_enabled: bool = False
     model_discovery_path: str = ""
     provider_profiles: list[ProviderProfileConfig] = field(default_factory=list)
+    prompt_cache_key: str | None = None
+    anthropic_prompt_cache: bool = False
 
     def __post_init__(self):
         self.max_tokens = normalize_max_tokens(self.max_tokens)
+        validate_prompt_cache_settings(self)
 
 
 class AnthropicProvider:
@@ -118,6 +139,7 @@ class AnthropicProvider:
         body = {
             "model": self.config.model,
             **output_budget_options(self.config, "anthropic"),
+            **prompt_cache_options(self.config, "anthropic"),
             "messages": messages,
             "stream": True,
         }
@@ -173,6 +195,7 @@ class OpenAIProvider:
         body = {
             "model": self.config.model,
             **output_budget_options(self.config, "openai"),
+            **prompt_cache_options(self.config, "openai"),
             "messages": full_messages,
             "stream": True,
         }

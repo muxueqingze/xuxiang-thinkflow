@@ -196,6 +196,11 @@ class ConversationRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 await submit('attachment', original, attachments=[{'path': file.name, 'revision': revision}])
                 file.write_bytes(b'CURRENT_DISK_VERSION')
                 await submit('interim', 'Continue.')
+                first, second = (json.dumps(body['messages']) for body in requests)
+                self.assertIn(contract, first)
+                self.assertNotIn(contract, second)
+                self.assertIn(file.name, second)
+                self.assertIn('request:1:input', second)
                 service.agent.config.compaction.keep_recent_messages = 4
                 for _ in range(2):
                     progress(service.agent.messages, 3)
@@ -236,6 +241,79 @@ class ConversationRuntimeTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(file.read_bytes(), b'CURRENT_DISK_VERSION')
         finally:
             await service.close()
+
+    async def test_steering_stays_full_until_group_delivers_and_next_task_begins(self):
+        head, tail = 'BASE' * 2500, 'STEER' * 2100
+        pending = [{'prompt': 'Revision\n' + tail, 'user_request': 'Revision',
+                    'attachment_paths': ['amendment.txt']}]
+        async def source():
+            incoming, pending[:] = list(pending), []
+            return incoming
+        self.agent.steering_source = source
+        bodies = []
+        def receive(request):
+            bodies.append(request.content.decode())
+            return httpx.Response(200, stream=SSE('Delivered.'))
+        await self.transport(self.agent, receive)
+        await self.agent.run('Base\n' + head, user_request='Base', attachment_paths=['base.txt'])
+        self.assertEqual(len(bodies), 2)
+        self.assertIn(head, bodies[0])
+        self.assertIn(head, bodies[1])
+        self.assertIn(tail, bodies[1])
+        await self.agent.run('Next independent task.')
+        self.assertNotIn(head, bodies[-1])
+        self.assertNotIn(tail, bodies[-1])
+        for path, ref in [('base.txt', 'request:1:input'), ('amendment.txt', 'request:2:input')]:
+            self.assertIn(path, bodies[-1])
+            self.assertIn(ref, bodies[-1])
+        self.config.compaction.prior_attachment_chars = 0
+        await self.agent.run('Continue with projection disabled.')
+        self.assertIn(head, bodies[-1])
+        self.assertIn(tail, bodies[-1])
+
+    async def test_only_successful_visible_delivery_with_attachment_metadata_can_project(self):
+        self.config.require_final_response = True
+        self.config.provider.model = 'fixture'
+        answers = iter(['', '', 'Delivered.', 'Delivered.'])
+        bodies = []
+        def receive(request):
+            bodies.append(request.content.decode())
+            return httpx.Response(200, stream=SSE(next(answers)))
+        await self.transport(self.agent, receive)
+        unfinished, expanded = 'Unfinished' * 1000, 'Expanded' * 1200
+        await self.agent.run('First\n' + unfinished, user_request='First', attachment_paths=['spec.txt'])
+        self.assertEqual(self.agent.stopped_reason, 'incomplete_response')
+        self.assertEqual(len(bodies), 2)
+        await self.agent.run('Second\n' + expanded, user_request='Second')
+        await self.agent.run('Third')
+        self.assertIn(unfinished, bodies[-2])
+        self.assertIn(unfinished, bodies[-1])
+        self.assertIn(expanded, bodies[-1])
+
+    async def test_read_observation_after_hidden_attachment_keeps_exact_visible_payload(self):
+        source = 'READ-RESULT-' * 60
+        (self.root / 'read.txt').write_text(source, encoding='utf8')
+        read = await self.agent._execute_traditional_result('read', {'path': 'read.txt'}, tool_id='suffix')
+        self.assertTrue(read.success, read.error)
+        self.assertIn('suffix', self.agent.executor._pending_reads)
+        frozen = 'Review\n' + 'ATTACHED-' * 1300 + source
+        await self.transport(self.agent, lambda _: httpx.Response(200, stream=SSE('Delivered.')))
+        await self.agent.run(frozen, user_request='Review', attachment_paths=['source.txt'])
+        old_request = self.agent.messages[0]
+        span, = old_request['_thinkflow_reads']
+        self.assertEqual(old_request['content'][span['start']:span['end']], source)
+        await self.agent.run('Next')
+        for provider in ('openai', 'anthropic'):
+            self.config.provider.format = provider
+            self.config.provider.max_tokens = 2048
+            delivered = set()
+            body = json.dumps(self.agent.build_request_body('', delivered_reads=delivered))
+            self.assertIn('request:1:input', body)
+            self.assertNotIn('ATTACHED-' * 50, body)
+            self.assertEqual(body.count(source), 1)
+            self.assertNotIn('Exact same complete content', body)
+            self.assertEqual(delivered, {'suffix'})
+        self.assertEqual(old_request['content'][span['start']:span['end']], source)
 
     async def test_recall_schema_and_protocol_stay_stable_across_first_compaction(self):
         protocol = self.agent.build_system_prompt()

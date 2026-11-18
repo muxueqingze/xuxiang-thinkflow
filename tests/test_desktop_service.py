@@ -86,7 +86,7 @@ class FakeAgent:
         self.closed = False
         self.compactions = 0
 
-    async def run(self, prompt, *, user_request=None):
+    async def run(self, prompt, *, user_request=None, attachment_paths=()):
         self.messages.append({"role": "user", "content": prompt})
         if self.runner:
             await self.runner(self, prompt)
@@ -571,7 +571,7 @@ class DesktopServiceTests(unittest.IsolatedAsyncioTestCase):
                 self.assertFalse(state['recovery_required'])
                 self.assertEqual(state['ledger'][0]['status'], expected_status)
                 self.assertIn('1', self.service.agent._executed_ids)
-                with LocalSSE([f'<tf-write id="2" path="{channel}-continued.txt">continued</tf-write>']) as server:
+                with LocalSSE([f'<tf-write id="2" path="{channel}-continued.txt">continued</tf-write>恢复后已继续写入。']) as server:
                     await self.service.dispatch('configure', {'base_url': server.url})
                     await self.service.dispatch('run', {'prompt': 'Continue after journal recovery'})
                     state = await self.finish()

@@ -2,6 +2,8 @@
 
 当前源码提供共享配置解析和运行时工厂。CLI、桌面及嵌入宿主使用相同执行器、工具注册表、会话原文和压缩机制；宿主选择自己的配置来源和持久存储。工程指引可替换，工具协议由核心注入。
 
+CLI、桌面和 `create_agent` 默认要求一条正文交付答复。可预测操作后在同次生成答复即可；只发工具命令时框架会提示一次，仍无正文则返回 `incomplete_response`。专门消费工具回执、允许静默完成的宿主可设 `tool_protocol.require_final_response=false`。直接构造低层 `AgentConfig` 的调用方保留原先的静默结束方式。
+
 ## 直接修改配置
 
 以下命令只操作配置，不启动模型或查询模型列表：
@@ -42,7 +44,7 @@ thinkflow --system-prompt my-guidance.md
 
 常用连接、模型、思考、权限及工程指引继续使用表单。「更多运行配置」编辑一个JSON对象，可配置：
 
-`compaction`、`context`、`interfaces`、`tool_protocol`、`max_read_chars`、`max_retries`、`retry_backoff_seconds`、`max_auto_continues`、`max_consecutive_failures`、`delivery_verify`、`auto_verify_runnable_artifacts`、`max_delivery_fix_attempts`、`native_tools`、`disabled_native_tools`。
+`compaction`、`context`、`interfaces`、`tool_protocol`、`max_read_chars`、`max_retries`、`retry_backoff_seconds`、`max_auto_continues`、`max_consecutive_failures`、`delivery_verify`、`auto_verify_runnable_artifacts`、`max_delivery_fix_attempts`、`native_tools`、`disabled_native_tools`、`prompt_cache_key`、`anthropic_prompt_cache`。
 
 例如：
 
@@ -60,6 +62,27 @@ thinkflow --system-prompt my-guidance.md
 
 桌面用户设置保存在应用自己的settings.json，凭据继续使用safeStorage；它不自动读取CLI的全局或项目配置文件。两种入口共用核心参数及装配，但各自选择持久配置来源。
 
+## 提示缓存
+
+提示缓存选项默认关闭，可按供应商或网关支持的字段启用。
+
+CLI 可在命名配置中为不同端点设置缓存。单端点可直接在配置顶层设置。桌面端在「更多运行配置」里编辑，切换端点时沿用这组设置。
+
+```json
+{
+  "active_provider": "chat",
+  "providers": {
+    "chat": {"provider": "openai", "prompt_cache_key": "review-v1"},
+    "claude": {"provider": "anthropic", "max_tokens": 4096, "anthropic_prompt_cache": true}
+  }
+}
+```
+
+- **OpenAI 兼容接口**用 `prompt_cache_key` 帮助路由共用提示前缀的请求。填一个稳定的分组名即可。省略、设为 `null` 或留空都会移除该路由提示。[OpenAI 提示缓存](https://developers.openai.com/api/docs/guides/prompt-caching)
+- **Anthropic Messages** 将 `anthropic_prompt_cache` 设为 `true` 后，请求顶层会带上 `"cache_control": {"type": "ephemeral"}`。服务端在最后一个可缓存块设置断点，默认有效期为 5 分钟。[Anthropic 自动缓存](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
+
+临时关闭可用 `--set prompt_cache_key=null` 或 `--set anthropic_prompt_cache=false`。通过 `/model` 切换命名配置时，本次运行的覆盖继续生效。用 `/status` 查看供应商实际报告的缓存命中量和统计范围。
+
 ## 上下文预算
 
 | 参数 | 默认 | 作用 |
@@ -70,6 +93,7 @@ thinkflow --system-prompt my-guidance.md
 | `compaction.max_input_tokens` | 0 | 按实际待发输入估算的额外触发阈值，0关闭 |
 | `compaction.keep_recent_messages` | 30 | 按消息数保留近期历史 |
 | `compaction.keep_recent_tokens` | 0 | 大于0时改为按估算token保留连续近期历史 |
+| `compaction.prior_attachment_chars` | 8000 | 已交付任务的显式冻结附件超出此字符数时，下个任务以文件名和原文引用代替重复发送。0 关闭；当前任务与运行中补充保留全文。 |
 | `compaction.max_summary_chars` | 16000 | 摘录摘要的字符预算 |
 
 输入估算在待反馈工具结果加入、请求投影完成之后进行，包括实际messages、system和tools，使用紧凑JSON的UTF-8字节数÷4向上取整。触发后只做一次本地整理并重新构建请求，不增加摘要API。供应商reported usage独立保存，不用旧轮用量冒充当前请求大小。`/status`显示最近待发请求估算；这是近似计数。

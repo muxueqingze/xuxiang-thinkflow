@@ -6,6 +6,8 @@ ThinkFlow Context Manager — 上下文管理
 """
 
 import hashlib
+from html import escape
+import json
 import re
 import time
 from dataclasses import dataclass, asdict, field
@@ -89,6 +91,8 @@ class CommandRecord:
                 value = getattr(self, name)
                 if value is not None:
                     attrs.append(f'{name}="{value}"')
+        if self.tool == 'python' and self.ref is not None:
+            attrs.append(f'ref="{escape(self.ref)}"')
         if self.tool == 'recall':
             attrs.extend([f'ref="{self.ref}"', f'offset="{self.offset}"', f'limit="{self.limit}"'])
             if self.query is not None:
@@ -182,6 +186,8 @@ class ContextManager:
         self.output_index: dict[str, str] = {}
         self.has_archived_output = False
         self.records: list[CommandRecord] = []
+        self.skipped_ids: set[str] = set()
+        self._auto_replays: set[str] = set()
         self.next_stamp: int = start_stamp
         self.next_receipt_ref: int = 1
         self.archived_records = 0
@@ -254,6 +260,8 @@ class ContextManager:
             output_sizes=dict(result.output_sizes),
         )
         self.records.append(rec)
+        if rec.status == 'skipped':
+            self.skipped_ids.add(rec.id)
         self.next_receipt_ref += 1
 
         # 更新戳记
@@ -300,14 +308,19 @@ class ContextManager:
     @property
     def pending_auto_results(self) -> list[CommandRecord]:
         return [record for record in self.records
-                if not record.injected and record.status == "success"
-                and record.flow == "blocking" and not record.need_result]
+                if record.evidence_ref in self._auto_replays or (
+                    not record.injected and record.status == "success"
+                    and record.flow == "blocking" and not record.need_result)]
+
+    def repeat_auto_result(self, record: CommandRecord):
+        self._auto_replays.add(record.evidence_ref)
 
     def clear_flags(self):
         """清除一次性标记（每轮 API 调用后调用）。"""
         self._last_failure = None
         self._last_need_result = None
         self._pending_auto_result = None
+        self._auto_replays.clear()
 
     def mark_injected(self, record_id: str):
         """把指定命令标记为已注入，避免打断消息和下一轮普通日志重复注入。"""
@@ -408,6 +421,8 @@ class ContextManager:
     def reset(self):
         """重置（新会话）。"""
         self.records.clear()
+        self.skipped_ids.clear()
+        self._auto_replays.clear()
         self.output_index.clear()
         self.has_archived_output = False
         self.next_stamp = 1
@@ -427,6 +442,8 @@ class ContextManager:
         retained = [record for i, record in enumerate(self.records)
                     if i >= cutoff or not record.injected or record.id in protected_ids]
         self.archived_records += len(self.records) - len(retained)
+        if self.skipped_ids and len(self.records) != len(retained):
+            self.skipped_ids = {r.id for r in retained if r.status == 'skipped'}
         self.records = retained
         for record in reversed(self.records):
             for name in ("stdout", "stderr", "result_content", "content", "old_text", "new_text"):
@@ -478,6 +495,7 @@ class ContextManager:
         counter = data.get("next_receipt_ref", 1)
         if type(counter) is not int or counter < 1:
             raise ValueError("Invalid receipt reference counter in context snapshot")
+        ctx.skipped_ids = {r.id for r in ctx.records if r.status == 'skipped'}
         used_refs = set()
         for record in ctx.records:
             if record.evidence_ref == "":
@@ -522,7 +540,14 @@ def _command_hash(command: Command) -> str:
         parts.extend([str(command.offset), str(command.limit)])
     elif command.tool == 'edit' and command.match == 'file':
         parts.append('match=file')
-    payload = "\0".join(parts).encode("utf-8", errors="replace")
+    elif command.tool == 'python' and command.ref is not None:
+        parts.append(command.ref)
+    # Preserve existing snapshot hashes for ordinary commands. A literal NUL
+    # in an argument must not be mistaken for a boundary between arguments.
+    if any("\0" in part for part in parts):
+        payload = b"\xff" + json.dumps(parts, ensure_ascii=True).encode("ascii")
+    else:
+        payload = "\0".join(parts).encode("utf-8", errors="surrogatepass")
     return hashlib.sha256(payload).hexdigest()[:16]
 
 

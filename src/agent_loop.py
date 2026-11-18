@@ -30,7 +30,7 @@ from .conversation import ConversationContext
 from .output_store import OutputStore
 from .streaming import EventType, StreamEvent
 from .provider import (ProviderConfig, anthropic_thinking_options, is_deepseek,
-                       openai_thinking_options, output_budget_options)
+                       openai_thinking_options, output_budget_options, prompt_cache_options)
 from .prompts import build_protocol_prompt
 from .task_plan import PLAN_SCHEMA, validate_plan
 from .security import SecurityPolicy
@@ -96,6 +96,7 @@ class AgentConfig:
     retry_backoff_seconds: float = 1.0
     max_auto_continues: Optional[int] = 8  # None disables the continuation budget; 0 disables continuation.
     delivery_verify: bool = False
+    require_final_response: bool = field(default=False, kw_only=True)  # Raw hosts may finish on receipts.
     auto_verify_runnable_artifacts: bool = False
     max_delivery_fix_attempts: int = 3
     max_run_turns: Optional[int] = 40  # None disables the turn budget.
@@ -267,6 +268,7 @@ class AgentLoop:
             max_read_chars=config.max_read_chars,
             security=config.security,
             output_store=self.outputs,
+            request_text=lambda ref: self.conversation.original_text(ref),
         )
         self.set_output_secrets([config.provider.api_key, *(p.api_key for p in config.provider.provider_profiles)])
         self.interfaces = ExternalInterfaces(config.interfaces, cwd=config.cwd, executor=self.executor)
@@ -283,8 +285,11 @@ class AgentLoop:
             renderer.set_tool_flow_map(self.tool_registry.flow_map())
             renderer.set_tool_risk_map(self.tool_registry.risk_map())
         self.context = ContextManager(output_store=self.outputs, redact_output=self.executor.redact_output)
-        self.parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
-        self.text_parser = StreamingParser(allow_legacy_tags=config.allow_legacy_tool_tags)
+        def check_receipt(tool):
+            return self.tool_registry.flow(tool) == TOOL_FLOW_DELAYED
+
+        self.parser = StreamingParser(config.allow_legacy_tool_tags, check_receipt=check_receipt)
+        self.text_parser = StreamingParser(config.allow_legacy_tool_tags, check_receipt=check_receipt)
         self.text_filter = SafeTextStreamFilter(allow_legacy_tags=config.allow_legacy_tool_tags)
         self.text_command_gate = MarkdownFenceCommandGate(allow_legacy_tags=config.allow_legacy_tool_tags)
         if event_sink is None:
@@ -308,6 +313,8 @@ class AgentLoop:
         self._turn_count = 0
         self._auto_continue_count = 0
         self._delivery_fix_count = 0
+        self._final_response_requested = False
+        self._delivered_answer = False
         self.compaction_count = 0
         self.last_compaction: Optional[CompactionStats] = None
         self.last_input_tokens_estimate = 0
@@ -451,6 +458,8 @@ class AgentLoop:
             return result
 
         async def python_tool(tool_input: dict) -> ExecutionResult:
+            if 'ref' in tool_input and not isinstance(tool_input['ref'], str):
+                raise ValueError('python ref must be a request reference string')
             return await self.executor.python(**tool_input)
 
         async def append_tool(tool_input: dict, *, call_id: str) -> ExecutionResult:
@@ -741,11 +750,21 @@ class AgentLoop:
         """
         names = self._enabled_native_tool_names()
         protocol = build_protocol_prompt(names)
+        if self.config.require_final_response:
+            protocol += '\n已知操作连续完成后，在同一次生成用一句正文交付结果。只发命令表示还在工作。'
         return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
     def build_runtime_status_message(self) -> dict:
         """Build the runtime state the next request needs."""
         content = self.context.build_system_prompt_suffix()
+        if len(self.conversation.requests) > 1 and self.context.start_stamp > 1:
+            content += f'\n{self.conversation.current_ref}: next new tf-* command id="{self.context.start_stamp}".'
+        if self.conversation.requests and len(self.conversation.current_input) > 8000:
+            ref = self.conversation.current_ref
+            if 'execution_input' in self.conversation.requests[-1]:
+                ref += ':input'
+            content += (f'\n完整输入可直接用于数据处理：tf-python 加 ref="{ref}"，'
+                        '用 sys.stdin.read() 读取原文，无需把数据抄进代码。')
         shell = os.path.basename(os.environ.get('COMSPEC', 'cmd.exe')) if os.name == 'nt' else '/bin/sh'
         content += '\n[EXECUTION ENVIRONMENT]\n' + json.dumps({
             'platform': 'Windows' if os.name == 'nt' else sys.platform,
@@ -773,7 +792,7 @@ class AgentLoop:
     def _projected_history(self, *, report: bool = True) -> list[dict]:
         complete_reads = {record.id: record.output_chars for record in self.context.records
                           if record.tool == 'read' and record.status == 'success' and not record.truncated}
-        history = self._messages_with_current_runtime()
+        history = self._attachment_view(self._messages_with_current_runtime())
         request_messages = project_read_results(history, complete_reads)
         replaced = [(original, projected) for original, projected in zip(history, request_messages)
                     if original is not projected]
@@ -804,6 +823,7 @@ class AgentLoop:
             body = {
                 "model": p.model,
                 **output_budget_options(p),
+                **prompt_cache_options(p, p.format),
                 "messages": request_messages,
                 "stream": True,
             }
@@ -824,6 +844,7 @@ class AgentLoop:
             body = {
                 "model": p.model,
                 **output_budget_options(p),
+                **prompt_cache_options(p, p.format),
                 "messages": full_messages,
                 "stream": True,
             }
@@ -893,13 +914,15 @@ class AgentLoop:
         tools = self.tool_registry.anthropic_tools()
         return [tool for tool in tools if tool.get("name") in names]
 
-    async def run(self, user_input: str, *, user_request: Optional[str] = None):
+    async def run(self, user_input: str, *, user_request: Optional[str] = None, attachment_paths=()):
         """主入口。"""
         if self._run_active:
             raise RuntimeError("This agent already has an active run")
         self._run_active = True
         self.last_error = ""
+        self._last_turn_failed = False
         self.native_write_fallback = False
+        self._final_response_requested = False
         self.stopped_reason = "completed"
         self._plan_continuation_progress = None
         self._auto_continue_count = 0
@@ -913,7 +936,7 @@ class AgentLoop:
         try:
             self.conversation.record_request(len(self.messages),
                                              user_input if user_request is None else user_request,
-                                             user_input)
+                                             user_input, attachment_paths=attachment_paths)
             self.messages.append({"role": "user", "content": user_input})
             while self.config.max_run_turns is None or turns < max(1, self.config.max_run_turns):
                 remaining = None if deadline is None else deadline - time.monotonic()
@@ -944,7 +967,7 @@ class AgentLoop:
                         for item in incoming:
                             text = item['prompt']
                             self.conversation.record_request(len(self.messages), item.get('user_request', text),
-                                                             text, continuation=True)
+                                                             text, continuation=True, attachment_paths=item.get('attachment_paths', ()))
                             self.messages.append({'role': 'user', 'content': text})
                         self.events.emit('steering_applied', messages=incoming)
                         should_continue = True
@@ -957,6 +980,8 @@ class AgentLoop:
             if self.stopped_reason.startswith("max_"):
                 self.last_error = f"Run stopped at configured limit: {self.stopped_reason}"
                 self.view.render_error(self.last_error)
+            if self._delivered_answer and self.stopped_reason == 'completed' and not self.last_error:
+                self.conversation.finish_attachments()
             self.compact(force=False)
         except asyncio.CancelledError:
             cancelled = True
@@ -972,9 +997,13 @@ class AgentLoop:
             self.events.emit("run_finished", cancelled=cancelled, error=self.last_error,
                              stopped_reason=self.stopped_reason, turns=turns)
 
+    def _attachment_view(self, messages):
+        config = self.config.compaction
+        return self.conversation.project_attachments(messages, config.prior_attachment_chars) if config.enabled else messages
+
     def _append_pending_injection(self):
         """把未注入的 ThinkFlow 工具日志补进消息历史。"""
-        retained = [message['content'] for message in self.messages
+        retained = [message['content'] for message in self._attachment_view(self.messages)
                     if isinstance(message.get('content'), str)]
         # DeepSeek includes reasoning in context only when tools are supplied.
         # Other adapters must keep the ledger payload unless text already has it.
@@ -1012,18 +1041,20 @@ class AgentLoop:
         }
 
     async def _run_one_turn(self) -> bool:
+        self._delivered_answer = False
+        recovering = self._last_turn_failed
         self._last_turn_failed = False
         self._replayed_unknown_effect = False
         self.events.turn = self._turn_count + 1
         self.events.emit("turn_started")
         try:
-            return await self._run_one_turn_impl()
+            return await self._run_one_turn_impl(recovering)
         finally:
             self.usage.turns[-1].end_time = time.time()
             self.events.emit("turn_finished", error=self.last_error,
                              failed=self._last_turn_failed)
 
-    async def _run_one_turn_impl(self) -> bool:
+    async def _run_one_turn_impl(self, recovering: bool) -> bool:
         """运行一轮。"""
         self._turn_count += 1
         turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time(), http_attempts=0)
@@ -1092,10 +1123,10 @@ class AgentLoop:
         assistant_text = ""
         assistant_reasoning = ""
         anthropic_content = [] if self.config.provider.format == 'anthropic' else None
-        parser_error_count = len(self.parser.errors)
-        text_parser_error_count = len(self.text_parser.errors)
+        parser_error_counts = {"thinking": len(self.parser.errors), "text": len(self.text_parser.errors)}
         self.text_filter.reset()
         self.text_command_gate.reset()
+        thinking_command_gate = MarkdownFenceCommandGate(allow_legacy_tags=self.config.allow_legacy_tool_tags)
         text_after_native: list[Command] = []
 
         async def dispatch_parsed(commands, errors, channel):
@@ -1117,33 +1148,23 @@ class AgentLoop:
                 if not traditional_tools:
                     abort_reason = AbortReason.TOOL_FAILED
 
-        async def dispatch_text(text):
-            nonlocal text_parser_error_count
+        async def dispatch_channel(text, parser, channel):
             if text:
-                commands = self.text_parser.feed(text)
-                errors = self._consume_new_parser_errors(self.text_parser, text_parser_error_count)
-                text_parser_error_count += len(errors)
-                await dispatch_parsed(commands, errors, "text")
+                commands = parser.feed(text)
+                errors = self._consume_new_parser_errors(parser, parser_error_counts[channel])
+                parser_error_counts[channel] += len(errors)
+                await dispatch_parsed(commands, errors, channel)
 
         event_stream = self._events_until_failure(response, command_queue, anthropic_content)
         try:
             async for event in event_stream:
-                if not traditional_tools and event.type in (EventType.TOOL_USE_START, EventType.TOOL_USE_DELTA):
-                    # A complete command may still be in the Markdown gate's last line.
-                    await dispatch_text(self.text_command_gate.flush())
-                    if abort_reason != AbortReason.NONE:
-                        break
-                # thinking delta → 喂给解析器
                 if event.type == EventType.THINKING_DELTA:
                     assistant_reasoning += event.thinking_text
                     self.events.emit('reasoning_activity', chars=len(event.thinking_text))
                     self.note_text_tool_stream(event.thinking_text)
-                    commands = self.parser.feed(event.thinking_text)
-                    new_errors = self._consume_new_parser_errors(self.parser, parser_error_count)
-                    parser_error_count += len(new_errors)
                     if self.config.verbose:
                         self.view.render_thinking_snapshot(event.thinking_text)
-                    await dispatch_parsed(commands, new_errors, "thinking")
+                    await dispatch_channel(thinking_command_gate.feed(event.thinking_text), self.parser, "thinking")
 
                     if abort_reason not in (AbortReason.NONE, AbortReason.TOOL_USE):
                         break
@@ -1153,7 +1174,7 @@ class AgentLoop:
                     assistant_text += event.text
                     self.note_text_tool_stream(event.text)
                     # 喂给 text_parser 提取命令
-                    await dispatch_text(self.text_command_gate.feed(event.text))
+                    await dispatch_channel(self.text_command_gate.feed(event.text), self.text_parser, "text")
                     if abort_reason not in (AbortReason.NONE, AbortReason.TOOL_USE):
                         break
                     visible_text = self.text_filter.feed(event.text)
@@ -1197,7 +1218,8 @@ class AgentLoop:
                 # 消息结束
                 elif event.type == EventType.MESSAGE_STOP:
                     finish_reason = event.finish_reason or ""
-                    await dispatch_text(self.text_command_gate.flush())
+                    await dispatch_channel(thinking_command_gate.flush(), self.parser, "thinking")
+                    await dispatch_channel(self.text_command_gate.flush(), self.text_parser, "text")
                     # A native call start is not proof of complete arguments.
                     # Discard the unfinished native batch on length; text effects
                     # already executed still have their own durable receipts.
@@ -1254,6 +1276,12 @@ class AgentLoop:
         if background_failure and abort_reason not in (AbortReason.TOOL_FAILED, AbortReason.NEED_RESULT):
             abort_reason = AbortReason.TOOL_FAILED
 
+        # We may close the stream halfway through the next tag when a queued
+        # command fails. That partial tag cannot diagnose the model's syntax.
+        if abort_reason == AbortReason.TOOL_FAILED and self.context.last_failure is not None:
+            self.parser.buffer = self.text_parser.buffer = ""
+            parser_error_message = ""
+
         # Do not carry incomplete command bodies into a retry.
         if abort_reason != AbortReason.LENGTH:
             error = self.parser.flush()
@@ -1296,15 +1324,25 @@ class AgentLoop:
 
         # 3. 记录 assistant 输出
         clean_text = self.view.strip_command_blocks(assistant_text) if assistant_text else ''
+        unexecuted_tags = False
         if abort_reason == AbortReason.END_TURN:
             gate = MarkdownFenceCommandGate()
             plain_text = gate.feed(clean_text) + gate.flush()
-            if is_deepseek(self.config.provider) and not assistant_text.strip() and not commands_this_turn:
-                parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
-                                        '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
+            # During recovery, a response made entirely of unprefixed tool
+            # markup is an attempted action. It has produced no new receipt.
+            if ((recovering or self._final_response_requested) and not self.config.allow_legacy_tool_tags
+                    and clean_text.startswith('<') and plain_text.strip() == clean_text
+                    and self._CMD_TAG_RE.match(clean_text)):
+                legacy_view = SafeTextStreamFilter(allow_legacy_tags=True)
+                unexecuted_tags = not (legacy_view.feed(clean_text) + legacy_view.flush()).strip()
+            if (not assistant_text.strip() and not commands_this_turn and not self._final_response_requested
+                    and (self.config.require_final_response or is_deepseek(self.config.provider))):
                 self.events.emit('provider_protocol_error', kind='empty_assistant_response')
-                abort_reason = AbortReason.TOOL_FAILED
-                turn_usage.abort_reason = abort_reason
+                if not self.config.require_final_response:
+                    parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
+                                            '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
+                    abort_reason = AbortReason.TOOL_FAILED
+                    turn_usage.abort_reason = abort_reason
             elif is_deepseek(self.config.provider) and re.search(r'(?m)^\s*</?｜+DSML｜+\s*(?:parameter|invoke|calls)\b', plain_text):
                 protocol_hint = ('请使用当前提供的原生工具或tf-*继续未完成操作；'
                                  if self._openai_provider_tools() else
@@ -1362,7 +1400,7 @@ class AgentLoop:
                     "content": (
                         "[THINKFLOW PARSER ERROR — 命令格式错误，思考被打断]\n"
                         f"{parser_error_message}\n\n"
-                        "请修正命令格式后继续。"
+                        f'请使用完整 tf-* 标签；新操作从 id="{self.context.start_stamp}" 开始。'
                     ),
                 })
                 self.view.render_error("命令格式错误，推理已打断")
@@ -1371,8 +1409,9 @@ class AgentLoop:
                 if msg:
                     failed = self.context.last_failure
                     if failed:
-                        self.context.mark_injected(failed.id)
-                    self.messages.append({"role": "user", "content": msg})
+                        failed.injected = 1
+                    self.messages.append({"role": "user", "content":
+                        msg + f'\n如需新操作，使用 tf-* 标签，从 id="{self.context.start_stamp}" 开始。'})
                     self.view.render_error("命令执行失败，推理已打断")
             self.context.clear_flags()
             return True
@@ -1383,7 +1422,7 @@ class AgentLoop:
             if msg:
                 requested = self.context.last_need_result
                 if requested:
-                    self.context.mark_injected(requested.id)
+                    requested.injected = 1
                 self.messages.append({"role": "user", "content": msg,
                                       **({'_thinkflow_reads': read_spans} if read_spans else {})})
                 self.view.render_need_result_return(
@@ -1442,7 +1481,7 @@ class AgentLoop:
                 self.messages.append({"role": "user", "content": msg,
                                       **({'_thinkflow_reads': read_spans} if read_spans else {})})
                 for record in pending:
-                    self.context.mark_injected(record.id)
+                    record.injected = 1
                 self.view.render_need_result_return(
                     pending[-1].tool,
                     pending[-1].id,
@@ -1460,7 +1499,11 @@ class AgentLoop:
                         self._delivery_fix_count += 1
                         self.messages.append({"role": "user", "content": verification.to_feedback()})
                         return True
-                    self.view.render_error("交付前验证失败，已达到自动修复上限")
+                    self.stopped_reason = 'delivery_verification_failed'
+                    self.last_error = "交付前验证失败，已达到自动修复上限"
+                    self.view.render_error(self.last_error)
+                    self.context.clear_flags()
+                    return False
             runnable_feedback = (
                 self._build_runnable_artifact_feedback(turn_records)
                 if self.config.auto_verify_runnable_artifacts
@@ -1476,6 +1519,23 @@ class AgentLoop:
             self.context.clear_flags()
             if self._continue_open_plan(turn_records):
                 return True
+            if (self.config.require_final_response and self.stopped_reason == 'completed'
+                    and (unexecuted_tags or not clean_text)):
+                if self._final_response_requested or (self.config.max_auto_continues is not None
+                        and self._auto_continue_count >= self.config.max_auto_continues):
+                    self.stopped_reason = 'incomplete_response'
+                    self.last_error = '工具已结算，模型未交付最终答复。'
+                    self.view.render_error(self.last_error)
+                    return False
+                self._final_response_requested = True
+                self._auto_continue_count += 1
+                feedback = (f'上次的无前缀标签没有执行。若要继续，请使用完整 tf-* 标签，从 id="{self.context.start_stamp}" 开始。'
+                            if unexecuted_tags else '上一轮没有面向用户的正文答复。')
+                self.messages.append({'role': 'user', 'content':
+                    f'[THINKFLOW CONTINUE] {feedback}对照用户请求与实际回执，'
+                    '继续遗漏的工作，完成后直接用正文交付。'})
+                return True
+            self._delivered_answer = bool(clean_text)
             self.view.newline()
             return False
 
@@ -1695,7 +1755,16 @@ class AgentLoop:
         open_blocks = {}
         block_inputs = {}
 
-        async for line in response.aiter_lines():
+        lines = aiter(response.aiter_lines())
+        while True:
+            try:
+                line = await anext(lines)
+            except StopAsyncIteration:
+                break
+            except httpx.TransportError:
+                if not pending_openai_finish_reason:
+                    raise
+                break
             line = line.strip()
 
             if not line:
@@ -1787,7 +1856,9 @@ class AgentLoop:
 
             elif data_type == "content_block_start":
                 block = data.get("content_block", {})
-                if block.get("type") == "tool_use":
+                if block.get("type") == "text" and block.get("text"):
+                    yield StreamEvent(type=EventType.TEXT_DELTA, text=block['text'])
+                elif block.get("type") == "tool_use":
                     yield StreamEvent(
                         type=EventType.TOOL_USE_START,
                         tool_name=block.get("name", ""),
@@ -1809,10 +1880,11 @@ class AgentLoop:
                     yield StreamEvent(type=EventType.MESSAGE_STOP, finish_reason=stop_reason)
                     return
 
-            elif data_type == "error":
+            elif data_type == "error" or data.get("error") is not None:
+                error = data.get("error")
                 yield StreamEvent(
                     type=EventType.ERROR,
-                    error=data.get("error", {}).get("message", str(data)),
+                    error=(error.get("message") if isinstance(error, dict) else str(error or '')) or str(data),
                 )
                 return
 
@@ -1940,19 +2012,23 @@ class AgentLoop:
         return f"[THINKFLOW APPROVAL DENIED] tool={command.tool}; no side effect was executed."
 
     def _prior_receipt(self, command: Command, fingerprint: str):
-        if command.id not in self._executed_ids:
+        executed = command.id in self._executed_ids
+        if not executed and not command.repeated_id and command.id not in self.context.skipped_ids:
             return None
         previous = next((r for r in self.context.records if r.id == command.id and r.status != "skipped"), None)
         expected = self._command_fingerprints.get(command.id)
         if expected is None and previous is not None:
             expected = previous.content_hash  # Legacy text-only snapshots.
-        if previous and expected == fingerprint:
-            if previous.status == 'unknown':
-                self._replayed_unknown_effect = True
+        if previous and previous.status == 'unknown':
+            self._replayed_unknown_effect = True
+        if executed and previous and expected == fingerprint:
+            self.events.emit('tool_replay', id=command.id, tool=command.tool, disposition='same_input')
             if previous.status != "success":
                 self.context._last_failure = previous
             if command.need_result:
                 self.context._last_need_result = previous
+            elif previous.status == 'success' and previous.flow == TOOL_FLOW_BLOCKING and not fingerprint.startswith('native:'):
+                self.context.repeat_auto_result(previous)
             process_output = (previous.result_content is not None or previous.exit_code is not None
                               or command.tool in ('bash', 'python'))
             return ExecutionResult(success=previous.status == "success", tool=command.tool,
@@ -1964,6 +2040,8 @@ class AgentLoop:
                                    status=previous.status, truncated=previous.truncated or previous.payload_clipped,
                                    output_refs=dict(previous.output_refs), output_sizes=dict(previous.output_sizes),
                                    read_note=previous.read_note)
+        self.events.emit('tool_replay', id=command.id, tool=command.tool,
+                         disposition='different_input' if expected and expected != fingerprint else 'unresolved')
         result = ExecutionResult(success=False, tool=command.tool,
                                  error=f"Command id={command.id} conflicts with an earlier or unresolved command; use a new id.")
         self.context.record(command, result, flow=self.tool_registry.flow(command.tool),
@@ -2306,6 +2384,7 @@ class AgentLoop:
             "session_id": self.session_id,
             "messages": self.messages,
             "conversation": self.conversation.to_dict(),
+            "read_baselines": self.executor.snapshot_read_baselines(),
             "outputs": self.outputs.to_dict(),
             "task_plan": self.task_plan,
             "native_write_fallback": self.native_write_fallback,
@@ -2322,7 +2401,7 @@ class AgentLoop:
 
     def load_snapshot(self, data: dict):
         """恢复会话状态。"""
-        self.executor.clear_read_baselines()
+        self.executor.restore_read_baselines(data.get('read_baselines', {}))
         self.session_id = data.get('session_id', self.session_id)
         self.client.headers.update(self._build_headers())
         self.messages = list(data.get("messages", []))

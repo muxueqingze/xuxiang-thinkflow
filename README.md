@@ -10,7 +10,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 **安装 0.10.1：** [Windows 桌面安装版](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.1/ThinkFlow-0.10.1-Windows-x64-Setup.exe) · [便携 ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.1/ThinkFlow-0.10.1-Windows-x64.zip) · CLI：`npm install -g xuxiang-agent`。桌面自带运行时，npm 只安装 CLI。[版本说明](docs/release-0.10.1.md)
 
-日常开发与发布使用 `main`。[参与贡献](CONTRIBUTING.md) · [仓库管理](docs/repository-management.md) · [私密漏洞报告](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new)
+日常开发与发布使用 `main`。[待发布改动](docs/unreleased.md) · [参与贡献](CONTRIBUTING.md) · [仓库管理](docs/repository-management.md) · [私密漏洞报告](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new)
 
 续想 ThinkFlow 是一个实验性流式工具调用 agent harness。它验证一个核心判断：并不是所有工具调用都应该成为模型回合边界。
 
@@ -19,6 +19,8 @@ Language: [中文](README.md) | [English](README.en.md)
 2026-11-10源码恢复流式主执行路线，新增tf-python和独立信息调用整批反馈。Go DS Flash三题各两次，双方均完整交付：ThinkFlow 34请求/178,804token，Pi 48请求/至少459,820token；总token至少减少61.11%，请求减少29.17%。最新实测见[结果报告](docs/efficiency-results-20261110.md)，原因与选型见[方向评估](docs/efficiency-direction-20261109.md)，按任务定位见[代码地图](docs/代码地图.md)。
 
 对于 `read`、`grep`、`web`、`bash` 这类会带来新信息或高风险副作用的工具，续想仍然使用阻塞、确认、反馈路径。对于 `write`、`append`、`mkdir`、`touch`、`copy`、`edit` 这类可预测副作用工具，续想允许模型在连续 streaming 中写出结构化 `tf-*` 命令，由本地状态机、FIFO 队列、执行器和 ledger 接管执行。成功执行只是回执，不必打断模型正在进行的推理。
+
+2026-11-19 的 `main` 源码对照中，ThinkFlow 和 Pi 1.0.1 在两个三阶段维护任务上均通过全部 49 项分阶段验收。使用同一 DS Flash，ThinkFlow 用了 23 次请求、199,166 token，Pi 用了 42 次、493,422 token。两题分别少用 49.3% 和 70.1% 总 token。[逐阶段结果、成本与失败样本](docs/research/long-workflows-20261119.md)
 
 ## 核心路线
 
@@ -334,4 +336,4 @@ npm pack --dry-run --json
 
 本项目目前以网络署名“沐雪清泽”发布。续想 ThinkFlow 是实验性 agent harness 与技术路线验证项目，不是商业服务承诺，也不代表任何公司或机构立场。
 
-引用、复现实验、工程合作或安全报告，请优先使用 GitHub Issues / Discussions，或通过作者 GitHub 主页公开的联系方式联系。
+复现实验、报告一般问题或提建议，请到 [GitHub Issues](https://github.com/muxueqingze/xuxiang-thinkflow/issues)。报告安全漏洞请用[私密报告入口](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new)。引用项目见[引用信息](CITATION.cff)，工程合作可通过[作者主页](https://github.com/muxueqingze)联系。

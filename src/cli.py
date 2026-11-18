@@ -12,10 +12,13 @@ import asyncio
 import html
 import json
 import os
+import re
 import sys
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
+
+from rich.text import Text
 
 from .agent_loop import AgentLoop, AgentConfig
 from .compaction import CompactionConfig
@@ -33,7 +36,7 @@ from .provider import (DEEPSEEK_EFFORTS, OPENAI_EFFORTS, ProviderConfig, Provide
                        thinking_kind, thinking_label, thinking_setting, validate_thinking_budget)
 from .prompts import BUILTIN_SYSTEM_PROMPT
 from .security import SecurityPolicy, normalize_security_profile
-from .session import SessionStore
+from .session import SessionStore, transcript_text
 from .runtime_context import build_context_prompt, thinkflow_home
 from .skills import SkillConfig
 from .tui import run_tui
@@ -77,6 +80,7 @@ SLASH_COMMAND_SPECS = (
     SlashCommandSpec("/ctx", "显示当前上下文状态", "status"),
     SlashCommandSpec("/model", "选择模型：/model [provider/model|model]", "model", selectable=True),
     SlashCommandSpec("/models", "列出 provider 模型；/models refresh 重新拉取 active provider", "model"),
+    SlashCommandSpec("/models refresh", "重新获取当前 provider 的模型列表", "model"),
     SlashCommandSpec("/thinking", "查看或选择当前模型的思考档位：/thinking [档位|预算]", "model", selectable=True),
     SlashCommandSpec("/btw", "在当前批次结束后补充当前任务，空闲时直接发送", "runtime"),
     SlashCommandSpec("/steer", "补充当前任务（同 /btw）", "runtime"),
@@ -148,6 +152,8 @@ def apply_provider_profile(agent: AgentLoop, profile: ProviderProfileConfig, mod
     provider.reasoning_effort = profile.reasoning_effort
     provider.max_tokens = profile.max_tokens
     provider.stream_options_include_usage = profile.stream_options_include_usage
+    provider.prompt_cache_key = profile.prompt_cache_key
+    provider.anthropic_prompt_cache = profile.anthropic_prompt_cache
     provider.enable_native_tools = profile.enable_native_tools
     provider.native_tools = list(profile.native_tools)
     provider.disabled_native_tools = list(profile.disabled_native_tools)
@@ -181,6 +187,8 @@ def build_model_selection_items(agent: AgentLoop) -> list[SelectionItem]:
             reasoning_effort=provider.reasoning_effort,
             max_tokens=provider.max_tokens,
             stream_options_include_usage=provider.stream_options_include_usage,
+            prompt_cache_key=provider.prompt_cache_key,
+            anthropic_prompt_cache=provider.anthropic_prompt_cache,
             enable_native_tools=provider.enable_native_tools,
             native_tools=list(provider.native_tools),
             disabled_native_tools=list(provider.disabled_native_tools),
@@ -236,11 +244,11 @@ def build_resume_selection_items(store: SessionStore, sessions: list[Path]) -> l
                     value=session_path,
                     label=f"{idx}. 无法读取会话",
                     meta="error",
-                    detail=str(meta["error"]),
+                    detail=_strip_terminal_controls(meta["error"]),
                 )
             )
             continue
-        start = _clip_text(meta.get("start", ""), 58) or "[empty]"
+        start = _clip_text(_strip_terminal_controls(meta.get("start", "")), 58) or "[empty]"
         items.append(
             SelectionItem(
                 value=session_path,
@@ -252,21 +260,32 @@ def build_resume_selection_items(store: SessionStore, sessions: list[Path]) -> l
     return items
 
 
-def select_session(agent: AgentLoop, selected: Path, store: SessionStore = None, *, on_session_change=None):
+def select_session(agent: AgentLoop, selected: Path, store: SessionStore = None, *, replay: bool = True,
+                   on_session_change=None):
     selected_store = SessionStore(str(selected), cwd=agent.executor.cwd)
     if not selected_store.exists():
         renderer.render_error("session 不存在")
         return
-    snapshot = selected_store.load()
+    archive = selected_store.path.parent.name == 'history'
+    snapshot = selected_store.load(settle_intents=not archive)
+    bound = store is not None and getattr(agent, "session_store", None) is store
+    if archive and store is not None:
+        selected_store, snapshot = store.fork_archive(snapshot)
+        if bound:
+            selected_store.save(snapshot, history=False)
+    if bound and selected_store.path != store.path:
+        agent.outputs.clear()
+        agent.bind_output_store(selected_store.output_dir)
     agent.load_snapshot(snapshot)
     if on_session_change is not None:
         on_session_change()
     if store is not None:
         store.path = selected_store.path
-        if getattr(agent, "session_store", None) is store:
-            agent.bind_output_store(store.output_dir)
-    renderer.render_info("会话已恢复")
-    render_session_transcript(agent.messages)
+    if replay:
+        renderer.render_info("会话已恢复")
+        render_session_transcript(agent.messages)
+    else:
+        renderer.console.print(Text(f"已恢复会话: {selected_store.path}", style="info"))
 
 
 def switch_model(agent: AgentLoop, selection):
@@ -551,6 +570,10 @@ def build_slash_completer(agent: AgentLoop | None = None, store: SessionStore | 
             command, arg_prefix = slash_parts(stripped)
             if command != stripped.lower():
                 arg_prefix = arg_prefix.lstrip()
+                for name, description in SLASH_COMMANDS.items():
+                    parent, separator, argument = name.partition(' ')
+                    if separator and parent == command and argument.startswith(arg_prefix.lower()):
+                        yield Completion(argument, start_position=-len(arg_prefix), display_meta=description)
                 if command.lower() == "/sandbox":
                     for option in ("read-only", "workspace-write", "danger-full-access", "locked", "balanced", "open"):
                         if option.startswith(arg_prefix.lower()):
@@ -629,15 +652,16 @@ def render_session_choices(store: SessionStore, sessions: list[Path]):
     for idx, session_path in enumerate(sessions, start=1):
         meta = store.inspect(session_path)
         if "error" in meta:
-            renderer.console.print(f"  [cyan]{idx:2d}[/cyan] [fail]无法读取会话[/fail] {meta['error']}")
+            renderer.console.print(f"  [cyan]{idx:2d}[/cyan] [fail]无法读取会话[/fail]",
+                                   Text(_strip_terminal_controls(meta['error'])))
             continue
-        start = _clip_text(meta.get("start", ""), 90) or "[empty]"
+        start = _clip_text(_strip_terminal_controls(meta.get("start", "")), 90) or "[empty]"
         renderer.console.print(
             f"  [cyan]{idx:2d}[/cyan] [tag]{meta.get('timestamp', '')}[/tag] "
             f"msgs={meta.get('messages', 0)} turns={meta.get('turn_count', 0)} "
             f"records={meta.get('records', 0)}"
         )
-        renderer.console.print(f"      [dim]{start}[/dim]")
+        renderer.console.print(Text(f"      {start}", style="dim"))
     renderer.console.print("[dim]使用 /resume 编号 恢复。[/dim]\n")
 
 
@@ -652,19 +676,32 @@ def render_session_transcript(messages: list[dict], max_messages: int = 24, max_
     if hidden > 0:
         renderer.console.print(f"[dim]前面 {hidden} 条较早消息已省略，可用 /status 查看完整上下文规模。[/dim]")
     for message in shown:
-        role = str(message.get("role", "") or "message")
+        role = _strip_terminal_controls(str(message.get("role", "") or "message"))
+        content = transcript_text(message.get("content", ""))
         if message.get("tool_calls"):
             names = []
             for call in message.get("tool_calls", []) or []:
                 fn = (call.get("function") or {}).get("name") or call.get("name") or "tool"
                 names.append(str(fn))
-            content = "tool_call: " + ", ".join(names)
-        else:
-            content = str(message.get("content", "") or "")
-        content = _clip_text(content.replace("\n", " "), max_chars)
+            content = "\n".join(filter(None, (content, "tool_call: " + ", ".join(names))))
+        content = _strip_terminal_controls(content)
+        if len(content) > max_chars:
+            content = content[:max(0, max_chars - 1)] + "…"
         style = "cyan" if role == "user" else "green" if role == "assistant" else "yellow" if role == "tool" else "dim"
-        renderer.console.print(f"  [{style}]{role}[/{style}] {content}", highlight=False)
+        renderer.console.print(Text.assemble((f"  {role}", style), f" {content}"), soft_wrap=True)
     renderer.console.print()
+
+
+_TERMINAL_CONTROL_RE = re.compile(
+    r"(?:\x1b\]|\x9d)[^\x07\x1b\x9c]*(?:\x07|\x1b\\|\x9c|$)|"  # OSC
+    r"(?:\x1b[PX^_]|[\x90\x98\x9e\x9f])[^\x1b\x9c]*(?:\x1b\\|\x9c|$)|"  # Other control strings
+    r"(?:\x1b\[|\x9b)[0-?]*[ -/]*(?:[@-~]|$)|"  # CSI
+    r"\x1b[ -/]*[0-~]|[\x00-\x08\x0b-\x1f\x7f-\x9f]"
+)
+
+
+def _strip_terminal_controls(text: str) -> str:
+    return _TERMINAL_CONTROL_RE.sub("", text)
 
 
 def render_status(agent: AgentLoop, store: SessionStore = None):
@@ -684,6 +721,17 @@ def render_status(agent: AgentLoop, store: SessionStore = None):
     renderer.console.print(f"  messages   {stats['messages']} ({stats['chars']:,} chars)")
     renderer.console.print(f"  compact    enabled={compaction.enabled} count={stats['compactions']}")
     renderer.console.print(f"  input est. last={stats['last_input_tokens_estimate']} trigger={compaction.max_input_tokens or 'off'} tokens")
+    usage = agent.usage.totals()
+    hit_ratio = usage["cache_hit_ratio"]
+    coverage = usage["cache_coverage"]
+    hit_text = "未知" if hit_ratio is None else (
+        f"{hit_ratio:.1%}（{usage['cache_hit_tokens']:,}/{usage['cache_denominator_tokens']:,} tokens）"
+    )
+    coverage_text = "未知" if coverage is None else (
+        f"{coverage:.1%}（{usage['cache_denominator_tokens']:,}/{usage['cache_input_tokens']:,} tokens）"
+    )
+    renderer.console.print(f"  缓存命中率 {hit_text}，纳入 {usage['cache_observed_turns']}/{usage['logical_turns']} 轮")
+    renderer.console.print(f"  缓存明细占已知完整输入 {coverage_text}")
     renderer.console.print(f"  security   bash={security.bash_policy} approval={security.approval_mode} roots={security.allowed_roots}")
     renderer.console.print()
 
@@ -1661,8 +1709,7 @@ def main():
 
     if args.resume:
         if store.exists():
-            agent.load_snapshot(store.load())
-            renderer.render_info(f"已恢复会话: {store.path}")
+            select_session(agent, store.path, store, replay=False)
         else:
             renderer.render_info(f"未找到会话快照，将从新会话开始: {store.path}")
 

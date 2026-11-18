@@ -22,6 +22,25 @@ from .session_delta import snapshot_changes, apply_changes
 DEFAULT_SESSION_DIR = ".thinkflow"
 
 
+def transcript_text(content) -> str:
+    if isinstance(content, str):
+        return content
+    if not isinstance(content, list):
+        return ""
+    visible = []
+    for block in content:
+        if not isinstance(block, dict):
+            continue
+        kind = block.get("type")
+        if kind == "text" and isinstance(block.get("text"), str):
+            visible.append(block["text"])
+        elif kind == "tool_result":
+            visible.append(transcript_text(block.get("content", "")))
+        elif kind == "tool_use":
+            visible.append(f"tool_call: {block.get('name') or 'tool'}")
+    return "\n".join(part for part in visible if part)
+
+
 class SessionStore:
     """基于 JSON 的轻量会话存储。"""
 
@@ -88,7 +107,7 @@ class SessionStore:
         elif kind in ("turn_started", "turn_finished", "run_finished", "plan_updated", "steering_applied"):
             self.save(self._agent.to_snapshot(), history=kind == "run_finished")
 
-    def _recover_intents(self, snapshot):
+    def _recover_intents(self, snapshot, *, settle_intents):
         if not self.journal_path.exists():
             return
         pending = {}
@@ -122,7 +141,7 @@ class SessionStore:
             # has a committed receipt. Preserve that result instead of downgrading it.
             if identifier in known:
                 receipt = known[identifier]
-                if (receipt.get('status') in ('success', 'failed', 'conflict')
+                if (settle_intents and receipt.get('status') in ('success', 'failed', 'conflict')
                         and fingerprints.get(identifier) == event.get('input_hash')):
                     # Settle the journal before compaction can discard the receipt.
                     self._journal({**event, 'type': 'tool_completed', 'status': receipt['status']})
@@ -199,7 +218,7 @@ class SessionStore:
         for message in messages:
             if not isinstance(message, dict) or message.get('role') != 'user':
                 continue
-            text = str(message.get('content', '') or '').replace('\n', ' ').strip()
+            text = transcript_text(message.get('content')).replace('\n', ' ').strip()
             if text:
                 start = text[:89] + '…' if len(text) > 90 else text
                 break
@@ -211,7 +230,7 @@ class SessionStore:
                             ('id', 'cwd', 'title', 'title_custom', 'pinned', 'archived', 'updated_at')
                             if name in desktop}}
         cls._write_json_atomic(path.with_suffix('.index'),
-                               {'source': cls._source_signature(path), 'info': info})
+                               {'version': 2, 'source': cls._source_signature(path), 'info': info})
 
     def discover(self) -> list[Path]:
         """Return known session snapshots, newest first."""
@@ -263,7 +282,7 @@ class SessionStore:
             if index_path.exists():
                 with index_path.open(encoding='utf-8') as stream:
                     index = json.load(stream)
-            if index is None or index['source'] != source:
+            if index is None or index.get('version') != 2 or index['source'] != source:
                 snapshot, _ = cls._read_snapshot(path)
                 cls._write_index(path, snapshot, snapshot.get('_history_digest') or cls._snapshot_digest(snapshot))
                 with index_path.open(encoding='utf-8') as stream:
@@ -276,13 +295,28 @@ class SessionStore:
             "mtime": mtime,
             "timestamp": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S") if mtime else "",
         }
-    def load(self) -> dict:
+    def load(self, *, settle_intents: bool = True) -> dict:
         snapshot, _ = self._read_snapshot(self.path)
         outputs = snapshot.get("outputs")
         if outputs and outputs.get("root"):
             outputs["root"] = str((self.path.parent / outputs["root"]).resolve())
-        self._recover_intents(snapshot)
+        self._recover_intents(snapshot, settle_intents=settle_intents)
         return snapshot
+
+    def fork_archive(self, snapshot: dict) -> tuple['SessionStore', dict]:
+        """Prepare a separate live session for a selected history checkpoint."""
+        session_id = uuid.uuid4().hex
+        directory = self.path.parent
+        if directory.name == 'history':
+            directory = directory.parent
+        if directory.parent.name == 'sessions':
+            path = directory.parent / f'resumed-{session_id}' / 'session.json'
+        else:
+            path = directory / f'resumed-{session_id}.json'
+        branch = {**snapshot, 'session_id': session_id}
+        branch.pop('_history_digest', None)
+        branch.pop('_history_saved_at', None)
+        return SessionStore(str(path), cwd=self.cwd), branch
 
     def save(self, snapshot: dict, *, history: bool = True, incremental: bool = False):
         snapshot = dict(snapshot)

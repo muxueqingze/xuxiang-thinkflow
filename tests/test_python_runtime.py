@@ -1,6 +1,7 @@
 """Interpreter selection and opt-in checks against the actual desktop Python bundle."""
 import asyncio
 from contextlib import ExitStack
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -10,8 +11,12 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from src.agent_loop import AgentConfig, AgentLoop
 from src.executor import Executor, ExecutionCancelled, ExecutionResult
+from src.parser import StreamingParser
+from src.process_owner import spawn_owned
 from src.security import SecurityPolicy
+from src.session import SessionStore
 
 
 class PythonSelection(unittest.IsolatedAsyncioTestCase):
@@ -37,6 +42,61 @@ class PythonSelection(unittest.IsolatedAsyncioTestCase):
 
 
 RUNTIME = os.environ.get('THINKFLOW_TEST_PYTHON_RUNTIME')
+
+
+class PythonRequestInput(unittest.IsolatedAsyncioTestCase):
+    async def test_original_and_frozen_stdin_after_resume_and_receipt_replay(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            config = AgentConfig(cwd=workspace)
+            store = SessionStore(str(Path(workspace) / 'session.json'))
+            original = '头🐈\r\n' * 12000 + '票价=13\r\0尾'
+            frozen = original + '\r\n[附录]\n甲\r'
+            code = 'import hashlib, sys\nprint(hashlib.sha256(sys.stdin.read().encode()).hexdigest())'
+            agent = AgentLoop(config, event_sink=lambda _: None)
+            try:
+                agent.conversation.record_request(0, original, frozen)
+                store.save(agent.to_snapshot())
+            finally:
+                await agent.close()
+            agent = AgentLoop(config, event_sink=lambda _: None)
+            try:
+                agent.load_snapshot(store.load())
+                command = StreamingParser(allow_legacy_tags=False).feed(
+                    f'<tf-python id="1" ref="request:1">{code}</tf-python>')[0]
+                args = {'code': code, 'ref': 'request:1:input'}
+                with patch('src.executor.spawn_owned', wraps=spawn_owned) as spawn:
+                    plain = await agent._execute_command(command)
+                    expanded = await agent._execute_traditional_result('python', args, tool_id='frozen')
+                    for result, expected in ((plain, original), (expanded, frozen)):
+                        self.assertTrue(result.success, result.error)
+                        self.assertEqual(result.stdout.strip(), hashlib.sha256(expected.encode()).hexdigest())
+                    self.assertEqual(spawn.await_count, 2)
+                    self.assertTrue(all(call.kwargs['shell'] is False for call in spawn.await_args_list))
+                    replay = await agent._execute_command(command)
+                    self.assertEqual(replay.stdout, plain.stdout)
+                    command.ref = args['ref']
+                    conflict = await agent._execute_command(command)
+                    self.assertIn('conflicts', conflict.error)
+                    self.assertEqual(spawn.await_count, 2)
+            finally:
+                await agent.close()
+
+    async def test_invalid_reference_rejected_before_starting_python(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            agent = AgentLoop(AgentConfig(cwd=workspace), event_sink=lambda _: None)
+            try:
+                agent.conversation.record_request(0, 'plain', 'plain')
+                with patch('src.executor.spawn_owned', new_callable=AsyncMock) as spawn:
+                    for ref in (None, '', 'request:0', 'request:1:input', 'request:2'):
+                        with self.subTest(ref=ref):
+                            args = {'code': 'print(42)', 'ref': ref}
+                            result = await agent._execute_traditional_result('python', args, tool_id=f'id-{ref}')
+                            self.assertFalse(result.success)
+                            direct = await agent.tool_registry.execute('python', args)
+                            self.assertFalse(direct.success)
+                    spawn.assert_not_awaited()
+            finally:
+                await agent.close()
 
 
 @unittest.skipUnless(RUNTIME and os.name == 'nt', 'set THINKFLOW_TEST_PYTHON_RUNTIME to a built backend/python directory')
@@ -89,6 +149,17 @@ print(json.dumps({"executable": sys.executable, "pid": os.getpid()}))
         details = json.loads(output.splitlines()[-1])
         self.assertEqual(Path(details['executable']), self.runtime / 'python.exe')
         self.assertNotEqual(details['pid'], os.getpid())
+
+    async def test_request_ref_keeps_exact_stdin_and_workspace_import(self):
+        original = '中文\r\n\0🐈\r尾'
+        (self.workspace / 'local_module.py').write_text('value = 42\n', encoding='utf8')
+        self.executor.request_text = {'request:1': original}.__getitem__
+        result = await self.executor.python(
+            'import sys, local_module\nassert local_module.value == 42\n'
+            'assert sys.argv == ["-"] and __file__ == "<stdin>"\n'
+            'print(sys.stdin.read().encode().hex())', ref='request:1')
+        self.assertTrue(result.success, result.error)
+        self.assertEqual(result.stdout.strip(), original.encode().hex())
 
     async def test_explicit_override_uses_chosen_interpreter(self):
         with patch.dict(os.environ, {'THINKFLOW_PYTHON': self.host_python}):

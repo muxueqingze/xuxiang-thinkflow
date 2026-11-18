@@ -69,3 +69,5 @@ The submitter should understand the implementation and its effects, and report a
 ## Sources and attribution
 
 Contributions are distributed under the project's [MIT license](LICENSE), with contributor attribution retained. Identify third-party code, assets and new dependencies, and retain their licenses and notices. There is currently no additional CLA or DCO sign-off process, and existing commit authors are not rewritten.
+
+PRs and Git commits preserve the full contribution history. Use `Co-authored-by` for shared implementation. The [unreleased notes](docs/unreleased.md) summarize changes that users or SDK consumers need to know about. Group related PRs by feature and credit their contributors. At release time, move the summary into the GitHub Release and link the full changelog. Credit reproductions, design work, and test cases by describing what the contributor supplied.

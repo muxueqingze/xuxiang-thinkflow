@@ -53,6 +53,85 @@ class Wire(httpx.AsyncByteStream):
 
 
 class StreamStateTests(unittest.IsolatedAsyncioTestCase):
+    async def test_command_markup_after_an_id_collision_cannot_finish_the_next_release(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bare = '<read id="3" path="a" />\n<read id="4" path="b" />'
+            agent, requests = await self.scripted_agent(directory, [
+                '<tf-write id="10" path="a">one</tf-write>Delivered A.',
+                '<tf-write id="10" path="b">two</tf-write>',
+                bare,
+                '<tf-write id="11" path="b">two</tf-write>Delivered B.',
+            ], require_final_response=True)
+            await agent.run('Release A')
+            await agent.run('Release B')
+            self.assertEqual(len(requests), 4)
+            self.assertEqual(agent.stopped_reason, 'completed')
+            self.assertEqual(Path(directory, 'b').read_bytes(), b'two')
+            self.assertNotIn('read', [r.tool for r in agent.context.records])
+            self.assertIn('id="11"', requests[1]['messages'][-1]['content'])
+            self.assertIn('id="11"', requests[2]['messages'][-1]['content'])
+            self.assertIn('没有执行', requests[3]['messages'][-1]['content'])
+
+    async def test_unfinished_followup_tag_cannot_hide_a_real_file_conflict(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory, 'flag')
+            target.write_bytes(b'changed externally')
+            first = ('<tf-edit id="1" path="flag" match="file"><old>draft</old><new>ready</new></tf-edit>\n'
+                     '<tf-write id="2" path="marker">')
+            agent, requests = await self.scripted_agent(directory, [first, 'The old text did not match.'])
+            await agent.run('If the old text differs, leave everything in place and report.')
+            observation = '\n'.join(m['content'] for m in requests[1]['messages'] if m['role'] == 'user')
+            self.assertIn('revision_conflict', observation)
+            self.assertNotIn('THINKFLOW PARSER ERROR', observation)
+            self.assertFalse(agent.native_write_fallback)
+            self.assertEqual(target.read_bytes(), b'changed externally')
+            self.assertFalse(Path(directory, 'marker').exists())
+
+    async def test_visible_delivery_continues_a_tool_only_partial_result(self):
+        with tempfile.TemporaryDirectory() as directory:
+            agent, requests = await self.scripted_agent(directory, [
+                '<tf-write id="1" path="a">A</tf-write>',
+                '<tf-write id="2" path="b">B</tf-write>Both files are ready.',
+            ], require_final_response=True)
+            await agent.run('Write both files and tell me the result.')
+            self.assertEqual(len(requests), 2)
+            self.assertEqual(agent.stopped_reason, 'completed')
+            self.assertEqual(Path(directory, 'b').read_bytes(), b'B')
+            self.assertIn('THINKFLOW CONTINUE', json.dumps(requests[1]))
+
+    async def test_visible_delivery_reports_incomplete_after_second_silent_turn(self):
+        with tempfile.TemporaryDirectory() as directory:
+            action = '<tf-touch id="1" path="marker" />'
+            agent, requests = await self.scripted_agent(directory, [action, action], require_final_response=True)
+            await agent.run('Create the marker and reply.')
+            self.assertEqual(len(requests), 2)
+            self.assertEqual(agent.stopped_reason, 'incomplete_response')
+            self.assertEqual(len(agent.context.records), 1)
+
+    async def test_stream_replay_keeps_one_effect_and_continues_the_same_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first = '<tf-write id="1" path="log">A</tf-write>'
+            append = '<tf-append id="2" path="log">B</tf-append>'
+            next_write = '<tf-write id="3" path="marker">ok</tf-write>'
+            agent, requests = await self.scripted_agent(directory, [first + append + append + next_write + 'done'])
+            await agent.run('prepare the log')
+            self.assertEqual(len(requests), 1)
+            self.assertEqual(Path(directory, 'log').read_bytes(), b'AB')
+            self.assertEqual(Path(directory, 'marker').read_bytes(), b'ok')
+            self.assertEqual([r.id for r in agent.context.records], ['1', '2', '3'])
+
+    async def test_stream_id_collision_blocks_the_following_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            first = '<tf-write id="1" path="log">A</tf-write>'
+            second = '<tf-write id="1" path="log">B</tf-write>'
+            marker = '<tf-write id="2" path="marker">premature</tf-write>'
+            agent, requests = await self.scripted_agent(directory, [first + second + marker, 'conflict'])
+            await agent.run('prepare the log')
+            self.assertEqual(len(requests), 2)
+            self.assertEqual(Path(directory, 'log').read_bytes(), b'A')
+            self.assertFalse(Path(directory, 'marker').exists())
+            self.assertEqual([r.status for r in agent.context.records], ['success', 'failed', 'skipped'])
+
     async def scripted_agent(self, directory, replies, *, protocol='openai', **settings):
         agent = AgentLoop(AgentConfig(cwd=directory, **settings, provider=ProviderConfig(
             format=protocol, model='fixture', max_tokens=4096, enable_native_tools=False)), event_sink=lambda _: None)

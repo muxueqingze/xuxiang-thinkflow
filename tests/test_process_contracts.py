@@ -191,20 +191,23 @@ class ProcessContracts(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(receipt["status"], "success")
 
     async def test_repeated_image_cancel_settles_output_and_returns_receipt(self):
-        ready = self.root / "image-ready"
         source = ("import os,pathlib,sys,time\n"
                   "sys.stdout.write('x'*90000+'IMAGE_TAIL');sys.stdout.flush()\n"
-                  f"pathlib.Path({str(ready.with_suffix('.pending'))!r}).write_text(str(os.getpid()))\n"
-                  f"os.replace({str(ready.with_suffix('.pending'))!r}, {str(ready)!r})\n"
+                  "pathlib.Path(f'image-ready-{os.getpid()}').touch()\n"
                   "time.sleep(60)\n")
         image = ImageGenerationConfig(enabled=True, provider="command", command=[sys.executable, "-c", source])
         task = asyncio.create_task(self.interfaces._run_image_command(image, {"output_path": str(self.root / "image.png")}))
-        await self.wait_for(ready.exists)
-        child_pid = int(ready.read_text())
-        task.cancel()
-        asyncio.get_running_loop().call_soon(task.cancel)
-        with self.assertRaises(ExecutionCancelled) as raised:
-            await task
+        try:
+            await self.wait_for(lambda: any(self.root.glob('image-ready-*')))
+            child_pid = int(next(self.root.glob('image-ready-*')).name.rsplit('-', 1)[1])
+            task.cancel()
+            asyncio.get_running_loop().call_soon(task.cancel)
+            with self.assertRaises(ExecutionCancelled) as raised:
+                await task
+        finally:
+            if not task.done():
+                task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
         result = raised.exception.result
         self.assertEqual(result.status_str, "cancelled")
         self.assertEqual(result.output_sizes["stdout"], 90010)

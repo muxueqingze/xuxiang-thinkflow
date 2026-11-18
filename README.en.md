@@ -20,6 +20,8 @@ In the 2026-11-10 Go DS Flash comparison (three tasks, two repetitions), both ha
 
 The 2026-11-10 source defaults to the streaming protocol. Independent reads and checks are declared together and returned in one feedback batch. `tf-python` runs multiline code through stdin, using the existing execution and cancellation path. `--native-tools` or the desktop setting enables native compatibility and extensions; explicit configuration is preserved. See the [current comparison](docs/efficiency-results-20261110.md) and [diagnosis](docs/efficiency-direction-20261109.md).
 
+In a November 19, 2026 comparison on `main`, ThinkFlow and Pi 1.0.1 passed all 49 stage checks across two three-release maintenance tasks. With the same DS Flash model, ThinkFlow used 23 requests and 199,166 tokens. Pi used 42 requests and 493,422 tokens. ThinkFlow used 49.3% fewer total tokens on the freight project and 70.1% fewer on the plugin resolver. [Stage results, costs and failed trials](docs/research/long-workflows-20261119.md)
+
 ## Core Idea
 
 Traditional agent harnesses often use this loop:
@@ -58,7 +60,7 @@ The 2026-11-11 review follow-up unifies exact read projection across text and bo
 
 ## Installation
 
-`main` is the active development and release branch. See [contributing](CONTRIBUTING.en.md), [repository management](docs/repository-management.md), or [report a vulnerability privately](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new).
+`main` is the active development and release branch. See [unreleased changes](docs/unreleased.md), [contributing](CONTRIBUTING.en.md), [repository management](docs/repository-management.md), or [report a vulnerability privately](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new).
 
 Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.1/ThinkFlow-0.10.1-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.1/ThinkFlow-0.10.1-Windows-x64.zip) runs after extracting the complete folder.
 
@@ -277,7 +279,7 @@ This project is published under the online name **沐雪清泽**.
 
 Xuxiang ThinkFlow is an experimental agent harness and technical-route validation project. It is not a commercial service commitment and does not represent any company or institution.
 
-For citation, benchmark reproduction, engineering collaboration, or security reports, use GitHub Issues / Discussions or the public contact methods listed on the author's GitHub profile.
+Use [GitHub Issues](https://github.com/muxueqingze/xuxiang-thinkflow/issues) for benchmark reproductions, bugs, and suggestions. Report vulnerabilities through [private reporting](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new). For citations, see [CITATION.cff](CITATION.cff). For collaboration, contact the author through their [GitHub profile](https://github.com/muxueqingze).
 
 ## Current desktop source
 

@@ -95,6 +95,7 @@ test('runtime overrides reach configure, survive restart and can be removed from
     tool_protocol: { allow_legacy_tags: true }, max_read_chars: 4096, max_retries: 0, retry_backoff_seconds: 0.5,
     max_auto_continues: 1, max_consecutive_failures: 4, delivery_verify: true, auto_verify_runnable_artifacts: false,
     max_delivery_fix_attempts: 2, native_tools: ['read'], disabled_native_tools: ['web'],
+    prompt_cache_key: ' fixture-route ', anthropic_prompt_cache: false,
   };
   const input = { ...DEFAULTS, api_key: 'test-encrypted-key', runtime_config: overrides };
   validateParams('configure', input);

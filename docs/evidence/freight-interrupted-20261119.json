@@ -1,0 +1,164 @@
+{
+  "condition": "Interrupted by host restart at 2026-11-19 00:19:58 +08:00. No completed third-stage worker or final wire-meter file. Agent usage is partial and cumulative. Excluded from completed-run comparisons.",
+  "fixture_sha256": "4252d2c5e45d18d5a4e26493bb5ab7d17cc2a52a9b54cbc926f1c68ca9cfa8dd",
+  "per_response_cap": 16384,
+  "runs": [
+    {
+      "harness": "candidate2",
+      "revision": "d36891560e0d7000878f0ef642aa06cbb8a1f8c9",
+      "completed_stages": [
+        {
+          "stage": 1,
+          "last_turn": 5,
+          "cumulative_agent_usage": {
+            "api_calls": 5,
+            "reported_turns": 4,
+            "unknown_usage_requests": 1,
+            "usage_complete": false,
+            "prompt_tokens": 7805,
+            "completion_tokens": 2011,
+            "cached_tokens": 5120,
+            "total_tokens": 9816
+          },
+          "cumulative_ref_receipts": [],
+          "file_tool_errors": [{"turn": 3, "tool": "edit", "target": "freight.py", "error": "oldText 必须唯一且非空（包括重叠匹配）"}],
+          "grader_observed_before_restart": 4
+        },
+        {
+          "stage": 2,
+          "last_turn": 8,
+          "cumulative_agent_usage": {
+            "api_calls": 8,
+            "reported_turns": 6,
+            "unknown_usage_requests": 2,
+            "usage_complete": false,
+            "prompt_tokens": 26963,
+            "completion_tokens": 3463,
+            "cached_tokens": 22912,
+            "total_tokens": 30426
+          },
+          "cumulative_ref_receipts": [{"tool": "python", "ref": "request:2", "status": "success"}],
+          "file_tool_errors": [{"turn": 6, "tool": "write", "target": "rates.json", "error": "read_required: read the complete file without redaction before modification"}],
+          "grader_observed_before_restart": 8
+        }
+      ],
+      "interrupted_third_stage": {
+        "cumulative_agent_usage": {
+          "api_calls": 10,
+          "reported_turns": 8,
+          "unknown_usage_requests": 2,
+          "usage_complete": false,
+          "prompt_tokens": 48961,
+          "completion_tokens": 13518,
+          "cached_tokens": 43648,
+          "total_tokens": 62479
+        },
+        "tools_completed": ["read", "read", "read", "write", "write", "write", "python"],
+        "user_requests_recovered": 3,
+        "compactions": 0,
+        "post_restart_artifact_checks": {
+          "started-half-kilo-boundaries": true,
+          "legacy-route": true,
+          "unknown-route-and-draft-alias": true,
+          "legacy-json-cli": true,
+          "published-prices-and-sticky-aliases": true,
+          "alias-json-cli": true,
+          "empty-manifest": true,
+          "ordered-manifest-schema": true,
+          "restore-correction-cancel-order": true,
+          "csv-release-contract": true,
+          "csv-utf8": true,
+          "csv-empty": true
+        }
+      }
+    },
+    {
+      "harness": "baseline",
+      "revision": "d99216da487a5b9e32a371f2f43d4a5100fbd66e",
+      "completed_stages": [
+        {
+          "stage": 1,
+          "last_turn": 13,
+          "cumulative_agent_usage": {
+            "api_calls": 13,
+            "reported_turns": 7,
+            "unknown_usage_requests": 6,
+            "usage_complete": false,
+            "prompt_tokens": 19141,
+            "completion_tokens": 2441,
+            "cached_tokens": 15872,
+            "total_tokens": 21582
+          },
+          "cumulative_ref_receipts": [],
+          "file_tool_errors": [
+            {"turn": 1, "tool": "read", "target": "README.md", "error": "读取失败: file not found or not a regular file"},
+            {"turn": 3, "tool": "edit", "target": "freight.py", "error": "oldText 必须唯一且非空（包括重叠匹配）"},
+            {
+              "turn": 5,
+              "tool": "edit",
+              "target": "freight.py",
+              "error": "revision_conflict: complete file differs from old_text. No replacement was made. Follow the requested non-match branch."
+            }
+          ],
+          "grader_observed_before_restart": 4
+        },
+        {
+          "stage": 2,
+          "last_turn": 19,
+          "cumulative_agent_usage": {
+            "api_calls": 19,
+            "reported_turns": 11,
+            "unknown_usage_requests": 8,
+            "usage_complete": false,
+            "prompt_tokens": 67030,
+            "completion_tokens": 7262,
+            "cached_tokens": 61184,
+            "total_tokens": 74292
+          },
+          "cumulative_ref_receipts": [],
+          "file_tool_errors": [{"turn": 14, "tool": "write", "target": "rates.json", "error": "read_required: read the complete file without redaction before modification"}],
+          "grader_observed_before_restart": null,
+          "stage2_artifact_recheck_after_restart": {
+            "started-half-kilo-boundaries": true,
+            "legacy-route": true,
+            "unknown-route-and-draft-alias": true,
+            "legacy-json-cli": true,
+            "published-prices-and-sticky-aliases": true,
+            "alias-json-cli": true,
+            "empty-manifest": true,
+            "ordered-manifest-schema": true
+          }
+        }
+      ],
+      "interrupted_third_stage": {
+        "cumulative_agent_usage": {
+          "api_calls": 19,
+          "reported_turns": 11,
+          "unknown_usage_requests": 8,
+          "usage_complete": false,
+          "prompt_tokens": 67030,
+          "completion_tokens": 7262,
+          "cached_tokens": 61184,
+          "total_tokens": 74292
+        },
+        "tools_completed": [],
+        "user_requests_recovered": 3,
+        "compactions": 0,
+        "post_restart_artifact_checks": {
+          "started-half-kilo-boundaries": false,
+          "legacy-route": true,
+          "unknown-route-and-draft-alias": true,
+          "legacy-json-cli": true,
+          "published-prices-and-sticky-aliases": false,
+          "alias-json-cli": true,
+          "empty-manifest": true,
+          "ordered-manifest-schema": false,
+          "restore-correction-cancel-order": false,
+          "csv-release-contract": false,
+          "csv-utf8": false,
+          "csv-empty": false
+        }
+      }
+    }
+  ]
+}

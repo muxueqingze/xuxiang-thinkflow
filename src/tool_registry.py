@@ -275,7 +275,10 @@ BUILTIN_TOOL_SPECS = [
         risk=TOOL_RISK_HIGH,
         parameters={
             "type": "object",
-            "properties": {"code": {"type": "string", "description": "多行Python源代码；print需要反馈的结果"}},
+            "properties": {
+                "code": {"type": "string", "description": "多行Python源代码；print需要反馈的结果"},
+                "ref": {"type": "string", "description": "可选，向 stdin 提供完整用户原文 request:N 或冻结附件输入 request:N:input"},
+            },
             "required": ["code"],
         },
     ),
@@ -311,7 +314,7 @@ BUILTIN_TOOL_SPECS = [
     ),
     ToolSpec(
         name="edit",
-        description="精确替换当前版本已读取范围内的唯一文本片段。",
+        description="按已知完整旧正文逐字节校验并替换整文件（match=file），或替换已读范围内的唯一文本片段。",
         kind=TOOL_KIND_OUTPUT,
         flow=TOOL_FLOW_DELAYED,
         risk=TOOL_RISK_MEDIUM,

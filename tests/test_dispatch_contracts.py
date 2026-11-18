@@ -5,6 +5,7 @@ from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest.mock import AsyncMock, patch
 
 import httpx
 
@@ -15,6 +16,7 @@ from src.executor import ExecutionResult
 from src.parser import Command, StreamingParser
 from src.provider import ProviderConfig
 from src.tool_registry import ToolResult, ToolSpec
+from test_stream_state import Wire
 
 
 class DispatchContracts(unittest.IsolatedAsyncioTestCase):
@@ -23,6 +25,17 @@ class DispatchContracts(unittest.IsolatedAsyncioTestCase):
         self.agent = AgentLoop(AgentConfig(cwd=str(self.root), compaction=CompactionConfig(enabled=False),
             provider=ProviderConfig(base_url='http://fixture.test', model='fixture')), event_sink=lambda event: None)
         self.addAsyncCleanup(self.agent.close)
+
+    async def _serve_text(self, *replies):
+        requests = []
+
+        def respond(request):
+            requests.append(json.loads(request.content))
+            return httpx.Response(200, stream=Wire([replies[len(requests) - 1]]))
+
+        await self.agent.client.aclose()
+        self.agent.client = httpx.AsyncClient(base_url='http://fixture.test', transport=httpx.MockTransport(respond))
+        return requests
 
     async def test_registry_preserves_builtin_failure_and_override_in_each_channel(self):
         missing = await self.agent.tool_registry.execute('read', {'path': 'missing.txt'})
@@ -95,6 +108,62 @@ class DispatchContracts(unittest.IsolatedAsyncioTestCase):
         ])
         self.assertEqual(self.agent.context.records[-1].status, 'skipped')
         self.assertFalse((self.root / 'must-not-exist.txt').exists())
+        self.agent.load_snapshot(json.loads(json.dumps(self.agent.to_snapshot())))
+        await self.agent._handle_traditional_tools([
+            {'id': 'd', 'name': 'write', 'input': json.dumps({'path': 'must-not-exist.txt', 'content': 'bad'})},
+        ])
+        self.assertEqual(self.agent.context.records[-1].status, 'failed')
+        self.assertFalse((self.root / 'must-not-exist.txt').exists())
+
+    async def test_restored_blocking_read_replay_delivers_its_receipt(self):
+        source = self.root / 'source.txt'
+        source.write_text('original content', encoding='utf-8')
+        read = '<tf-read id="1" path="source.txt" />'
+        await self._serve_text(read, 'First answer.')
+        await self.agent.run('Read the file.')
+        snapshot = json.loads(json.dumps(self.agent.to_snapshot()))
+
+        self.agent = AgentLoop(self.agent.config, event_sink=lambda event: None)
+        self.addAsyncCleanup(self.agent.close)
+        self.agent.load_snapshot(snapshot)
+        source.write_text('changed after first read', encoding='utf-8')
+        requests = await self._serve_text(read, 'Second answer.')
+        await self.agent.run('Show the original read result again.')
+        self.assertEqual(len(requests), 2)
+        observation = requests[1]['messages'][-1]['content']
+        self.assertIn('receipt:1', observation)
+        self.assertIn('original content', observation)
+        self.assertNotIn('changed after first read', observation)
+        self.assertEqual(len(self.agent.context.records), 1)
+        self.assertEqual(self.agent.messages[-1]['content'], 'Second answer.')
+
+    async def test_changed_input_to_unknown_write_stops_before_next_request(self):
+        await self._serve_text('<tf-write id="1" path="log">first</tf-write>')
+        unknown = ExecutionResult(False, tool='write', status='unknown', error='receipt unavailable')
+        with patch.object(self.agent.executor, 'execute', AsyncMock(return_value=unknown)):
+            await self.agent.run('Write the log.')
+        self.assertEqual(self.agent.stopped_reason, 'unconfirmed_side_effect')
+
+        requests = await self._serve_text(
+            '<tf-write id="1" path="log">changed</tf-write>\n<tf-touch id="2" path="same-batch" />',
+            '<tf-touch id="3" path="next-request" />Done.')
+        await self.agent.run('Continue.')
+        self.assertEqual(self.agent.stopped_reason, 'unconfirmed_side_effect')
+        self.assertEqual(len(requests), 1)
+        self.assertFalse(any((self.root / name).exists() for name in ('log', 'same-batch', 'next-request')))
+
+    async def test_collision_feedback_preserves_success_and_sends_failed_payload_once(self):
+        requests = await self._serve_text(
+            '<tf-write id="1" path="log">accepted</tf-write>\n'
+            '<tf-write id="1" path="log">REJECTED_PAYLOAD</tf-write>\n'
+            '<tf-touch id="2" path="skipped" />', 'Done.')
+        await self.agent.run('Prepare the file.')
+        self.assertEqual(len(requests), 2)
+        observation = requests[1]['messages'][-1]['content']
+        self.assertIn('evidence_ref="receipt:1"', observation)
+        self.assertEqual(observation.count('REJECTED_PAYLOAD'), 1)
+        self.assertNotIn('starting at 2', observation)
+        self.assertEqual(self.agent.context.start_stamp, 3)
 
     async def test_text_read_failure_and_later_read_return_in_same_feedback(self):
         await self._assert_text_read_batch()

@@ -165,77 +165,110 @@ class SafeTextStreamFilter:
 
 
 class MarkdownFenceCommandGate:
-    """Exclude top-level examples; preserve fences inside active tool payloads."""
+    """Exclude top-level fences and same-line inline code from live commands."""
 
     def __init__(self, allow_legacy_tags: bool = False):
-        self.buffer = ""
-        self.in_fence = False
-        self.fence_marker = ""
-        self.allow_legacy_tags = allow_legacy_tags
         self._tag_prefixes = [f"<tf-{tool}" for tool in TOOLS]
         if allow_legacy_tags:
             self._tag_prefixes.extend(f"<{tool}" for tool in TOOLS)
         self._start_re = re.compile(
             r"<(?P<name>" + "|".join(re.escape(prefix[1:]) for prefix in self._tag_prefixes) + r")(?=\s|/?>)"
         )
-        self._pending_tag = ""
-        self._active_close = ""
-        self._close_tail = ""
+        self.reset()
 
     def feed(self, text: str) -> str:
-        self.buffer += text
-        if not self.buffer:
-            return ""
-
-        out: list[str] = []
-        while True:
-            newline_at = self.buffer.find("\n")
-            if newline_at == -1:
-                break
-            line = self.buffer[:newline_at + 1]
-            self.buffer = self.buffer[newline_at + 1:]
-            visible = self._process_line(line)
-            if visible:
-                out.append(visible)
+        lines = text.split("\n")
+        out = [self._feed_line_piece(line + "\n", ended=True) for line in lines[:-1]]
+        if lines[-1]:
+            out.append(self._feed_line_piece(lines[-1], ended=False))
         return "".join(out)
 
     def flush(self) -> str:
-        tail = self.buffer
-        self.buffer = ""
-        return self._process_line(tail) if tail else ""
+        return self._feed_line_piece("", ended=True)
 
     def reset(self):
-        self.buffer = ""
-        self.in_fence = False
-        self.fence_marker = ""
+        self._line_prefix = ""
+        self._pass_line = None
+        self._fence_marker = ""
+        self._inline_width = 0
+        self._backticks = 0
         self._pending_tag = ""
         self._active_close = ""
         self._close_tail = ""
 
-    def _process_line(self, line: str) -> str:
+    def _feed_line_piece(self, text: str, *, ended: bool) -> str:
+        if self._pass_line is None:
+            text = self._line_prefix + text
+            self._line_prefix = ""
+            self._pass_line = self._classify_line(text, ended)
+            if self._pass_line is None:
+                self._line_prefix = text
+                return ""
+
+        out = self._feed_plain(text.removesuffix("\n")) if self._pass_line else ""
+        if ended:
+            if self._pass_line and text.endswith("\n"):
+                self._track_commands("\n")
+                out += "\n"
+            # An unclosed inline example is scoped to the current logical line.
+            self._inline_width = self._backticks = 0
+            self._pass_line = None
+        return out
+
+    def _classify_line(self, text: str, ended: bool) -> bool | None:
+        # Once a command body opens, its line prefixes belong to the payload.
         if self._active_close:
-            self._track_commands(line)
-            return line
-        stripped = line.lstrip()
-        marker = ""
-        if stripped.startswith("```"):
-            marker = "```"
-        elif stripped.startswith("~~~"):
-            marker = "~~~"
+            return True
+        start = text.lstrip()
+        marker = start[:1]
+        if self._fence_marker:
+            closing = start.rstrip()
+            if closing.strip(self._fence_marker[0]):
+                return False
+            if not ended:
+                return None
+            if closing.startswith(self._fence_marker):
+                self._fence_marker = ""
+            return False
+        if not start:
+            return True if ended else None
+        if marker not in ("`", "~"):
+            return True
 
-        if marker:
-            if not self.in_fence:
-                self.in_fence = True
-                self.fence_marker = marker
-            elif marker == self.fence_marker:
-                self.in_fence = False
-                self.fence_marker = ""
-            return ""
+        suffix = start.lstrip(marker)
+        width = len(start) - len(suffix)
+        if not suffix and not ended:
+            return None
+        if width < 3 or (marker == "`" and "`" in suffix):
+            return True
+        if marker == "`" and not ended:
+            return None
+        self._fence_marker = marker * width
+        return False
 
-        if self.in_fence:
-            return ""
-        self._track_commands(line)
-        return line
+    def _feed_plain(self, text: str) -> str:
+        if not self._inline_width and not self._backticks and "`" not in text:
+            self._track_commands(text)
+            return text
+
+        out: list[str] = []
+        for part in re.findall(r"`+|[^`]+", text):
+            if part.startswith("`") and not (self._active_close or self._start_re.match(self._pending_tag)):
+                self._backticks += len(part)
+                continue
+            if self._backticks:
+                if not self._inline_width:
+                    self._inline_width = self._backticks
+                    # Keep a delimiter so removing a span cannot join tag fragments.
+                    self._track_commands("`")
+                    out.append("`")
+                elif self._backticks == self._inline_width:
+                    self._inline_width = 0
+                self._backticks = 0
+            if not self._inline_width:
+                self._track_commands(part)
+                out.append(part)
+        return "".join(out)
 
     def _track_commands(self, text: str) -> None:
         """Track boundaries only; command validation/execution stays in parser.

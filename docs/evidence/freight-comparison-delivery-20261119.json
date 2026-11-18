@@ -1,0 +1,447 @@
+{
+  "fixture_sha256": "4252d2c5e45d18d5a4e26493bb5ab7d17cc2a52a9b54cbc926f1c68ca9cfa8dd",
+  "driver_sha256": "c447c2ed53133f8b417cc7fa50cd83ba42110cff6cb4b98b6049755deb2255bc",
+  "model": "deepseek-v4.1-flash",
+  "harness": "thinkflow",
+  "automatic_compaction": "native defaults; no manual compaction",
+  "caps": {"requests": 36, "per_response_tokens": 16384, "run_seconds": 540, "stop_before_next_request_at_total_observed_tokens": 380000, "max_request_bytes": 350000},
+  "stages": [
+    {
+      "stage": 1,
+      "prompt_sha256": "dd9600fed0aa938e",
+      "user_input_chars": 905,
+      "wall_seconds": 59.375,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 1,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 1111},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 1285,
+            "completion_tokens": 72,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 1285,
+            "completion_tokens_details": {"reasoning_tokens": 9},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00023595
+          }
+        },
+        {
+          "index": 2,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 1761, "assistant": 249},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 1519,
+            "completion_tokens": 58,
+            "prompt_cache_hit_tokens": 1280,
+            "prompt_cache_miss_tokens": 239,
+            "completion_tokens_details": {"reasoning_tokens": 6},
+            "provider_cost": 0,
+            "provider_list_cost": 7.449e-05
+          }
+        },
+        {
+          "index": 3,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 1855, "assistant": 384},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 1564,
+            "completion_tokens": 114,
+            "prompt_cache_hit_tokens": 1408,
+            "prompt_cache_miss_tokens": 156,
+            "completion_tokens_details": {"reasoning_tokens": 63},
+            "provider_cost": 0,
+            "provider_list_cost": 9.602e-05
+          }
+        },
+        {
+          "index": 4,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 3131, "assistant": 737},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 1993,
+            "completion_tokens": 414,
+            "prompt_cache_hit_tokens": 1536,
+            "prompt_cache_miss_tokens": 457,
+            "completion_tokens_details": {"reasoning_tokens": 170},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00032156
+          }
+        },
+        {
+          "index": 5,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 4303, "assistant": 1559},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 2343,
+            "completion_tokens": 692,
+            "prompt_cache_hit_tokens": 1920,
+            "prompt_cache_miss_tokens": 423,
+            "completion_tokens_details": {"reasoning_tokens": 176},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00048441
+          }
+        },
+        {
+          "index": 6,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 6961, "assistant": 2380},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 3150,
+            "completion_tokens": 435,
+            "prompt_cache_hit_tokens": 2304,
+            "prompt_cache_miss_tokens": 846,
+            "completion_tokens_details": {"reasoning_tokens": 62},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00039481
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 0,
+        "session_id_hash": "2799f30d46a2d858",
+        "compactions": 0,
+        "tools": [
+          {"tool": "list_files", "success": true, "flow": "blocking"},
+          {"tool": "bash", "success": true, "flow": "blocking", "cmd_hash": "b6abddde02a86a27", "looks_like_verification": false},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "freight.py", "path_form": "relative"},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "rates.json", "path_form": "relative"},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "shipping.py", "path_form": "relative"},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "c07468dafee6cc1e", "looks_like_verification": true}
+        ],
+        "issues": [["parser_error", null], ["error", null], ["parser_error", null], ["error", null]],
+        "python_stdin_resolved": [],
+        "visible_final_excerpt": "Release A complete and verified.\n\n**Changes** — `freight.py` only (catalog `rates.json` and CLI `shipping.py` untouched, so the CLI stays compatible):\n\n- `quote(route, grams)` reads the existing catalog via `_rates()` and looks up `route.strip().upper()`, so surrounding whitespace/odd case are normalized and unknown routes raise `KeyError` from the catalog lookup.\n- `grams == 0` returns `0`; otherwise `base + rate * ceil(grams / 500)`, i.e. base plus rate per *started* 500 g block, computed in integer cents and returned as `int`.\n- The buyer contract for the future CSV release is recorded as a comment block at the top of `freight.py` (header `batch,waybill,charge_cents`, literal `BW-73`, LF ",
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {"started-half-kilo-boundaries": true, "legacy-route": true, "unknown-route-and-draft-alias": true, "legacy-json-cli": true}
+    },
+    {
+      "stage": 2,
+      "prompt_sha256": "eb2c9a09c9ead1ab",
+      "user_input_chars": 13362,
+      "wall_seconds": 136.328,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 7,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 20769, "assistant": 4084},
+          "client_disconnected": true,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": [],
+          "usage": {
+            "prompt_tokens": 8945,
+            "completion_tokens": 5046,
+            "prompt_cache_hit_tokens": 3072,
+            "prompt_cache_miss_tokens": 5873,
+            "completion_tokens_details": {"reasoning_tokens": 3015},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00391777
+          }
+        },
+        {
+          "index": 8,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 21617, "assistant": 15805},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 9224,
+            "completion_tokens": 774,
+            "prompt_cache_hit_tokens": 8832,
+            "prompt_cache_miss_tokens": 392,
+            "completion_tokens_details": {"reasoning_tokens": 716},
+            "provider_cost": 0,
+            "provider_list_cost": 0.0005497
+          }
+        },
+        {
+          "index": 9,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 22465, "assistant": 18654},
+          "client_disconnected": true,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 9508,
+            "completion_tokens": 1022,
+            "prompt_cache_hit_tokens": 9216,
+            "prompt_cache_miss_tokens": 292,
+            "completion_tokens_details": {"reasoning_tokens": 546},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00068465
+          }
+        },
+        {
+          "index": 10,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 23773, "assistant": 20737},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 9930,
+            "completion_tokens": 975,
+            "prompt_cache_hit_tokens": 9472,
+            "prompt_cache_miss_tokens": 458,
+            "completion_tokens_details": {"reasoning_tokens": 657},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00068212
+          }
+        },
+        {
+          "index": 11,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 25834, "assistant": 23603},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 10649,
+            "completion_tokens": 2527,
+            "prompt_cache_hit_tokens": 9856,
+            "prompt_cache_miss_tokens": 793,
+            "completion_tokens_details": {"reasoning_tokens": 772},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00166472
+          }
+        },
+        {
+          "index": 12,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 33711, "assistant": 26998},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 13218,
+            "completion_tokens": 558,
+            "prompt_cache_hit_tokens": 10624,
+            "prompt_cache_miss_tokens": 2594,
+            "completion_tokens_details": {"reasoning_tokens": 7},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00075577
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 1,
+        "session_id_hash": "2799f30d46a2d858",
+        "compactions": 0,
+        "tools": [
+          {"tool": "read", "success": true, "flow": "blocking", "target": "rates.json", "path_form": "relative"},
+          {"tool": "read", "success": true, "flow": "blocking", "target": "freight.py", "path_form": "relative"},
+          {"tool": "bash", "success": true, "flow": "blocking", "cmd_hash": "f75f8a4073cc4d24", "looks_like_verification": false},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "189e89b4628c9fff", "looks_like_verification": false},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "rates.json", "path_form": "relative"},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "4b3433f6e1512e18", "looks_like_verification": true}
+        ],
+        "issues": [["error", null], ["parser_error", null]],
+        "python_stdin_resolved": [{"ref": "request:2", "chars": 13362}],
+        "visible_final_excerpt": "Release B 已完成并验证。\n\n**目录变更 (`rates.json`)** — 已解析公告（160 行，5 行 `LIVE`）；仅应用了 LIVE 行，后出现的 LIVE 更新覆盖先前的：\n\n| 路由 | 基础/费率 | 别名 |\n|---|---|---|\n| CEDAR | 85 / 13（原为 80/11） | CD |\n| DELTA | 100 / 17（旧版未变） | — |\n| FEN | 58 / 21（新增） | FN |\n| FJORD | 76 / 15（新增） | FJ |\n| LARCH | 40 / 9（后续 LIVE 覆盖先前 35/7） | LC、LR |\n\nLC 来自先前的 LIVE LARCH 行，因此保留为有效别名；LR 与当前价格并存。所有 VOID/DRAFT/SUPERSEDED 行均被忽略，且 H* 占位符均未成为路由。\n\n**`freight.py`**\n- `_index()` 将每个路由和每个非空别名通过相同的 `strip().upper()` 规范化映射到其价格条目（空字符串别名会被跳过）。\n- `quote()` 使用相同的规范化进行查找，未知路由/别名仍会从查找中引发 `KeyError`；零克 → `0`，否则 `base + rate * ceil(grams/500)`，结果是 `int`。\n- `manifest(rows)` 按到达顺序映射输入，返回的字典恰好包含 `waybill` 和 `charge_cents`；空列表 → `[]`；输入不会被修改。\n- CLI (`shipping.py`)",
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {
+        "started-half-kilo-boundaries": true,
+        "legacy-route": true,
+        "unknown-route-and-draft-alias": true,
+        "legacy-json-cli": true,
+        "published-prices-and-sticky-aliases": true,
+        "alias-json-cli": true,
+        "empty-manifest": true,
+        "ordered-manifest-schema": true
+      }
+    },
+    {
+      "stage": 3,
+      "prompt_sha256": "71cd2bd1c45a4be8",
+      "user_input_chars": 1036,
+      "wall_seconds": 121.453,
+      "exit_code": 0,
+      "stderr_bytes": 0,
+      "requests": [
+        {
+          "index": 13,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 34954, "assistant": 28155},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 14031,
+            "completion_tokens": 6805,
+            "prompt_cache_hit_tokens": 13184,
+            "prompt_cache_miss_tokens": 847,
+            "completion_tokens_details": {"reasoning_tokens": 4393},
+            "provider_cost": 0,
+            "provider_list_cost": 0.0042496
+          }
+        },
+        {
+          "index": 14,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 45121, "assistant": 46283},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 17095,
+            "completion_tokens": 2058,
+            "prompt_cache_hit_tokens": 13952,
+            "prompt_cache_miss_tokens": 3143,
+            "completion_tokens_details": {"reasoning_tokens": 443},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00174811
+          }
+        },
+        {
+          "index": 15,
+          "http_status": 200,
+          "finished": true,
+          "finish_reason": "stop",
+          "role_chars": {"system": 2295, "user": 52883, "assistant": 48495},
+          "client_disconnected": null,
+          "transport_error": null,
+          "forwarded_generation": {"temperature": 0, "reasoning_effort": "high", "thinking": {"type": "enabled"}, "model": "deepseek-v4.1-flash", "max_tokens": 16384},
+          "error_feedback_markers": ["status=\"failed\""],
+          "usage": {
+            "prompt_tokens": 19676,
+            "completion_tokens": 921,
+            "prompt_cache_hit_tokens": 17024,
+            "prompt_cache_miss_tokens": 2652,
+            "completion_tokens_details": {"reasoning_tokens": 339},
+            "provider_cost": 0,
+            "provider_list_cost": 0.00100147
+          }
+        }
+      ],
+      "observed": {
+        "prior_user_requests_restored": 2,
+        "session_id_hash": "2799f30d46a2d858",
+        "compactions": 0,
+        "tools": [
+          {"tool": "write", "success": true, "flow": "delayed", "target": "rates.json", "path_form": "relative"},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "freight.py", "path_form": "relative"},
+          {"tool": "write", "success": true, "flow": "delayed", "target": "shipping.py", "path_form": "relative"},
+          {"tool": "python", "success": false, "flow": "blocking", "cmd_hash": "fd841938cc1461b2", "looks_like_verification": true},
+          {"tool": "python", "success": true, "flow": "blocking", "cmd_hash": "597f450d6311bd40", "looks_like_verification": true}
+        ],
+        "issues": [["error", null]],
+        "python_stdin_resolved": [],
+        "visible_final_excerpt": "Release C complete and verified.\n\n**`rates.json`** — Cedar dispatch correction applied: `CEDAR` is now base 85 / rate **23** (per started 500 g), alias `CD` retained. DELTA 100/17, FEN 58/21 (`FN`), FJORD 76/15 (`FJ`), LARCH 40/9 (`LC`, `LR`) unchanged from Release B.\n\n**`freight.py`**\n- `quote()` unchanged in behavior: strip+uppercase lookup, unknown routes raise `KeyError`, zero grams → 0, `base + rate * ceil(grams/500)` as `int`.\n- `manifest(rows)` now folds events by waybill: `cancelled=True` removes the waybill (no route/grams needed; repeats and unknown cancellations are no-ops). First-booking position is remembered, so a later booking restores the waybill at that original slot and a c",
+        "stop": "completed",
+        "has_error": false
+      },
+      "checks": {
+        "started-half-kilo-boundaries": true,
+        "legacy-route": true,
+        "unknown-route-and-draft-alias": true,
+        "legacy-json-cli": true,
+        "published-prices-and-sticky-aliases": true,
+        "alias-json-cli": true,
+        "empty-manifest": true,
+        "ordered-manifest-schema": true,
+        "restore-correction-cancel-order": true,
+        "csv-release-contract": true,
+        "csv-utf8": true,
+        "csv-empty": true
+      }
+    }
+  ],
+  "thinkflow_revision": "0ad09e2b899bce7396316b4588dc86867a4bb755",
+  "src_git_tree": "53e071fe9f87143b8b094038b8948826b6f81bba",
+  "usage": {
+    "prompt_tokens": 124130,
+    "cached_tokens": 103680,
+    "uncached_tokens": 20450,
+    "completion_tokens": 22471,
+    "reasoning_tokens": 11374,
+    "total_tokens": 146601,
+    "api_requests": 15,
+    "successful_requests": 15,
+    "usage_reported_requests": 15,
+    "usage_complete": true,
+    "unknown_usage_requests": 0,
+    "cache_usage_complete": true,
+    "cache_reported_requests": 15,
+    "reasoning_reported_requests": 15,
+    "abandoned_requests": 2,
+    "failed_requests": 0,
+    "cache_creation_tokens": 0,
+    "provider_input_excluding_cache_tokens": 0,
+    "protocol": "openai",
+    "input_usage_complete": true,
+    "totals_are_partial": false
+  },
+  "seconds": 317.688,
+  "temporary_workspace_removed": true
+}

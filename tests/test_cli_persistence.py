@@ -195,7 +195,7 @@ class CLIProcessTests(unittest.TestCase):
         self.assertEqual([(r["id"], r["status"]) for r in snapshot["context"]["records"]],
                          [("1", "success")])
         self.hold = False
-        self.text = '<tf-write id="2" path="second.txt">continued</tf-write>'
+        self.text = '<tf-write id="2" path="second.txt">continued</tf-write>Done.'
         resumed = self.start("--resume")
         out, err = resumed.communicate(timeout=15)
         self.assertEqual(resumed.returncode, 0, (out, err))
@@ -208,15 +208,76 @@ class CLIProcessTests(unittest.TestCase):
 
     def test_no_autosave_does_not_create_session_or_journal(self):
         self.text = '<tf-write id="1" path="effect.txt">effect</tf-write>'
-        process = self.start("--no-autosave")
+        process = self.start("--no-autosave", "--set", "tool_protocol.require_final_response=false")
         stdout, stderr = process.communicate(timeout=15)
         self.assertEqual(process.returncode, 0, (stdout, stderr))
         self.assertTrue((self.root / "effect.txt").exists())
         self.assertFalse(self.store.path.exists())
         self.assertFalse(self.store.journal_path.exists())
 
+    def test_startup_resume_from_archive_keeps_originals(self):
+        self.store.save({'session_id': 'old', 'messages': [{'role': 'user', 'content': 'Original request'}]})
+        archive, = (self.root / 'history').glob('*.json')
+        originals = {path: path.read_bytes() for path in (self.store.path, archive)}
+        process = self.start('--resume', '--session', str(archive), '--no-autosave')
+        out, err = process.communicate(timeout=15)
+        self.assertEqual(process.returncode, 0, (out, err))
+        self.assertEqual(self.store.discover(), [self.store.path])
+        process = self.start('--resume', '--session', str(archive))
+        out, err = process.communicate(timeout=15)
+        self.assertEqual(process.returncode, 0, (out, err))
+        self.assertIn('Original request', json.dumps(self.requests[-1]))
+        branch, = self.root.glob('resumed-*.json')
+        self.assertNotEqual(SessionStore(str(branch)).load()['session_id'], 'old')
+        self.assertEqual({path: path.read_bytes() for path in originals}, originals)
+
 
 class SDKPersistenceTests(unittest.IsolatedAsyncioTestCase):
+    async def test_resuming_archive_preserves_versions_outputs_and_global_discovery(self):
+        with tempfile.TemporaryDirectory(prefix='thinkflow-sdk-resume-archive-') as temp:
+            root = Path(temp)
+            sessions = root / 'home' / 'sessions'
+            active = SessionStore(str(sessions / 'workspace-a' / 'session.json'), cwd=temp)
+            other = SessionStore(str(sessions / 'workspace-b' / 'session.json'), cwd=temp)
+            agent = create_agent({'context': {'enabled': False}, 'security': {'profile': 'open'}},
+                                 '', cwd=temp, event_sink=lambda _: None, session_store=other)
+            try:
+                active_path = active.path
+                active.save({**agent.to_snapshot(), 'session_id': 'active'}, history=False)
+                ref = agent.outputs.put_text('archived tool output 中文')
+                agent.messages.append({'role': 'user', 'content': 'Archived request'})
+                original_id = agent.session_id
+                await agent._execute_command(Command('1', 'touch', path='original.txt'))
+                other.save(agent.to_snapshot())
+                archive, = (other.path.parent / 'history').glob('*.json')
+                # Older CLI versions could run tools against a history path.
+                archive_journal = archive.with_suffix('.execution.jsonl')
+                archive_journal.write_bytes(other.journal_path.read_bytes().splitlines(keepends=True)[0])
+                agent.messages.append({'role': 'user', 'content': 'Later phase'})
+                other.save(agent.to_snapshot(), history=False)
+                original_paths = (active_path, archive, archive_journal, other.path, other.journal_path)
+                original = {path: path.read_bytes() for path in original_paths}
+
+                agent.outputs.clear()
+                active.bind(agent)
+                agent.load_snapshot(active.load())
+                handle_slash_command(f'/resume {archive}', agent, active)
+                self.assertNotIn(active.path, (active_path, archive, other.path))
+                self.assertNotEqual(agent.session_id, original_id)
+                self.assertCountEqual(active.discover(), [active_path, archive, other.path, active.path])
+                self.assertIn(active.path, other.discover())
+                self.assertFalse(active_path.with_suffix('.outputs').exists())
+                self.assertIn('archived tool output 中文', agent.outputs.recall(ref))
+                await agent._execute_command(Command('2', 'touch', path='continued.txt'))
+                reopened = SessionStore(str(active.path), cwd=temp).load()
+                self.assertEqual(reopened['messages'], [{'role': 'user', 'content': 'Archived request'}])
+                self.assertEqual([(item['id'], item['status']) for item in reopened['context']['records']],
+                                 [('1', 'success'), ('2', 'success')])
+                self.assertEqual(reopened['session_id'], agent.session_id)
+                self.assertEqual({path: path.read_bytes() for path in original}, original)
+            finally:
+                await agent.close()
+
     async def test_recovered_receipt_settles_intent_before_compaction(self):
         with tempfile.TemporaryDirectory(prefix="thinkflow-sdk-recovered-compaction-") as temp:
             root = Path(temp)
