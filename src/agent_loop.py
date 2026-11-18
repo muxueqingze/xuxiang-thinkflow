@@ -1299,11 +1299,16 @@ class AgentLoop:
         if abort_reason == AbortReason.END_TURN:
             gate = MarkdownFenceCommandGate()
             plain_text = gate.feed(clean_text) + gate.flush()
-            if is_deepseek(self.config.provider) and not assistant_text.strip() and not commands_this_turn:
-                parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
-                                        '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
+            if not assistant_text.strip() and not commands_this_turn:
+                message = '供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
                 self.events.emit('provider_protocol_error', kind='empty_assistant_response')
-                abort_reason = AbortReason.TOOL_FAILED
+                if is_deepseek(self.config.provider):
+                    parser_error_message = message + '请根据已有结果继续未完成工作，使用当前提供的工具协议。'
+                    abort_reason = AbortReason.TOOL_FAILED
+                else:
+                    self.last_error = message
+                    self.view.render_error(message)
+                    abort_reason = AbortReason.ERROR
                 turn_usage.abort_reason = abort_reason
             elif is_deepseek(self.config.provider) and re.search(r'(?m)^\s*</?｜+DSML｜+\s*(?:parameter|invoke|calls)\b', plain_text):
                 protocol_hint = ('请使用当前提供的原生工具或tf-*继续未完成操作；'
@@ -1695,7 +1700,16 @@ class AgentLoop:
         open_blocks = {}
         block_inputs = {}
 
-        async for line in response.aiter_lines():
+        lines = aiter(response.aiter_lines())
+        while True:
+            try:
+                line = await anext(lines)
+            except StopAsyncIteration:
+                break
+            except httpx.TransportError:
+                if not pending_openai_finish_reason:
+                    raise
+                break
             line = line.strip()
 
             if not line:
@@ -1787,7 +1801,9 @@ class AgentLoop:
 
             elif data_type == "content_block_start":
                 block = data.get("content_block", {})
-                if block.get("type") == "tool_use":
+                if block.get("type") == "text" and block.get("text"):
+                    yield StreamEvent(type=EventType.TEXT_DELTA, text=block['text'])
+                elif block.get("type") == "tool_use":
                     yield StreamEvent(
                         type=EventType.TOOL_USE_START,
                         tool_name=block.get("name", ""),
@@ -1809,10 +1825,11 @@ class AgentLoop:
                     yield StreamEvent(type=EventType.MESSAGE_STOP, finish_reason=stop_reason)
                     return
 
-            elif data_type == "error":
+            elif data_type == "error" or data.get("error") is not None:
+                error = data.get("error")
                 yield StreamEvent(
                     type=EventType.ERROR,
-                    error=data.get("error", {}).get("message", str(data)),
+                    error=(error.get("message") if isinstance(error, dict) else str(error or '')) or str(data),
                 )
                 return
 
