@@ -274,7 +274,7 @@ class ConversationRuntimeTests(unittest.IsolatedAsyncioTestCase):
     async def test_only_successful_visible_delivery_with_attachment_metadata_can_project(self):
         self.config.require_final_response = True
         self.config.provider.model = 'fixture'
-        answers = iter(['', 'Delivered.', 'Delivered.'])
+        answers = iter(['', '', 'Delivered.', 'Delivered.'])
         bodies = []
         def receive(request):
             bodies.append(request.content.decode())
@@ -282,11 +282,13 @@ class ConversationRuntimeTests(unittest.IsolatedAsyncioTestCase):
         await self.transport(self.agent, receive)
         unfinished, expanded = 'Unfinished' * 1000, 'Expanded' * 1200
         await self.agent.run('First\n' + unfinished, user_request='First', attachment_paths=['spec.txt'])
+        self.assertEqual(self.agent.stopped_reason, 'incomplete_response')
+        self.assertEqual(len(bodies), 2)
         await self.agent.run('Second\n' + expanded, user_request='Second')
         await self.agent.run('Third')
-        self.assertIn(unfinished, bodies[1])
-        self.assertIn(unfinished, bodies[2])
-        self.assertIn(expanded, bodies[2])
+        self.assertIn(unfinished, bodies[-2])
+        self.assertIn(unfinished, bodies[-1])
+        self.assertIn(expanded, bodies[-1])
 
     async def test_read_observation_after_hidden_attachment_keeps_exact_visible_payload(self):
         source = 'READ-RESULT-' * 60

@@ -1333,13 +1333,14 @@ class AgentLoop:
                     and self._CMD_TAG_RE.match(clean_text)):
                 legacy_view = SafeTextStreamFilter(allow_legacy_tags=True)
                 unexecuted_tags = not (legacy_view.feed(clean_text) + legacy_view.flush()).strip()
-            if (is_deepseek(self.config.provider) and not assistant_text.strip() and not commands_this_turn
-                    and not self._final_response_requested):
-                parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
-                                        '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
+            if (not assistant_text.strip() and not commands_this_turn and not self._final_response_requested
+                    and (self.config.require_final_response or is_deepseek(self.config.provider))):
                 self.events.emit('provider_protocol_error', kind='empty_assistant_response')
-                abort_reason = AbortReason.TOOL_FAILED
-                turn_usage.abort_reason = abort_reason
+                if not self.config.require_final_response:
+                    parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
+                                            '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
+                    abort_reason = AbortReason.TOOL_FAILED
+                    turn_usage.abort_reason = abort_reason
             elif is_deepseek(self.config.provider) and re.search(r'(?m)^\s*</?｜+DSML｜+\s*(?:parameter|invoke|calls)\b', plain_text):
                 protocol_hint = ('请使用当前提供的原生工具或tf-*继续未完成操作；'
                                  if self._openai_provider_tools() else
@@ -1517,7 +1518,7 @@ class AgentLoop:
             if self._continue_open_plan(turn_records):
                 return True
             if (self.config.require_final_response and self.stopped_reason == 'completed'
-                    and (unexecuted_tags or (not clean_text and (commands_this_turn or self._final_response_requested)))):
+                    and (unexecuted_tags or not clean_text)):
                 if self._final_response_requested or (self.config.max_auto_continues is not None
                         and self._auto_continue_count >= self.config.max_auto_continues):
                     self.stopped_reason = 'incomplete_response'
@@ -1527,7 +1528,7 @@ class AgentLoop:
                 self._final_response_requested = True
                 self._auto_continue_count += 1
                 feedback = (f'上次的无前缀标签没有执行。若要继续，请使用完整 tf-* 标签，从 id="{self.context.start_stamp}" 开始。'
-                            if unexecuted_tags else '上次回复只有工具操作。')
+                            if unexecuted_tags else '上一轮没有面向用户的正文答复。')
                 self.messages.append({'role': 'user', 'content':
                     f'[THINKFLOW CONTINUE] {feedback}对照用户请求与实际回执，'
                     '继续遗漏的工作，完成后直接用正文交付。'})
@@ -1752,7 +1753,16 @@ class AgentLoop:
         open_blocks = {}
         block_inputs = {}
 
-        async for line in response.aiter_lines():
+        lines = aiter(response.aiter_lines())
+        while True:
+            try:
+                line = await anext(lines)
+            except StopAsyncIteration:
+                break
+            except httpx.TransportError:
+                if not pending_openai_finish_reason:
+                    raise
+                break
             line = line.strip()
 
             if not line:
@@ -1844,7 +1854,9 @@ class AgentLoop:
 
             elif data_type == "content_block_start":
                 block = data.get("content_block", {})
-                if block.get("type") == "tool_use":
+                if block.get("type") == "text" and block.get("text"):
+                    yield StreamEvent(type=EventType.TEXT_DELTA, text=block['text'])
+                elif block.get("type") == "tool_use":
                     yield StreamEvent(
                         type=EventType.TOOL_USE_START,
                         tool_name=block.get("name", ""),
@@ -1866,10 +1878,11 @@ class AgentLoop:
                     yield StreamEvent(type=EventType.MESSAGE_STOP, finish_reason=stop_reason)
                     return
 
-            elif data_type == "error":
+            elif data_type == "error" or data.get("error") is not None:
+                error = data.get("error")
                 yield StreamEvent(
                     type=EventType.ERROR,
-                    error=data.get("error", {}).get("message", str(data)),
+                    error=(error.get("message") if isinstance(error, dict) else str(error or '')) or str(data),
                 )
                 return
 
