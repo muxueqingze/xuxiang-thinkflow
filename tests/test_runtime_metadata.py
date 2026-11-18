@@ -15,10 +15,62 @@ from src.executor import ExecutionResult
 from src.parser import Command
 from src.provider import ProviderConfig
 from src.usage_tracker import SessionUsage, TurnUsage
+from src.cli import render_status
+from src import renderer
 from src.interfaces import ExternalInterfaces, InterfaceConfig, CustomToolConfig
 
 
 class MetadataTests(unittest.TestCase):
+    def test_cache_rate_weights_only_inputs_with_observable_hits(self):
+        usage = SessionUsage()
+        for index, (raw, anthropic) in enumerate((
+            ({"input_tokens": 100, "input_tokens_details": {"cached_tokens": 60}}, False),
+            ({"prompt_tokens": 300, "prompt_tokens_details": {"cached_tokens": 0}}, False),
+            ({"prompt_tokens": 100}, False),
+            ({"cache_read_input_tokens": 20}, True),
+            ({}, False),
+        )):
+            turn = TurnUsage(turn=index, http_attempts=1, successful_responses=1)
+            turn.observe_usage(raw, anthropic=anthropic)
+            usage.add_turn(turn)
+        totals = usage.totals()
+        self.assertEqual(totals["cached_tokens"], 80)
+        self.assertEqual((totals["cache_hit_tokens"], totals["cache_denominator_tokens"]), (60, 400))
+        self.assertEqual((totals["cache_hit_ratio"], totals["cache_coverage"]), (0.15, 0.8))
+        self.assertEqual(totals["cache_observed_turns"], 2)
+        self.assertEqual(SessionUsage.from_dict(usage.to_dict()).totals(), totals)
+
+        snapshot = usage.to_dict()
+        for turn in snapshot["turns"]:
+            del turn["input_complete"]
+        # Earlier versions retained the Responses-style raw field but missed its value.
+        snapshot["turns"][0].update(cached_tokens=0, cache_read_reported=False, non_cached_input_tokens=None)
+        self.assertEqual(SessionUsage.from_dict(snapshot).totals(), totals)
+
+    def test_restore_partial_stream_with_openai_cache_fields(self):
+        for details in ({"prompt_tokens_details": {"cached_tokens": 40}},
+                        {"prompt_cache_hit_tokens": 40, "prompt_cache_miss_tokens": 40}):
+            with self.subTest(details=details):
+                turn = TurnUsage(turn=1, http_attempts=1)
+                turn.observe_usage({"input_tokens": 80, **details})
+                snapshot = turn.to_dict()
+                del snapshot["input_complete"]
+                restored = SessionUsage.from_dict({"turns": [snapshot]})
+                self.assertEqual(restored.totals()["cache_hit_ratio"], 0.5)
+                self.assertEqual(restored.totals()["cache_denominator_tokens"], 80)
+                self.assertFalse(restored.turns[0].usage_reported)
+
+    def test_inconsistent_cache_breakdowns_remain_unknown(self):
+        for fields in ({"prompt_cache_miss_tokens": 11}, {"prompt_cache_hit_tokens": 11},
+                       {"prompt_cache_hit_tokens": 7, "prompt_cache_miss_tokens": 5}):
+            with self.subTest(fields=fields):
+                turn = TurnUsage(turn=1)
+                turn.observe_usage({"prompt_tokens": 10, **fields})
+                totals = SessionUsage(turns=[turn]).totals()
+                self.assertIsNone(totals["cache_hit_ratio"])
+                self.assertIsNone(totals["non_cached_input_tokens"])
+                self.assertEqual(totals["cache_coverage"], 0)
+
     def test_missing_usage_and_legacy_estimates_are_not_measured_savings(self):
         usage = SessionUsage()
         usage.add_turn(TurnUsage(turn=1, commands_executed=3))
@@ -136,6 +188,20 @@ class RuntimeUsageTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(totals["usage_complete"], expected)
                 self.assertEqual(totals["partial_usage_requests"], int(not expected))
                 self.assertEqual(totals["unknown_usage_requests"], 0)
+                self.assertEqual(totals["cache_hit_ratio"], None if cache_write is None else 20 / 34)
+
+    async def test_status_displays_cache_breakdown_from_compatible_stream(self):
+        for details, expected in (({}, "未知"), ({"cached_tokens": 0}, "0.0%（0/10 tokens）")):
+            with self.subTest(details=details):
+                packet = {"choices": [], "usage": {
+                    "input_tokens": 10, "input_tokens_details": details, "output_tokens": 1,
+                }}
+                content = sse({"choices": [{"delta": {"content": "Done."}, "finish_reason": "stop"}]})
+                content += sse(packet) + b"data: [DONE]\n\n"
+                agent = await self.run_fixture(lambda _: httpx.Response(200, content=content), "openai")
+                with renderer.console.capture() as capture:
+                    render_status(agent)
+                self.assertIn("缓存命中率 " + expected, capture.get())
 
     async def test_retry_attempts_and_usage_survive_session_snapshot(self):
         statuses = iter((503, 503, 200))

@@ -683,6 +683,17 @@ def render_status(agent: AgentLoop, store: SessionStore = None):
     renderer.console.print(f"  messages   {stats['messages']} ({stats['chars']:,} chars)")
     renderer.console.print(f"  compact    enabled={compaction.enabled} count={stats['compactions']}")
     renderer.console.print(f"  input est. last={stats['last_input_tokens_estimate']} trigger={compaction.max_input_tokens or 'off'} tokens")
+    usage = agent.usage.totals()
+    hit_ratio = usage["cache_hit_ratio"]
+    coverage = usage["cache_coverage"]
+    hit_text = "未知" if hit_ratio is None else (
+        f"{hit_ratio:.1%}（{usage['cache_hit_tokens']:,}/{usage['cache_denominator_tokens']:,} tokens）"
+    )
+    coverage_text = "未知" if coverage is None else (
+        f"{coverage:.1%}（{usage['cache_denominator_tokens']:,}/{usage['cache_input_tokens']:,} tokens）"
+    )
+    renderer.console.print(f"  缓存命中率 {hit_text}，纳入 {usage['cache_observed_turns']}/{usage['logical_turns']} 轮")
+    renderer.console.print(f"  缓存明细占已知完整输入 {coverage_text}")
     renderer.console.print(f"  security   bash={security.bash_policy} approval={security.approval_mode} roots={security.allowed_roots}")
     renderer.console.print()
 

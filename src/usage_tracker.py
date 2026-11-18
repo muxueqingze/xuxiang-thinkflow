@@ -52,6 +52,7 @@ class TurnUsage:
     cache_write_tokens: int | None = None
     non_cached_input_tokens: int | None = None
     raw_usage: dict = field(default_factory=dict)
+    input_complete: bool = False
 
     @property
     def total_tokens(self) -> int:
@@ -89,11 +90,20 @@ class TurnUsage:
             cache_miss = _token_count(counts.get("prompt_cache_miss_tokens"))
             cached = _token_count(
                 counts.get("prompt_tokens_details", {}).get("cached_tokens"),
+                counts.get("input_tokens_details", {}).get("cached_tokens"),
                 counts.get("prompt_cache_hit_tokens"),
                 counts.get("cache_read_input_tokens"),
             )
-            if cached is None and prompt is not None and cache_miss is not None:
-                cached = prompt - cache_miss
+            if prompt is not None:
+                if cache_miss is not None and cache_miss > prompt:
+                    cache_miss = None
+                if cached is not None and cached > prompt:
+                    cached = None
+                if cache_miss is not None:
+                    if cached is None:
+                        cached = prompt - cache_miss
+                    elif cached + cache_miss != prompt:
+                        cached = cache_miss = None
             self.cache_miss_tokens = cache_miss or 0
             self.cache_write_tokens = _token_count(counts.get("cache_creation_input_tokens"))
             self.non_cached_input_tokens = cache_miss
@@ -106,6 +116,7 @@ class TurnUsage:
             input_complete = input_complete and cached is not None and cache_write is not None
         else:
             self.input_reported = input_complete
+        self.input_complete = input_complete
         self.output_reported = completion is not None
         self.cache_read_reported = cached is not None
         self.cached_tokens = cached or 0
@@ -221,6 +232,13 @@ class SessionUsage:
         unknown = attempts - reported - partial
         legacy = len(self.turns) - len(tracked)
         cache_writes = [t.cache_write_tokens for t in self.turns if t.cache_write_tokens is not None]
+        known_inputs = [t for t in self.turns if t.input_complete]
+        cache_observed = [
+            t for t in known_inputs if t.cache_read_reported and 0 <= t.cached_tokens <= t.prompt_tokens
+        ]
+        cache_denominator = sum(t.prompt_tokens for t in cache_observed)
+        cache_hits = sum(t.cached_tokens for t in cache_observed)
+        known_input_tokens = sum(t.prompt_tokens for t in known_inputs)
         return {
             "logical_turns": len(self.turns),
             "api_calls": attempts,
@@ -238,6 +256,12 @@ class SessionUsage:
             "text_tokens": self.total_text_tokens,
             "cached_tokens": self.total_cached_tokens,
             "cache_read_reported": any(t.cache_read_reported or t.cached_tokens > 0 for t in self.turns),
+            "cache_hit_tokens": cache_hits,
+            "cache_denominator_tokens": cache_denominator,
+            "cache_hit_ratio": cache_hits / cache_denominator if cache_denominator else None,
+            "cache_observed_turns": len(cache_observed),
+            "cache_input_tokens": known_input_tokens,
+            "cache_coverage": cache_denominator / known_input_tokens if known_input_tokens else None,
             "cache_write_tokens": sum(cache_writes) if cache_writes else None,
             "non_cached_input_tokens": self.total_effective_input,
             "effective_input": self.total_effective_input,
@@ -331,14 +355,27 @@ class SessionUsage:
             runs=[RunUsage(**item) for item in data.get("runs", [])],
         )
         allowed = {item.name for item in fields(TurnUsage)}
-        usage.turns = [
-            TurnUsage(**{key: value for key, value in item.items() if key in allowed})
-            for item in data.get("turns", []) or [] if isinstance(item, dict)
-        ]
-        for turn in usage.turns:
+        for item in data.get("turns", []) or []:
+            if not isinstance(item, dict):
+                continue
+            turn = TurnUsage(**{key: value for key, value in item.items() if key in allowed})
             if turn.http_attempts is None and turn.usage_reported:
                 turn.usage_present = True
                 turn.usage_reported = False
+            if "input_complete" not in item and turn.raw_usage:
+                raw = turn.raw_usage
+                if any(key in raw for key in (
+                    "prompt_tokens", "input", "prompt_tokens_details", "input_tokens_details",
+                    "prompt_cache_hit_tokens", "prompt_cache_miss_tokens",
+                )):
+                    turn.observe_usage(raw, final=turn.usage_reported)
+                else:
+                    # 旧记录没有协议标记；只使用已证实的完整输入。
+                    turn.input_complete = turn.usage_reported or all(
+                        _token_count(raw.get(key)) is not None
+                        for key in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
+                    )
+            usage.turns.append(turn)
         # 历史值只到最后一轮开始；旧版也可能已存入负值。
         legacy_elapsed = data.get("legacy_elapsed", data.get("elapsed", 0))
         usage._legacy_elapsed = max(0.0, float(legacy_elapsed))
