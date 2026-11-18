@@ -75,6 +75,7 @@ SLASH_COMMAND_SPECS = (
     SlashCommandSpec("/ctx", "显示当前上下文状态", "status"),
     SlashCommandSpec("/model", "选择模型：/model [provider/model|model]", "model", selectable=True),
     SlashCommandSpec("/models", "列出 provider 模型；/models refresh 重新拉取 active provider", "model"),
+    SlashCommandSpec("/models refresh", "重新获取当前 provider 的模型列表", "model"),
     SlashCommandSpec("/thinking", "查看或选择当前模型的思考档位：/thinking [档位|预算]", "model", selectable=True),
     SlashCommandSpec("/btw", "在当前批次结束后补充当前任务，空闲时直接发送", "runtime"),
     SlashCommandSpec("/steer", "补充当前任务（同 /btw）", "runtime"),
@@ -545,6 +546,10 @@ def build_slash_completer(agent: AgentLoop | None = None, store: SessionStore | 
             command, arg_prefix = slash_parts(stripped)
             if command != stripped.lower():
                 arg_prefix = arg_prefix.lstrip()
+                for name, description in SLASH_COMMANDS.items():
+                    parent, separator, argument = name.partition(' ')
+                    if separator and parent == command and argument.startswith(arg_prefix.lower()):
+                        yield Completion(argument, start_position=-len(arg_prefix), display_meta=description)
                 if command.lower() == "/sandbox":
                     for option in ("read-only", "workspace-write", "danger-full-access", "locked", "balanced", "open"):
                         if option.startswith(arg_prefix.lower()):
