@@ -306,5 +306,29 @@ class SDKPersistenceTests(unittest.IsolatedAsyncioTestCase):
                 await agent.close()
 
 
+    async def test_resuming_archive_preserves_both_original_files(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            active = SessionStore(str(root / 'current.json'), cwd=temp)
+            agent = create_agent({'context': {'enabled': False}}, '', cwd=temp, session_store=active)
+            try:
+                active.save(agent.to_snapshot(), history=False)
+                other = SessionStore(str(root / 'other.json'), cwd=temp)
+                snapshot = agent.to_snapshot()
+                snapshot['session_id'] = 'archived-session'
+                snapshot['messages'] = [{'role': 'user', 'content': 'Archived request'}]
+                other.save(snapshot)
+                archive, = (root / 'history').glob('*.json')
+                original = {path: path.read_bytes() for path in (active.path, archive, other.path)}
+                select_session(agent, archive, active)
+                self.assertNotIn(active.path, original)
+                self.assertNotEqual(active.path.parent.name, 'history')
+                active.save(agent.to_snapshot(), history=False, incremental=True)
+                self.assertEqual(active.load()['session_id'], 'archived-session')
+                self.assertTrue(all(path.read_bytes() == before for path, before in original.items()))
+            finally:
+                await agent.close()
+
+
 if __name__ == "__main__":
     unittest.main()

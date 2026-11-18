@@ -14,8 +14,11 @@ import json
 import os
 import re
 import sys
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
+
+from rich.text import Text
 
 from .agent_loop import AgentLoop, AgentConfig
 from .compaction import CompactionConfig
@@ -240,7 +243,7 @@ def build_resume_selection_items(store: SessionStore, sessions: list[Path]) -> l
                 )
             )
             continue
-        start = _clip_text(meta.get("start", ""), 58) or "[empty]"
+        start = _clip_text(_strip_terminal_controls(meta.get("start", "")), 58) or "[empty]"
         items.append(
             SelectionItem(
                 value=session_path,
@@ -260,6 +263,12 @@ def select_session(agent: AgentLoop, selected: Path, store: SessionStore = None)
     snapshot = selected_store.load()
     agent.load_snapshot(snapshot)
     if store is not None:
+        if selected_store.path.parent.name == "history":
+            destination = SessionStore(str(store.path.parent / f"resumed-{uuid.uuid4().hex}.json"), cwd=store.cwd)
+            destination.save(agent.to_snapshot(), history=False)
+            store.path = destination.path
+        else:
+            store.path = selected_store.path
         if getattr(agent, "session_store", None) is store:
             agent.bind_output_store(store.output_dir)
     renderer.render_info("会话已恢复")
@@ -630,13 +639,13 @@ def render_session_choices(store: SessionStore, sessions: list[Path]):
         if "error" in meta:
             renderer.console.print(f"  [cyan]{idx:2d}[/cyan] [fail]无法读取会话[/fail] {meta['error']}")
             continue
-        start = _clip_text(meta.get("start", ""), 90) or "[empty]"
+        start = _clip_text(_strip_terminal_controls(meta.get("start", "")), 90) or "[empty]"
         renderer.console.print(
             f"  [cyan]{idx:2d}[/cyan] [tag]{meta.get('timestamp', '')}[/tag] "
             f"msgs={meta.get('messages', 0)} turns={meta.get('turn_count', 0)} "
             f"records={meta.get('records', 0)}"
         )
-        renderer.console.print(f"      [dim]{start}[/dim]")
+        renderer.console.print(Text(f"      {start}", style="dim"))
     renderer.console.print("[dim]使用 /resume 编号 恢复。[/dim]\n")
 
 
@@ -651,18 +660,16 @@ def render_session_transcript(messages: list[dict], max_messages: int = 24, max_
     if hidden > 0:
         renderer.console.print(f"[dim]前面 {hidden} 条较早消息已省略，可用 /status 查看完整上下文规模。[/dim]")
     for message in shown:
-        role = str(message.get("role", "") or "message")
+        role = _strip_terminal_controls(str(message.get("role", "") or "message"))
+        content = _transcript_text(message.get("content", ""))
         if message.get("tool_calls"):
             names = []
             for call in message.get("tool_calls", []) or []:
                 fn = (call.get("function") or {}).get("name") or call.get("name") or "tool"
                 names.append(str(fn))
-            content = "tool_call: " + ", ".join(names)
-        else:
-            content = _transcript_text(message.get("content", ""))
-        content = _strip_terminal_controls(_clip_text(content, max_chars))
+            content = "\n".join(filter(None, (content, "tool_call: " + ", ".join(names))))
+        content = _clip_text(_strip_terminal_controls(content), max_chars)
         style = "cyan" if role == "user" else "green" if role == "assistant" else "yellow" if role == "tool" else "dim"
-        from rich.text import Text
         renderer.console.print(Text(f"  {role} {content}", style=style), highlight=False, soft_wrap=True)
     renderer.console.print()
 
@@ -685,8 +692,11 @@ def _transcript_text(content) -> str:
     return "\n".join(part for part in visible if part)
 
 
-_TERMINAL_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\)|[@-_])")
-_TERMINAL_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+_TERMINAL_ESCAPE_RE = re.compile(
+    r"(?:\x1b\]|\x9d)[^\x07\x1b\x9c]*(?:\x07|\x1b\\|\x9c|$)|"
+    r"(?:\x1b\[|\x9b)[0-?]*[ -/]*(?:[@-~]|$)|\x1b[@-_]"
+)
+_TERMINAL_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 
 
 def _strip_terminal_controls(text: str) -> str:
