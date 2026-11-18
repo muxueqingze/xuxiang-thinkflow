@@ -84,6 +84,10 @@ npm run desktop:build
 
 每次构建在独立的 `artifacts/desktop-时间戳/` 下生成 `ThinkFlow-win32-x64/`、安装程序和便携 ZIP。`artifacts/latest-desktop.json` 记录最近一次完整构建的版本与三种产物路径。Python 服务入口为 `scripts/desktop_entry.py`，Electron 使用私有管道连接服务。
 
+当前源码构建的安装目录与便携 ZIP 根目录包含 `THIRD-PARTY-NOTICES.txt`。其中按版本收录后端实际打入的 Python 依赖许可，列出终端原生组件的声明，以及 Electron、CPython 和 xterm.js 各自许可文件的位置。
+
+升级 pywinpty 时，按新 wheel 携带的终端二进制和对应的 Cargo.lock 更新[终端组件许可原文](../scripts/desktop/licenses/terminal-components.txt)。这些原生组件的上游声明独立于 wheel 自身的许可证。
+
 构建会下载并校验官方 Python embeddable ZIP，复用缓存为 `artifacts/build-inputs/python-3.12.10-embed-amd64.zip`，这是保留的构建输入。离线构建可预先把同名官方文件放到该目录。工具运行时完整解包到后端的 `python/`，保留官方 `._pth` 隔离设置和许可证；stdin 入口使用命令行 UTF-8 开关并显式加入工作区导入路径。它不安装 pip/Tk；项目第三方依赖使用上面的解释器覆盖。构建不修改系统 PATH。
 
 ```powershell

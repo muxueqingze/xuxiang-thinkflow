@@ -10,7 +10,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 **安装 0.10.1：** [Windows 桌面安装版](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.1/ThinkFlow-0.10.1-Windows-x64-Setup.exe) · [便携 ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.1/ThinkFlow-0.10.1-Windows-x64.zip) · CLI：`npm install -g xuxiang-agent`。桌面自带运行时，npm 只安装 CLI。[版本说明](docs/release-0.10.1.md)
 
-日常开发与发布使用 `main`。[参与贡献](CONTRIBUTING.md) · [仓库管理](docs/repository-management.md) · [私密漏洞报告](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new)
+日常开发与发布使用 `main`。[待发布改动](docs/unreleased.md) · [参与贡献](CONTRIBUTING.md) · [仓库管理](docs/repository-management.md) · [私密漏洞报告](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new)
 
 续想 ThinkFlow 是一个实验性流式工具调用 agent harness。它验证一个核心判断：并不是所有工具调用都应该成为模型回合边界。
 
@@ -336,4 +336,4 @@ npm pack --dry-run --json
 
 本项目目前以网络署名“沐雪清泽”发布。续想 ThinkFlow 是实验性 agent harness 与技术路线验证项目，不是商业服务承诺，也不代表任何公司或机构立场。
 
-引用、复现实验、工程合作或安全报告，请优先使用 GitHub Issues / Discussions，或通过作者 GitHub 主页公开的联系方式联系。
+复现实验、报告一般问题或提建议，请到 [GitHub Issues](https://github.com/muxueqingze/xuxiang-thinkflow/issues)。报告安全漏洞请用[私密报告入口](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new)。引用项目见[引用信息](CITATION.cff)，工程合作可通过[作者主页](https://github.com/muxueqingze)联系。
