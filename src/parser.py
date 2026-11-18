@@ -48,13 +48,14 @@ class Command:
     offset: Optional[int] = None
     limit: Optional[int] = None
     query: Optional[str] = None
+    match: Optional[str] = None  # edit: "file" requires the complete previous UTF-8 contents.
 
 
 PARSER_ERROR_KINDS = frozenset({
     "buffer_overflow", "incomplete_tag", "unclosed_block", "missing_id",
     "invalid_id", "duplicate_id", "invalid_injected", "missing_path",
     "missing_dest", "missing_cmd", "missing_edit_sections", "missing_edit_body",
-    "missing_ref", "invalid_offset", "invalid_limit", "invalid_query",
+    "missing_ref", "invalid_offset", "invalid_limit", "invalid_query", "invalid_match",
 })
 
 
@@ -108,8 +109,7 @@ def build_open_tag_re(allow_legacy_tags: bool = True) -> re.Pattern:
 OPEN_TAG_RE = build_open_tag_re(allow_legacy_tags=True)
 
 
-EDIT_OLD_RE = re.compile(r'<old>(?P<old>.*?)</old>', re.DOTALL)
-EDIT_NEW_RE = re.compile(r'<new>(?P<new>.*?)</new>', re.DOTALL)
+EDIT_DIVIDER_RE = re.compile(r'</old>\s*<new>')
 
 
 class StreamingParser:
@@ -388,6 +388,10 @@ class StreamingParser:
             return None
 
         # 构建 Command
+        if "match" in attrs and (tool != "edit" or attrs["match"] != "file"):
+            self.errors.append(ParseError(message='match 仅支持 tf-edit 的 match="file"',
+                                          raw=raw[:100], kind="invalid_match"))
+            return None
         command = Command(
             id=cmd_id,
             tool=tool,
@@ -396,6 +400,7 @@ class StreamingParser:
             cmd=cmd_str,
             need_result=need_result,
             injected=injected,
+            match=attrs.get("match"),
             raw=raw,
         )
 
@@ -445,17 +450,16 @@ class StreamingParser:
 
         elif tool == "edit":
             if content:
-                old_match = EDIT_OLD_RE.search(content)
-                new_match = EDIT_NEW_RE.search(content)
-                if not old_match or not new_match:
+                body = content.strip()
+                sections = EDIT_DIVIDER_RE.split(body[len('<old>'):-len('</new>')], maxsplit=2)
+                if not body.startswith('<old>') or not body.endswith('</new>') or len(sections) != 2:
                     self.errors.append(ParseError(
-                        message=f"<edit id={cmd_id}> 缺少 <old> 或 <new> 子标签",
+                        message=f"<edit id={cmd_id}> 需要一对明确的 <old>/<new> 段；正文含分隔符时使用原生 edit",
                         kind="missing_edit_sections",
                         raw=raw[:200],
                     ))
                     return None
-                command.old_text = _unescape_command_tags(old_match.group("old"))
-                command.new_text = _unescape_command_tags(new_match.group("new"))
+                command.old_text, command.new_text = map(_unescape_command_tags, sections)
             else:
                 self.errors.append(ParseError(
                     message=f"<edit id={cmd_id}> 缺少正文（<old>/<new>）",

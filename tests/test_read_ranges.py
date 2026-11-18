@@ -1,6 +1,8 @@
 """Read the needed code, edit it exactly, and keep the rest of the file intact."""
+import asyncio
 import json
 import os
+import secrets
 from pathlib import Path
 import sys
 import tempfile
@@ -17,6 +19,7 @@ from src.executor import Executor
 from src.parser import Command
 from src.provider import ProviderConfig
 from src.security import SecurityPolicy
+from test_anthropic_roundtrip import EventStream, block_events, finish
 from test_output_recall import SSE
 
 
@@ -163,18 +166,168 @@ class ReadRangeTests(unittest.IsolatedAsyncioTestCase):
         refused = await self.command('edit', old_text='second', new_text='fourth')
         self.assertIn('revision_conflict', refused.error)
 
+    async def test_same_response_read_cannot_grant_an_unseen_file_until_feedback(self):
+        original = secrets.token_hex(32)
+        path = self.seed(original)
+        agent = AgentLoop(AgentConfig(cwd=str(self.root), provider=ProviderConfig(
+            base_url='https://example.test', model='fixture', api_key='', enable_native_tools=False)),
+            event_sink=lambda event: None)
+        requests = []
+
+        def receive(request):
+            body = json.loads(request.content)
+            requests.append(body)
+            if len(requests) == 1:
+                self.assertNotIn(original, str(body))
+                text = ('<tf-read id="1" path="source.txt" />'
+                        '<tf-write id="2" path="source.txt">blind</tf-write>')
+            else:
+                self.assertEqual(len(requests), 2)
+                self.assertIn(original, str(body))
+                self.assertEqual(path.read_text(), original)
+                text = ('<tf-write id="3" path="source.txt">updated</tf-write>'
+                        '<tf-read id="4" path="source.txt" />'
+                        '<tf-append id="5" path="source.txt">!</tf-append>Done.')
+            return httpx.Response(200, stream=SSE(text))
+
+        try:
+            await agent.client.aclose()
+            agent.client = httpx.AsyncClient(base_url='https://example.test', transport=httpx.MockTransport(receive))
+            self.assertTrue(await agent._run_one_turn())
+            self.assertEqual(path.read_text(), original)
+            self.assertIn('read_required', agent.context.records[-1].error)
+            await agent._run_one_turn()
+            self.assertEqual(path.read_text(), 'updated!')
+            self.assertEqual([r.status for r in agent.context.records],
+                             ['success', 'conflict', 'success', 'success', 'success'])
+            self.assertEqual(len(requests), 2)
+        finally:
+            await agent.close()
+
+    async def test_failed_cancelled_and_compacted_requests_cannot_deliver_a_read(self):
+        secret = secrets.token_hex(32)
+        original = ('untouched line\n' * 500) + secret + ('\nlast line' * 500)
+        path = self.seed(original)
+        agent = AgentLoop(AgentConfig(cwd=str(self.root), max_retries=0, provider=ProviderConfig(
+            base_url='https://example.test', model='fixture', api_key='', enable_native_tools=False)),
+            event_sink=lambda event: None)
+        requests = []
+        waiting = asyncio.Event()
+
+        async def receive(request):
+            requests.append(json.loads(request.content))
+            if len(requests) == 1:
+                return httpx.Response(200, stream=SSE('<tf-read id="1" path="source.txt" need_result="true" />'))
+            if len(requests) == 2:
+                return httpx.Response(503, text='try later')
+            if len(requests) == 3:
+                waiting.set()
+                await asyncio.Event().wait()
+            self.assertNotIn(secret, str(requests[-1]))
+            return httpx.Response(200, stream=SSE('<tf-write id="2" path="source.txt">blind</tf-write>'))
+
+        try:
+            await agent.client.aclose()
+            agent.client = httpx.AsyncClient(base_url='https://example.test', transport=httpx.MockTransport(receive))
+            self.assertTrue(await agent._run_one_turn())
+            self.assertFalse(await agent._run_one_turn())
+            self.assertIn(secret, str(requests[-1]))
+            retry = asyncio.create_task(agent._run_one_turn())
+            await asyncio.wait_for(waiting.wait(), 2)
+            retry.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await retry
+            refused = await agent.executor.execute(Command('probe', 'write', path='source.txt', content='blind'))
+            self.assertIn('read_required', refused.error)
+            agent.messages.append({'role': 'user', 'content': 'Continue.'})
+            agent.config.compaction.keep_recent_messages = 1
+            agent.config.compaction.keep_recent_tokens = 0
+            self.assertTrue(agent.compact(force=True).changed)
+            self.assertTrue(await agent._run_one_turn())
+            self.assertIn('read_required', agent.context.records[-1].error)
+            self.assertEqual(path.read_text(), original)
+        finally:
+            await agent.close()
+
+    async def test_pending_full_read_does_not_broaden_later_edit_or_attachment(self):
+        path = self.seed('one\ntwo\nthree\n')
+        await self.executor.read('source.txt', offset=1, limit=1)
+        await self.executor.read('source.txt', defer_until_feedback='full')
+        await self.edit('one', 'ONE')
+        self.executor.deliver_read_feedback({'full'})
+        self.assertIn('read_required', (await self.command('write', content='blind')).error)
+        await self.edit('ONE', 'One')
+        await self.executor.read('source.txt', defer_until_feedback='older')
+        path.write_bytes(b'new attachment')
+        self.executor.grant_read_revision(str(path), content_revision(path.read_bytes()))
+        self.executor.deliver_read_feedback({'older'})
+        self.assertTrue((await self.command('write', content='confirmed')).success)
+
+    async def test_direct_registry_read_grants_its_caller_the_returned_version(self):
+        path = self.seed('original')
+        agent = AgentLoop(AgentConfig(cwd=str(self.root)), event_sink=lambda event: None)
+        try:
+            for options in ({}, {'call_id': 'sdk-read'}):
+                path.write_text('original', encoding='utf-8')
+                read = await agent.tool_registry.execute('read', {'path': 'source.txt'}, **options)
+                self.assertEqual(read.content, 'original')
+                write = await agent.tool_registry.execute('write', {'path': 'source.txt', 'content': 'updated'})
+                self.assertTrue(write.success, write.error)
+                self.assertEqual(path.read_text(), 'updated')
+        finally:
+            await agent.close()
+
+    async def test_delivered_empty_file_and_clipped_line_grant_only_the_visible_bytes(self):
+        empty = self.seed('', 'empty')
+        partial = self.seed('abcdefgh\nsecond', 'partial')
+        agent = AgentLoop(AgentConfig(cwd=str(self.root), max_read_chars=3, provider=ProviderConfig(
+            base_url='https://example.test', model='fixture', api_key='', enable_native_tools=False)),
+            event_sink=lambda event: None)
+        replies = iter([
+            '<tf-read id="1" path="empty" /><tf-read id="2" path="partial" offset="1" limit="1" />',
+            '<tf-write id="3" path="empty">filled</tf-write>'
+            '<tf-edit id="4" path="partial"><old>abc</old><new>ABC</new></tf-edit>'
+            '<tf-edit id="5" path="partial"><old>def</old><new>DEF</new></tf-edit>',
+        ])
+
+        def receive(request):
+            return httpx.Response(200, stream=SSE(next(replies)))
+
+        try:
+            await agent.client.aclose()
+            agent.client = httpx.AsyncClient(base_url='https://example.test', transport=httpx.MockTransport(receive))
+            await agent._run_one_turn()
+            await agent._run_one_turn()
+            self.assertEqual(empty.read_bytes(), b'filled')
+            self.assertEqual(partial.read_bytes(), b'ABCdefgh\nsecond')
+            self.assertIn('read_required', agent.context.records[-1].error)
+        finally:
+            await agent.close()
+
     async def test_text_and_native_paths_batch_reads_then_edit_the_visible_ranges(self):
         originals = {name: ('unchanged\n' * 500 + f'{name} = 1\n' + 'tail\n' * 500) for name in ('alpha', 'beta')}
         for name, value in originals.items():
             self.seed(value, name + '.txt')
         agent = AgentLoop(AgentConfig(cwd=str(self.root),
-            provider=ProviderConfig(base_url='https://example.test', model='fixture', api_key='', enable_native_tools=False),
+            provider=ProviderConfig(base_url='https://example.test', model='fixture', api_key='', max_tokens=2048,
+                                    enable_native_tools=False),
             security=SecurityPolicy(allowed_roots=[str(self.root)], bash_policy='unrestricted', approval_mode='approve_all')),
             event_sink=lambda event: None)
         requests = []
         def receive(request):
             body = json.loads(request.content)
             requests.append(body)
+            if agent.config.provider.enable_native_tools:
+                provider = agent.config.provider.format
+                self.assertIn('NATIVE = 1', str(body['messages']))
+                args = {'path': provider + '.txt', 'old_text': 'NATIVE = 1', 'new_text': 'NATIVE = 2'}
+                call_id = 'edit-' + provider
+                if provider == 'anthropic':
+                    stream = block_events(0, {'type': 'tool_use', 'id': call_id, 'name': 'edit', 'input': args})
+                    return httpx.Response(200, stream=EventStream(stream + finish('tool_use')))
+                call = {'index': 0, 'id': call_id, 'function': {'name': 'edit', 'arguments': json.dumps(args)}}
+                frame = {'choices': [{'delta': {'tool_calls': [call]}, 'finish_reason': 'tool_calls'}]}
+                return httpx.Response(200, content='data: ' + json.dumps(frame) + '\n\ndata: [DONE]\n\n')
             if len(requests) == 1:
                 text = ('<tf-read id="1" path="alpha.txt" offset="501" limit="1" />'
                         '<tf-read id="2" path="beta.txt" offset="501" limit="1" />')
@@ -203,14 +356,18 @@ class ReadRangeTests(unittest.IsolatedAsyncioTestCase):
                 agent.config.provider.format = provider
                 name = provider + '.txt'
                 self.seed('before\nNATIVE = 1\nafter', name)
-                await agent._handle_traditional_tools([{'id': 'read-' + provider, 'name': 'read',
-                    'input': json.dumps({'path': name, 'offset': 2, 'limit': 1})}])
-                content = agent.messages[-1]['content']
+                await agent._handle_traditional_tools([
+                    {'id': 'read-' + provider, 'name': 'read',
+                     'input': json.dumps({'path': name, 'offset': 2, 'limit': 1})},
+                    {'id': 'blind-' + provider, 'name': 'edit',
+                     'input': json.dumps({'path': name, 'old_text': 'NATIVE = 1', 'new_text': 'blind'})}])
+                self.assertEqual((self.root / name).read_bytes(), b'before\nNATIVE = 1\nafter')
+                self.assertIn('read_required', agent.context.records[-1].error)
+                content = agent.messages[-2 if provider == 'openai' else -1]['content']
                 text = content if provider == 'openai' else content[0]['content']
                 self.assertIn('NATIVE = 1\n', text)
                 self.assertIn('[Lines 2-2 of 3]', text)
-                await agent._handle_traditional_tools([{'id': 'edit-' + provider, 'name': 'edit',
-                    'input': json.dumps({'path': name, 'old_text': 'NATIVE = 1', 'new_text': 'NATIVE = 2'})}])
+                await agent._run_one_turn()
                 self.assertEqual((self.root / name).read_bytes(), b'before\nNATIVE = 2\nafter')
             agent.reset_session()
             refused = await agent.executor.execute(Command('1', 'edit', path='openai.txt', old_text='NATIVE = 2', new_text='NATIVE = 3'))

@@ -161,6 +161,24 @@ class StreamStateTests(unittest.IsolatedAsyncioTestCase):
                 finally:
                     await agent.close()
 
+    async def test_verified_prediction_continues_only_after_exact_match(self):
+        for protocol in ('openai', 'anthropic'):
+            for matches in (True, False):
+                with self.subTest(protocol=protocol, matches=matches), tempfile.TemporaryDirectory() as directory:
+                    root = Path(directory)
+                    original = b'on\n' if matches else b'on\nkeep this note\n'
+                    (root/'flag').write_bytes(original)
+                    command = '<tf-edit id="1" path="flag" match="file"><old>on\n</old><new>off\n</new></tf-edit>'
+                    command += '\n<tf-write id="2" path="done">done</tf-write>\n'
+                    agent, requests = await self.scripted_agent(directory, [command, 'The file differed.'], protocol=protocol)
+                    await agent.run('Replace only the exact expected file, then mark done.')
+                    self.assertEqual((root/'flag').read_bytes(), b'off\n' if matches else original)
+                    self.assertEqual((root/'done').exists(), matches)
+                    self.assertEqual(len(requests), 1 if matches else 2)
+                    self.assertEqual(agent.context.records[0].match, 'file')
+                    if not matches:
+                        self.assertIn('revision_conflict', json.dumps(requests[1]))
+
     async def test_failed_plan_stops_dependent_write_and_returns_actual_error(self):
         with tempfile.TemporaryDirectory(prefix='tf-plan-failure-') as directory:
             agent = AgentLoop(AgentConfig(cwd=directory, provider=ProviderConfig(enable_native_tools=False)),

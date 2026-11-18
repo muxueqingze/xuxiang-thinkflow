@@ -18,6 +18,7 @@ import sys
 import time
 import uuid
 from collections import deque
+from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from typing import Optional
 from urllib.parse import urlparse
@@ -275,6 +276,7 @@ class AgentLoop:
         self.conversation = ConversationContext()
         self.native_write_fallback = False
         self.additional_native_tools: set[str] = set()
+        self._model_read_id: ContextVar[str | None] = ContextVar('model_read_id', default=None)
         self.tool_registry = self._build_tool_registry()
         if event_sink is None:
             renderer.set_tool_kind_map(self.tool_registry.kind_map())
@@ -332,9 +334,7 @@ class AgentLoop:
         self._executed_ids.clear()
         self._executed_ids_order.clear()
         self._command_fingerprints.clear()
-        with self.executor._io_lock:
-            self.executor._read_revisions.clear()
-            self.executor._read_observations.clear()
+        self.executor.clear_read_baselines()
         self.usage = SessionUsage(label=self.usage.label)
         self._turn_count = self._auto_continue_count = self._delivery_fix_count = 0
         self.compaction_count = 0
@@ -399,7 +399,8 @@ class AgentLoop:
 
         async def read_tool(tool_input: dict) -> ExecutionResult:
             result = await self.executor.read(str(tool_input.get("path", "")),
-                                              offset=tool_input.get('offset'), limit=tool_input.get('limit'))
+                                              offset=tool_input.get('offset'), limit=tool_input.get('limit'),
+                                              defer_until_feedback=self._model_read_id.get())
             return result
 
         async def pwd_tool(tool_input: dict) -> str:
@@ -466,8 +467,9 @@ class AgentLoop:
                 id=call_id,
                 tool="edit",
                 path=str(tool_input.get("path", "")),
-                old_text=str(tool_input.get("old_text", "")),
-                new_text=str(tool_input.get("new_text", "")),
+                old_text=tool_input.get("old_text"),
+                new_text=tool_input.get("new_text"),
+                match=tool_input.get("match"),
             ))
             return result
 
@@ -646,7 +648,14 @@ class AgentLoop:
         return await self._execute_registered(command.tool, arguments, command.id)
 
     async def _execute_registered(self, name: str, arguments: dict, call_id: str) -> ExecutionResult:
-        result = await self.tool_registry.execute(name, arguments, call_id=call_id)
+        # A direct SDK registry caller receives its result immediately. Only a
+        # model-issued read must wait for the next accepted request.
+        token = self._model_read_id.set(call_id) if name == 'read' else None
+        try:
+            result = await self.tool_registry.execute(name, arguments, call_id=call_id)
+        finally:
+            if token is not None:
+                self._model_read_id.reset(token)
         if isinstance(result, ExecutionResult):
             return result
         return ExecutionResult(success=result.success, tool=name,
@@ -786,10 +795,10 @@ class AgentLoop:
     def _messages_with_runtime_status(self) -> list[dict]:
         return [item for message in self._projected_history() for item in self._attach_saved_runtime(message)]
 
-    def build_request_body(self, system: str) -> dict:
+    def build_request_body(self, system: str, *, delivered_reads: set[str] | None = None) -> dict:
         """Build the provider request body."""
         p = self.config.provider
-        request_messages = project_messages(self._messages_with_runtime_status(), p.format)
+        request_messages = project_messages(self._messages_with_runtime_status(), p.format, delivered_reads=delivered_reads)
 
         if p.format == "anthropic":
             body = {
@@ -1030,7 +1039,8 @@ class AgentLoop:
             turn_usage.abort_reason = "context_compacted"
 
         system = self.build_system_prompt()
-        body = self.build_request_body(system)
+        delivered_reads = set() if self.executor._pending_reads else None
+        body = self.build_request_body(system, delivered_reads=delivered_reads)
         input_estimate = estimate_request_tokens(body)
         budget = self.config.compaction.max_input_tokens
         if self.config.compaction.enabled and budget > 0 and input_estimate > budget:
@@ -1042,7 +1052,9 @@ class AgentLoop:
             budget_stats = self.compact(request_size=(input_estimate, costs))
             if budget_stats.changed:
                 system = self.build_system_prompt()
-                body = self.build_request_body(system)
+                if delivered_reads is not None:
+                    delivered_reads.clear()
+                body = self.build_request_body(system, delivered_reads=delivered_reads)
                 turn_usage.abort_reason = "context_compacted"
             after_estimate = estimate_request_tokens(body)
             self.events.emit('context_budget', before_tokens_estimate=input_estimate,
@@ -1061,6 +1073,8 @@ class AgentLoop:
         response = await self._send_stream_request(path, body)
         if response is None:
             return False
+        if delivered_reads is not None:
+            self.executor.deliver_read_feedback(delivered_reads)
         self.events.emit('stream_started')
 
         # 2. 处理流
@@ -1082,10 +1096,43 @@ class AgentLoop:
         text_parser_error_count = len(self.text_parser.errors)
         self.text_filter.reset()
         self.text_command_gate.reset()
+        text_after_native: list[Command] = []
+
+        async def dispatch_parsed(commands, errors, channel):
+            nonlocal commands_this_turn, abort_reason, parser_error_message
+            if traditional_tools:
+                # Native arguments and results settle at the provider boundary.
+                # Keep later intents for feedback without letting them overtake it.
+                text_after_native.extend(commands)
+            else:
+                dispatched, reason = await self._dispatch_text_commands(commands, command_queue)
+                commands_this_turn += dispatched
+                if reason != AbortReason.NONE:
+                    self.view.flush_text()
+                    abort_reason = reason
+            if errors:
+                parser_error_message = errors[-1].message
+                self.events.emit("parser_error", **errors[-1].diagnostic(channel=channel, phase="feed"))
+                self.view.flush_text()
+                if not traditional_tools:
+                    abort_reason = AbortReason.TOOL_FAILED
+
+        async def dispatch_text(text):
+            nonlocal text_parser_error_count
+            if text:
+                commands = self.text_parser.feed(text)
+                errors = self._consume_new_parser_errors(self.text_parser, text_parser_error_count)
+                text_parser_error_count += len(errors)
+                await dispatch_parsed(commands, errors, "text")
 
         event_stream = self._events_until_failure(response, command_queue, anthropic_content)
         try:
             async for event in event_stream:
+                if not traditional_tools and event.type in (EventType.TOOL_USE_START, EventType.TOOL_USE_DELTA):
+                    # A complete command may still be in the Markdown gate's last line.
+                    await dispatch_text(self.text_command_gate.flush())
+                    if abort_reason != AbortReason.NONE:
+                        break
                 # thinking delta → 喂给解析器
                 if event.type == EventType.THINKING_DELTA:
                     assistant_reasoning += event.thinking_text
@@ -1096,19 +1143,7 @@ class AgentLoop:
                     parser_error_count += len(new_errors)
                     if self.config.verbose:
                         self.view.render_thinking_snapshot(event.thinking_text)
-                    dispatched, dispatch_abort = await self._dispatch_text_commands(
-                        commands,
-                        command_queue,
-                    )
-                    commands_this_turn += dispatched
-                    if dispatch_abort != AbortReason.NONE:
-                        self.view.flush_text()
-                        abort_reason = dispatch_abort
-                    if new_errors:
-                        parser_error_message = new_errors[-1].message
-                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="thinking", phase="feed"))
-                        self.view.flush_text()
-                        abort_reason = AbortReason.TOOL_FAILED
+                    await dispatch_parsed(commands, new_errors, "thinking")
 
                     if abort_reason not in (AbortReason.NONE, AbortReason.TOOL_USE):
                         break
@@ -1118,23 +1153,7 @@ class AgentLoop:
                     assistant_text += event.text
                     self.note_text_tool_stream(event.text)
                     # 喂给 text_parser 提取命令
-                    text_for_commands = self.text_command_gate.feed(event.text)
-                    text_cmds = self.text_parser.feed(text_for_commands)
-                    new_errors = self._consume_new_parser_errors(self.text_parser, text_parser_error_count)
-                    text_parser_error_count += len(new_errors)
-                    dispatched, dispatch_abort = await self._dispatch_text_commands(
-                        text_cmds,
-                        command_queue,
-                    )
-                    commands_this_turn += dispatched
-                    if dispatch_abort != AbortReason.NONE:
-                        self.view.flush_text()
-                        abort_reason = dispatch_abort
-                    if new_errors:
-                        parser_error_message = new_errors[-1].message
-                        self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
-                        self.view.flush_text()
-                        abort_reason = AbortReason.TOOL_FAILED
+                    await dispatch_text(self.text_command_gate.feed(event.text))
                     if abort_reason not in (AbortReason.NONE, AbortReason.TOOL_USE):
                         break
                     visible_text = self.text_filter.feed(event.text)
@@ -1178,24 +1197,7 @@ class AgentLoop:
                 # 消息结束
                 elif event.type == EventType.MESSAGE_STOP:
                     finish_reason = event.finish_reason or ""
-                    tail_for_commands = self.text_command_gate.flush()
-                    if tail_for_commands:
-                        text_cmds = self.text_parser.feed(tail_for_commands)
-                        new_errors = self._consume_new_parser_errors(self.text_parser, text_parser_error_count)
-                        text_parser_error_count += len(new_errors)
-                        dispatched, dispatch_abort = await self._dispatch_text_commands(
-                            text_cmds,
-                            command_queue,
-                        )
-                        commands_this_turn += dispatched
-                        if dispatch_abort != AbortReason.NONE:
-                            self.view.flush_text()
-                            abort_reason = dispatch_abort
-                        if new_errors:
-                            parser_error_message = new_errors[-1].message
-                            self.events.emit("parser_error", **new_errors[-1].diagnostic(channel="text", phase="feed"))
-                            self.view.flush_text()
-                            abort_reason = AbortReason.TOOL_FAILED
+                    await dispatch_text(self.text_command_gate.flush())
                     # A native call start is not proof of complete arguments.
                     # Discard the unfinished native batch on length; text effects
                     # already executed still have their own durable receipts.
@@ -1328,6 +1330,26 @@ class AgentLoop:
                 message['reasoning_content'] = assistant_reasoning
             self.messages.append(message)
 
+        if abort_reason == AbortReason.TOOL_USE:
+            if anthropic_content is not None:
+                raw_inputs = {tool['id']: tool['input'] for tool in traditional_tools.values()}
+                traditional_tools = {block['id']: {
+                    'id': block['id'], 'name': block['name'],
+                    'input': raw_inputs[block['id']] or json.dumps(block['input'], ensure_ascii=False),
+                } for block in anthropic_content if block['type'] == 'tool_use'}
+            if traditional_tools:
+                await self._handle_traditional_tools(list(traditional_tools.values()),
+                                                     assistant_text=clean_text, reasoning=assistant_reasoning,
+                                                     assistant_content=anthropic_content)
+            if parser_error_message:
+                self.messages.append({"role": "user", "content":
+                    f"原生工具之后的文本命令格式错误，未执行：{parser_error_message}。请根据回执继续。"})
+
+        for command in text_after_native:
+            command_queue._record_skipped(command,
+                "Skipped because a native tool call preceded this text command. "
+                "Check the tool receipts and issue a new command ID if still needed.")
+
         # 4. 处理中断原因
         if abort_reason == AbortReason.TOOL_FAILED:
             self._last_turn_failed = True
@@ -1407,16 +1429,6 @@ class AgentLoop:
             return False
 
         elif abort_reason == AbortReason.TOOL_USE:
-            if anthropic_content is not None:
-                raw_inputs = {tool['id']: tool['input'] for tool in traditional_tools.values()}
-                traditional_tools = {block['id']: {
-                    'id': block['id'], 'name': block['name'],
-                    'input': raw_inputs[block['id']] or json.dumps(block['input'], ensure_ascii=False),
-                } for block in anthropic_content if block['type'] == 'tool_use'}
-            if traditional_tools:
-                await self._handle_traditional_tools(list(traditional_tools.values()),
-                                                     assistant_text=clean_text, reasoning=assistant_reasoning,
-                                                     assistant_content=anthropic_content)
             if self._stop_for_uncertain_effect(self.context.records[record_start_index:]):
                 return False
             self.context.clear_flags()
@@ -2163,6 +2175,8 @@ class AgentLoop:
                 input_error = input_error or f"Invalid tool arguments: {key} must be a string"
         command = Command(id=tool_id or f"native_{self._turn_count}_{len(self.context.records)}",
                           tool=tool_name, need_result=True, **fields)
+        if tool_name == 'edit':
+            command.match = tool_input.get('match')
         if tool_name == 'recall':
             command.offset = tool_input.get('offset', 0)
             command.limit = tool_input.get('limit', 8000)
@@ -2308,6 +2322,7 @@ class AgentLoop:
 
     def load_snapshot(self, data: dict):
         """恢复会话状态。"""
+        self.executor.clear_read_baselines()
         self.session_id = data.get('session_id', self.session_id)
         self.client.headers.update(self._build_headers())
         self.messages = list(data.get("messages", []))

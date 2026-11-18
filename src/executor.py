@@ -98,6 +98,7 @@ class Executor:
         self._io_lock = threading.RLock()
         self._read_revisions: dict[str, str] = {}
         self._read_observations: dict[str, ReadObservation] = {}
+        self._pending_reads: dict[str, tuple[str, str, int, int, bool]] = {}
         # Explicit legacy opt-out for trusted direct callers only. Agent defaults
         # stay strict; no read/list/grep fallback silently authorizes overwriting.
         self.require_read_revision = require_read_revision
@@ -130,7 +131,15 @@ class Executor:
         if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{64}", revision):
             raise ValueError("invalid_read_revision: expected SHA256")
         with self._io_lock:
-            self._read_revisions[self._revision_key(resolved)] = revision
+            key = self._revision_key(resolved)
+            self._read_revisions[key] = revision
+            self._read_observations.pop(key, None)
+
+    def clear_read_baselines(self) -> None:
+        with self._io_lock:
+            self._read_revisions.clear()
+            self._read_observations.clear()
+            self._pending_reads.clear()
 
     @staticmethod
     def _revision_key(path: str) -> str:
@@ -208,7 +217,8 @@ class Executor:
                 raise ExecutionCancelled(result) from None
             raise
 
-    async def read(self, path: str, offset: int | None = None, limit: int | None = None) -> ExecutionResult:
+    async def read(self, path: str, offset: int | None = None, limit: int | None = None,
+                   *, defer_until_feedback: str | None = None) -> ExecutionResult:
         """读取文件内容，供传统 read tool 使用。"""
         try:
             for name, value in (("offset", offset), ("limit", limit)):
@@ -246,7 +256,8 @@ class Executor:
                 full = False
             revision = ""
             if observed_revision and unredacted:
-                self._observe_read(resolved, observed_revision, start, start + len(content), full)
+                self._observe_read(resolved, observed_revision, start, start + len(content), full,
+                                   defer_until_feedback=defer_until_feedback)
                 if full:
                     revision = observed_revision
             else:
@@ -273,19 +284,34 @@ class Executor:
                 error=f"读取失败: {e}",
             )
 
-    def _observe_read(self, path: str, revision: str, start: int, end: int, full: bool) -> None:
+    def _observe_read(self, path: str, revision: str, start: int, end: int, full: bool,
+                      *, defer_until_feedback: str | None = None) -> None:
         with self._io_lock:
             key = self._revision_key(path)
-            if self._read_revisions.get(key) != revision:
-                self._read_revisions.pop(key, None)
-            if full:
+            if self._read_revisions.get(key) == revision:
+                return
+            self._read_revisions.pop(key, None)
+            if full and defer_until_feedback is None:
                 self._read_revisions[key] = revision
                 self._read_observations.pop(key, None)
-            elif key not in self._read_revisions:
-                observed = self._read_observations.get(key)
-                if observed is None or observed.revision != revision:
-                    observed = self._read_observations[key] = ReadObservation(revision)
+                return
+            observed = self._read_observations.get(key)
+            if observed is None or observed.revision != revision:
+                observed = self._read_observations[key] = ReadObservation(revision)
+            if defer_until_feedback is None:
                 observed.include(start, end)
+            else:
+                self._pending_reads[defer_until_feedback] = (key, revision, start, end, full)
+
+    def deliver_read_feedback(self, read_ids: set[str]) -> None:
+        """Grant only results carried by the accepted, post-compaction request."""
+        with self._io_lock:
+            for identifier, (key, revision, start, end, full) in self._pending_reads.items():
+                observed = self._read_observations.get(key)
+                # A later read or a successful mutation may have superseded this view.
+                if identifier in read_ids and observed is not None and observed.revision == revision:
+                    self._observe_read(key, revision, start, end, full)
+            self._pending_reads.clear()
 
     @staticmethod
     def _read_preview(path: str, max_chars: int) -> tuple[bytes, bool]:
@@ -432,7 +458,7 @@ class Executor:
         if observed is not None:
             if observed.revision != current:
                 raise FileRevisionConflict("revision_conflict: file changed since the model's range read; read again")
-            if exact_edit:
+            if exact_edit and observed.ranges:
                 return observed
         if before is not None and known is None:
             requirement = "the target range" if exact_edit else "the complete file"
@@ -462,8 +488,11 @@ class Executor:
                                        error="内容为空；创建空文件请使用 touch")
         if command.tool == "copy" and command.dest is None:
             return ExecutionResult(False, tool="copy", error="缺少 dest")
-        if command.tool == "edit" and (command.old_text is None or command.new_text is None):
-            return ExecutionResult(False, tool="edit", error="缺少 old_text / new_text")
+        if command.tool == "edit":
+            if not isinstance(command.old_text, str) or not isinstance(command.new_text, str):
+                return ExecutionResult(False, tool="edit", error="old_text / new_text 必须是字符串")
+            if command.match not in (None, "file"):
+                return ExecutionResult(False, tool="edit", error='edit 的 match 仅支持 "file"')
         target = command.dest if command.tool == "copy" else command.path
         path = self._resolve_path(target, "write")
         reject_symbolic_path(path)
@@ -485,9 +514,20 @@ class Executor:
                         raise ValueError("not_directory: target already exists")
                     before = after = None
                 else:
+                    whole_file = command.tool == "edit" and command.match == "file"
+                    if whole_file:
+                        self._resolve_path(path, "read")
                     before = read_optional_bytes(path)
-                    observed = self._check_revision(path, before, exact_edit=command.tool == "edit")
-                    if command.tool == "write":
+                    observed = None if whole_file else self._check_revision(path, before, exact_edit=command.tool == "edit")
+                    if whole_file:
+                        old = command.old_text
+                        if ("\x00" in old or self.redact_output(old) != old
+                                or (not self.security.allow_sensitive_paths and self.security.redact_text(old) != old)):
+                            raise FileRevisionConflict("read_required: full-file match requires unredacted text")
+                        if before != old.encode("utf-8"):
+                            raise FileRevisionConflict("revision_conflict: complete file differs from old_text or is missing; read before revising")
+                        after = command.new_text.encode("utf-8")
+                    elif command.tool == "write":
                         after = command.content.encode("utf-8")
                     elif command.tool == "append":
                         after = (before or b"") + command.content.encode("utf-8")

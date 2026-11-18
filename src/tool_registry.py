@@ -320,6 +320,7 @@ BUILTIN_TOOL_SPECS = [
             "properties": {
                 "path": {"type": "string", "description": "文件路径"},
                 "old_text": {"type": "string", "description": "要替换的唯一旧文本"},
+                "match": {"type": "string", "enum": ["file"], "description": "已知完整旧正文时可指定 file，逐字节相同才替换整份文件"},
                 "new_text": {"type": "string", "description": "替换后的新文本"},
             },
             "required": ["path", "old_text", "new_text"],

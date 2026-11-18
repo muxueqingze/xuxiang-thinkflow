@@ -1,6 +1,7 @@
 """Persistence contracts across hot tool receipts, checkpoints and session lists."""
 import copy
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -98,6 +99,22 @@ class IncrementalSessionTests(unittest.TestCase):
         external['desktop']['title'] = 'Edited externally'
         self.store.path.write_text(json.dumps(external), encoding='utf-8')
         self.assertEqual(self.store.inspect(self.store.path)['desktop']['title'], 'Edited externally')
+
+    def test_resume_uses_live_file_even_when_its_history_copy_is_newer(self):
+        self.store.save(self.snapshot)
+        archive, = (self.root / 'history').glob('*.json')
+        archive_bytes = archive.read_bytes()
+        newer = self.store.path.stat().st_mtime + 10
+        os.utime(archive, (newer, newer))
+        selected, = self.store.discover()
+        resumed = SessionStore(str(selected), cwd=str(self.root))
+        data = resumed.load()
+        data['messages'].append({'role': 'user', 'content': 'Continue after restart'})
+        resumed.save(data)
+
+        self.assertEqual(self.store.load()['messages'], data['messages'])
+        self.assertEqual(archive.read_bytes(), archive_bytes)
+        self.assertCountEqual(self.store.discover(), [self.store.path, archive])
 
     def test_desktop_lists_metadata_without_loading_transcripts(self):
         service = DesktopService()

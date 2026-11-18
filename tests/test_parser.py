@@ -180,6 +180,11 @@ def test_edit():
     assert cmds[0].tool == "edit"
     assert cmds[0].old_text == 'print("hello")'
     assert cmds[0].new_text == 'print("hello world")'
+    literal = parser.feed('<tf-edit id="2" path="example" match="file">'
+                          '<old><new>draft</new></old><new><new>published</new>\ntrailer</new></tf-edit>')
+    assert (literal[0].old_text, literal[0].new_text) == ('<new>draft</new>', '<new>published</new>\ntrailer')
+    assert not parser.feed('<tf-edit id="3" path="example"><old>a</old><new>b</old><new>c</new></tf-edit>')
+    assert parser.errors[-1].kind == 'missing_edit_sections'
     print(f"  ✓ edit#{cmds[0].id}: old={cmds[0].old_text!r}")
     print()
 

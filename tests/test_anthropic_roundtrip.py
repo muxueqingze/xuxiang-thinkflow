@@ -72,6 +72,39 @@ class AnthropicRoundtripTests(unittest.IsolatedAsyncioTestCase):
         agent.client = httpx.AsyncClient(base_url='http://127.0.0.1:1', transport=httpx.MockTransport(receive))
         return agent
 
+    async def test_trailing_text_intents_preserve_closed_native_results(self):
+        frames = block_events(0, {'type': 'tool_use', 'id': 'reader', 'name': 'read', 'input': {}}, [
+            {'type': 'input_json_delta', 'partial_json': '{"path":'},
+            {'type': 'input_json_delta', 'partial_json': '"source.txt"}'}])
+        frames += block_events(1, {'type': 'text', 'text': ''}, [
+            {'type': 'text_delta', 'text': 'A note.\n<tf-wri'},
+            {'type': 'text_delta', 'text': 'te id="1" path="later.txt">late</tf-write>\n'},
+            {'type': 'text_delta', 'text': '<tf-write id="2" path="unfinished.txt">'}])
+        frames += finish('tool_use')
+        requests = []
+
+        def respond(request):
+            requests.append(json.loads(request.content))
+            events = frames if len(requests) == 1 else (
+                block_events(0, {'type': 'text', 'text': ''}, [{'type': 'text_delta', 'text': 'done'}]) + finish())
+            return httpx.Response(200, stream=EventStream(events))
+
+        agent = await self.agent(respond)
+        await agent.run('Read the existing file and report.')
+        self.assertEqual(len(requests), 2)
+        self.assertEqual([(r.id, r.status) for r in agent.context.records],
+                         [('reader', 'success'), ('1', 'skipped')])
+        self.assertFalse((Path(self.directory.name) / 'later.txt').exists())
+        self.assertFalse((Path(self.directory.name) / 'unfinished.txt').exists())
+        blocks = [b for m in requests[1]['messages'] if isinstance(m['content'], list) for b in m['content']]
+        result = next(b for b in blocks if b.get('tool_use_id') == 'reader')
+        self.assertFalse(result['is_error'])
+        self.assertIn('actual file contents', result['content'])
+        wire = json.dumps(requests[1]['messages'], ensure_ascii=False)
+        self.assertIn('issue a new command ID', wire)
+        self.assertIn('文本命令格式错误', wire)
+        self.assertTrue(any(b.get('text', '').startswith('A note.') for b in blocks))
+
     async def test_stream_tool_results_snapshot_and_next_request_keep_exact_blocks(self):
         omitted = {'type': 'thinking', 'thinking': '', 'signature': 'opaque-A+/=B'}
         command_text = '先准备。<tf-touch id="1" path="created.txt" />随后读取。'
@@ -210,12 +243,13 @@ class AnthropicRoundtripTests(unittest.IsolatedAsyncioTestCase):
     async def test_boundaries_replay_only_closed_blocks_and_do_not_execute_native_batch(self):
         complete = [{'type': 'thinking', 'thinking': '', 'signature': 'complete-signature'},
                     {'type': 'redacted_thinking', 'data': 'complete-redacted'}]
-        for boundary in ('cancel', 'length', 'transport', 'error', 'need_result'):
+        for boundary in ('cancel', 'length', 'transport', 'error', 'need_result', 'need_result_after_native'):
             with self.subTest(boundary=boundary):
                 frames = block_events(0, complete[0]) + block_events(1, complete[1])
-                frames += block_events(2, {'type': 'tool_use', 'id': 'unexecuted', 'name': 'touch',
-                                          'input': {'path': 'must-not-exist.txt'}})
-                if boundary == 'need_result':
+                if boundary != 'need_result':
+                    frames += block_events(2, {'type': 'tool_use', 'id': 'unexecuted', 'name': 'touch',
+                                              'input': {'path': 'must-not-exist.txt'}})
+                if boundary in ('need_result', 'need_result_after_native'):
                     frames += block_events(3, {'type': 'text', 'text': ''}, [{
                         'type': 'text_delta', 'text': '<tf-read id="2" path="source.txt" need_result="true" />\n'}],
                         closed=False)
@@ -242,6 +276,10 @@ class AnthropicRoundtripTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(agent.usage.turns[-1].abort_reason, 'need_result')
                     self.assertEqual([(record.id, record.tool, record.status) for record in agent.context.records],
                                      [('2', 'read', 'success')])
+                if boundary == 'need_result_after_native':
+                    self.assertEqual(agent.usage.turns[-1].abort_reason, 'error')
+                    self.assertEqual([(record.id, record.tool, record.status) for record in agent.context.records],
+                                     [('2', 'read', 'skipped')])
                 self.assertTrue(stream.closed)
                 self.assertFalse((Path(self.directory.name) / 'must-not-exist.txt').exists())
                 self.assertFalse(any(record.id == 'unexecuted' for record in agent.context.records))

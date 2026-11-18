@@ -75,6 +75,21 @@ class FileRevisionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((self.cwd / "copy.txt").read_text(), "final next")
         self.assertEqual(len(self.store.list_changes()), 6)
 
+    async def test_whole_file_prediction_uses_exact_bytes_and_existing_undo(self):
+        path = self.seed(data="甲\r\n甲\r\n".encode())
+        for wrong in ("甲", "甲\n甲\n", "甲\r\n甲"):
+            refused = await self.command("edit", match="file", old_text=wrong, new_text="new")
+            self.assertEqual(refused.status, "conflict")
+        self.assertEqual(self.store.list_changes(), [])
+        result = await self.command("edit", match="file", old_text="甲\r\n甲\r\n", new_text="乙\n")
+        self.assertTrue(result.success, result.error)
+        self.assertEqual(path.read_bytes(), "乙\n".encode())
+        self.store.revert(result.change_id, content_revision(path.read_bytes()))
+        self.assertEqual(path.read_bytes(), "甲\r\n甲\r\n".encode())
+        path.write_bytes(b"")
+        self.assertTrue((await self.command("edit", match="file", old_text="", new_text="x")).success)
+        self.assertFalse((await self.command("edit", "missing", match="file", old_text="", new_text="x")).success)
+
     async def test_edit_and_copy_destination_reject_later_changes(self):
         path = self.seed()
         self.seed("source.txt", b"source\n")

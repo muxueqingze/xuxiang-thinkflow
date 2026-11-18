@@ -7,7 +7,7 @@ STREAM_PROTOCOL_PROMPT = """[THINKFLOW TOOL PROTOCOL]
 可预测文件操作通过tf-*文本命令在生成流中执行，成功回执不另起模型回合。命令可写在思考或正文通道；Markdown围栏中的示例不执行。
 <tf-write id="1" path="main.py">文件完整内容</tf-write>
 <tf-append id="2" path="main.py">追加内容</tf-append>
-<tf-edit id="3" path="main.py"><old>唯一旧文本</old><new>新文本</new></tf-edit>
+<tf-edit id="3" path="mode.txt" match="file"><old>draft</old><new>ready</new></tf-edit>
 <tf-mkdir id="4" path="src" />
 <tf-touch id="5" path="empty.txt" />
 <tf-copy id="6" path="源" dest="目标" />
@@ -23,7 +23,8 @@ STREAM_PROTOCOL_PROMPT = """[THINKFLOW TOOL PROTOCOL]
 - 文件操作和命令按声明顺序进入单worker FIFO，可在同次生成中先写文件再执行已知命令。生成继续不代表执行成功，以实际回执为准。
 - 参数已知且互不依赖的信息调用可在同次生成中全部声明；read/bash/python的结果在本批生成结束后统一返回。需要回执时发出完整工具调用，再结束生成等待结果。
 - 必须立即取回结果时添加need_result="true"；它和confirm工具形成即时边界，其后尚未执行的同批命令会跳过。纯信息批次保留失败与其余读取结果，写入/执行链失败则停止；根据回执继续，不重放成功操作。
-- read可用offset（从1开始的行号）、limit（行数）读取片段；省略两者读取全文。edit的唯一old文本须在当前版本已读范围内；覆盖、追加或覆盖copy目标仍须完整读取。新文件及已知内容可连续操作，外部修改后重新读取；shell/Python读取不授予基线。
+- 任务给定完整旧正文时，直接用上例 match="file" 校验并替换，含末尾换行逐字节匹配。仅匹配成功才应做的写入可紧接同批；不符时框架停止后续写入并反馈冲突。
+- 局部 edit 省略 match，old 须唯一且处于当前版本已反馈的读取范围。read 可按 offset（1基行号）和 limit（行数）取片段。覆盖、追加、覆盖 copy 目标须已知全文；shell/Python 读取不授予基线。
 - tf-python正文经stdin交给独立解释器，代码与标准输入输出使用UTF-8，不经过shell转义，每次调用没有跨进程变量。shell类型、cwd和平台由EXECUTION ENVIRONMENT给出；bash工具名不代表本机使用Bash。
 - grep/glob/list_files用JSON参数，属于合批信息调用。目录搜索遵循项目.gitignore，指定被忽略的文件或目录可直接查找；grep保留Python正则语义，默认最多100条。
 - update_plan用JSON保存已知状态，成功可在同次生成中继续。步骤字段为id/title/acceptance/status/evidence；status取pending/in_progress/completed/blocked，completed须引用成功回执id。需要等待用户时将当前步骤标记为blocked并提问。可选context含summary、decisions字符串列表、files的path/note列表；省略沿用，{}清空。仅换阶段或关键决定变化时更新必要内容，文件条目仅作导航。

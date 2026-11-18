@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 
 
-def project_messages(messages: list[dict], target_format: str) -> list[dict]:
+def project_messages(messages: list[dict], target_format: str, *, delivered_reads: set[str] | None = None) -> list[dict]:
     """Keep history intact, including reasoning which only its provider can replay.
 
     This covers the text and native tool messages emitted by AgentLoop. Native
@@ -12,6 +12,18 @@ def project_messages(messages: list[dict], target_format: str) -> list[dict]:
     """
     projected: list[dict] = []
     for original in messages:
+        if delivered_reads is not None:
+            blocks = original.get('content')
+            observations = ([block for block in blocks if block.get('type') == 'tool_result']
+                            if isinstance(blocks, list) else [original])
+            for result in observations:
+                delivered_reads.update(span['id'] for span in result.get('_thinkflow_reads', ()))
+                native_id = result.get('tool_use_id') or result.get('tool_call_id')
+                text = result.get('content')
+                if native_id and isinstance(text, str):
+                    header = text.partition('\n')[0]
+                    if header.startswith('[THINKFLOW RECEIPT ') and 'tool="read" status="success"' in header:
+                        delivered_reads.add(native_id)
         message = ({key: value for key, value in original.items() if key != '_thinkflow_reads'}
                    if '_thinkflow_reads' in original else original)
         content = message.get('content')

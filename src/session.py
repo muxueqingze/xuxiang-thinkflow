@@ -234,21 +234,25 @@ class SessionStore:
             for item in root.glob("history/*.json"):
                 candidates[str(item.resolve())] = item
 
-        sorted_candidates = sorted(
-            candidates.values(),
-            key=lambda item: self.inspect(item).get('mtime', 0),
+        metadata = {item: self.inspect(item) for item in candidates.values()}
+        # A history copy is written after its live checkpoint. Resuming the
+        # copy would send the next turn's autosaves into the archive.
+        preferred = sorted(
+            metadata,
+            key=lambda item: (item == self.path, item.parent.name != 'history',
+                              metadata[item].get('mtime', 0)),
             reverse=True,
         )
         seen_digests: set[str] = set()
         deduped: list[Path] = []
-        for item in sorted_candidates:
-            digest = self._snapshot_file_digest(item)
+        for item in preferred:
+            digest = metadata[item].get('digest', '')
             if digest and digest in seen_digests:
                 continue
             if digest:
                 seen_digests.add(digest)
             deduped.append(item)
-        return deduped
+        return sorted(deduped, key=lambda item: metadata[item].get('mtime', 0), reverse=True)
 
     @classmethod
     def inspect(cls, path: Path) -> dict:

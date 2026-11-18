@@ -99,6 +99,44 @@ class DispatchContracts(unittest.IsolatedAsyncioTestCase):
     async def test_text_read_failure_and_later_read_return_in_same_feedback(self):
         await self._assert_text_read_batch()
 
+    async def test_native_arguments_interleaved_with_text_do_not_reorder_effects(self):
+        def delta(**values):
+            return {'choices': [{'delta': values}]}
+
+        frames = [
+            delta(content='<tf-write id="1" path="earlier.txt">first</tf-write>\n'),
+            delta(tool_calls=[{'index': 0, 'id': 'reader', 'function': {'name': 'read',
+                              'arguments': '{"path":"'}}]),
+            delta(reasoning_content='<tf-write id="2" path="later.txt">'),
+            delta(reasoning_content='would reverse the read</tf-write>'),
+            delta(content='<tf-touch id="3" path="also-later.txt" need_result="true" />'),
+            delta(tool_calls=[{'index': 0, 'function': {'arguments': 'later.txt"}'}}]),
+            {'choices': [{'delta': {}, 'finish_reason': 'tool_calls'}]},
+        ]
+        requests = []
+
+        def respond(request):
+            requests.append(json.loads(request.content))
+            events = frames if len(requests) == 1 else [
+                {'choices': [{'delta': {'content': 'done'}, 'finish_reason': 'stop'}]}]
+            return httpx.Response(200, text=''.join('data: ' + json.dumps(event) + '\n\n'
+                                                   for event in events) + 'data: [DONE]\n\n')
+
+        await self.agent.client.aclose()
+        self.agent.client = httpx.AsyncClient(base_url='http://fixture.test', transport=httpx.MockTransport(respond))
+        await self.agent.run('Prepare the first note, then inspect the other file.')
+        self.assertEqual(len(requests), 2)
+        self.assertEqual((self.root / 'earlier.txt').read_text(), 'first')
+        self.assertFalse((self.root / 'later.txt').exists())
+        self.assertFalse((self.root / 'also-later.txt').exists())
+        self.assertEqual([(r.id, r.status) for r in self.agent.context.records],
+                         [('1', 'success'), ('reader', 'failed'), ('2', 'skipped'), ('3', 'skipped')])
+        replay = next(m for m in requests[1]['messages'] if m.get('tool_call_id') == 'reader')
+        self.assertIn('status="failed"', replay['content'])
+        self.assertIn('status="skipped"', replay['content'])
+        self.assertIn('issue a new command ID', replay['content'])
+        self.assertEqual(self.agent.usage.turns[0].commands_executed, 1)
+
     async def test_explicit_read_boundary_settles_prior_independent_read_failure(self):
         await self._assert_text_read_batch(need_result=True)
 

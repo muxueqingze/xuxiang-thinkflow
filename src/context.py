@@ -53,6 +53,7 @@ class CommandRecord:
     payload_clipped: bool = False
     read_note: str = ""
     result_content: str | None = None  # Process confirmation text, separate from stdout; None for content-only results.
+    match: str | None = None
 
     @staticmethod
     def _clip_text(text: str, max_chars: int = 4000) -> str:
@@ -79,6 +80,8 @@ class CommandRecord:
 
         if self.path:
             attrs.append(f'path="{self.path}"')
+        if self.match == "file":
+            attrs.append('match="file"')
         if self.dest:
             attrs.append(f'dest="{self.dest}"')
         if self.tool == 'read':
@@ -157,9 +160,9 @@ class CommandRecord:
                 lines.append(f'  original {name}: {ref} ({self.output_sizes[name]} characters; use recall)')
 
         if (read_spans is not None and self.tool == 'read' and self.status == 'success'
-                and include_payload and self.stdout and not self.truncated and not self.payload_clipped
+                and include_payload and not self.payload_clipped
                 and (max_content_chars <= 0 or len(self.stdout) <= max_content_chars)):
-            start = len(lines[0]) + len('\n  stdout: ')
+            start = len(lines[0]) + (len('\n  stdout: ') if self.stdout else 0)
             read_spans.append({'id': self.id, 'start': start, 'end': start + len(self.stdout)})
         return "\n".join(lines)
 
@@ -224,6 +227,7 @@ class ContextManager:
             content=command.content,
             old_text=command.old_text,
             new_text=command.new_text,
+            match=command.match,
             need_result=command.need_result,
             flow=flow,
             risk=risk,
@@ -516,6 +520,8 @@ def _command_hash(command: Command) -> str:
             parts.append(command.query)
     elif command.tool == 'read' and (command.offset is not None or command.limit is not None):
         parts.extend([str(command.offset), str(command.limit)])
+    elif command.tool == 'edit' and command.match == 'file':
+        parts.append('match=file')
     payload = "\0".join(parts).encode("utf-8", errors="replace")
     return hashlib.sha256(payload).hexdigest()[:16]
 
