@@ -137,6 +137,7 @@ function render() {
   $('session-title').title = $('session-title').textContent;
   const statusLabels = { idle: state.recovery_required ? '等待核对上次中断' : queuePaused && queue.length ? '待发队列已暂停' : '准备就绪', running: activeTools.size ? '持续生成 · 工具正在执行' : '正在生成', approval: '等待您授权本次操作', error: '运行失败 · 后续任务已暂停', cancelled: '已停止 · 后续任务已保留' };
   if (activityPhase === 'waiting_feedback') statusLabels.running = '等待工具结果，随后继续生成';
+  statusLabels.awaiting_input = '等待您回复';
   if (activityPhase === 'thinking') statusLabels.running = '正在思考';
   if (statusNotice && running()) statusLabels.running = statusNotice;
   $('run-status').textContent = connected ? statusLabels[state.status] || '准备就绪' : '后端已断开';

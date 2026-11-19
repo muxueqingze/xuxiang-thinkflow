@@ -40,7 +40,7 @@ DEFAULT_CONFIG = {
 SESSION_ID = re.compile(r"^[a-f0-9]{32}$")
 COMMAND_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
 INPUT_PENDING = {"received", "queued"}
-INPUT_TERMINAL = {"completed", "failed", "cancelled", "interrupted"}
+INPUT_TERMINAL = {"completed", "awaiting_input", "failed", "cancelled", "interrupted"}
 WORKSPACE_TOOLS = {"git_status", "git_diff", "terminal_list", "terminal_create",
                    "terminal_input", "terminal_resize", "terminal_close"}
 
@@ -507,7 +507,8 @@ class DesktopService:
             self.queue_pause_reason = "会话已恢复，请核对上次执行并手动继续队列。"
         self.recovery = recovery
         self.active_intents = {}
-        self.status = "error" if self.recovery else "idle"
+        self.status = ("error" if self.recovery else
+                       "awaiting_input" if meta.get("status") == "awaiting_input" else "idle")
         self.last_error = "上次执行意外中断。请核对实际文件后继续，不会自动重放操作。" if self.recovery else ""
         self._reply_index = None
         self._attach_change_store()
@@ -706,7 +707,8 @@ class DesktopService:
                 return {"receipt": self._input_receipt(durable), "state": self.state()}
             self._require_input_target(params.get("session_id"))
             self._require_run_config()
-            if sum(item["status"] in INPUT_PENDING for item in self.input_commands) >= 20:
+            answering = self.status == "awaiting_input" and self.queue_paused
+            if not answering and sum(item["status"] in INPUT_PENDING for item in self.input_commands) >= 20:
                 raise ValueError("待发送队列最多 20 项。")
             attachment_context = ""
             if attachments:
@@ -721,7 +723,13 @@ class DesktopService:
                     "status": "queued", "created_at": now, "updated_at": now,
                     "lifecycle": [{"status": "received", "time": now}, {"status": "queued", "time": now}]}
             previous = (copy.deepcopy(self.input_commands), self.queue_paused, self.queue_pause_reason)
-            self.input_commands = [*self.input_commands, item]
+            if answering:
+                position = next((i for i, queued in enumerate(self.input_commands)
+                                 if queued["status"] in INPUT_PENDING), len(self.input_commands))
+                self.input_commands = [*self.input_commands[:position], item, *self.input_commands[position:]]
+                self.queue_paused, self.queue_pause_reason = False, ""
+            else:
+                self.input_commands = [*self.input_commands, item]
             self._persist_inputs(previous)
             self._emit({"type": "state", "state": self.state()})
             self._schedule_queue()
@@ -856,7 +864,8 @@ class DesktopService:
                 options['attachment_paths'] = [file['path'] for file in command['attachments']]
             await self.agent.run(prompt, user_request=command['prompt'] if command_id else prompt, **options)
             self.last_error = self.agent.last_error
-            self.status = "error" if self.last_error else "idle"
+            self.status = ("error" if self.last_error else
+                           "awaiting_input" if self.agent.stopped_reason == "awaiting_input" else "idle")
         except asyncio.CancelledError:
             self.status = "cancelled"
         except Exception as exc:
@@ -871,19 +880,19 @@ class DesktopService:
             if self.recovery:
                 self.last_error = "存在未确认的执行。请核对文件后继续。"
             self._reply_index = None
-            if self.status in ("error", "cancelled") or self.last_error or self.recovery:
+            if self.status == "awaiting_input" and not self.recovery:
+                self.queue_paused = True
+                self.queue_pause_reason = "等待您回答当前问题，回复后继续队列。"
+            elif self.status in ("error", "cancelled") or self.last_error or self.recovery:
                 self.queue_paused = True
                 self.queue_pause_reason = "上次输入未完成，请核对结果后手动继续队列。"
             active_inputs = [item for item in self.input_commands if item['status'] == 'running']
             for item in active_inputs:
-                outcome = ("cancelled" if self.status == "cancelled" else
-                           "interrupted" if self.recovery else "failed" if self.last_error else "completed")
+                outcome = ("interrupted" if self.recovery else "failed" if self.last_error else
+                           self.status if self.status in ("cancelled", "awaiting_input") else "completed")
                 self._transition_input(item, outcome)
                 if self.last_error:
                     item["error"] = self.last_error
-                if outcome != "completed":
-                    self.queue_paused = True
-                    self.queue_pause_reason = "上次输入未完成，请核对结果后手动继续队列。"
             self._active_command = None
             # An undelivered correction belongs to the run that just ended, not
             # to some later task. Keep it at its original place in the queue.

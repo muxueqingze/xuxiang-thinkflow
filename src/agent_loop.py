@@ -21,6 +21,7 @@ from collections import deque
 from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
+from pathlib import Path
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -40,7 +41,7 @@ from .context_budget import estimate_message_tokens, estimate_request_tokens
 from .text_filter import MarkdownFenceCommandGate, SafeTextStreamFilter
 from .interfaces import ExternalInterfaces, InterfaceConfig
 from .skills import SkillConfig, SkillManager
-from .delivery import verify_delivery
+from .delivery import DeliveryChecks, package_projects, verify_delivery
 from .feedback import project_read_results, with_observation
 from .message_projection import project_messages
 from .tool_registry import (
@@ -353,6 +354,7 @@ class AgentLoop:
         self._turn_count = 0
         self._auto_continue_count = 0
         self._delivery_fix_count = 0
+        self._delivery = DeliveryChecks()
         self._final_response_effects: set[str] | None = None
         self._pending_final_feedback = ""
         self._delivered_answer = False
@@ -385,6 +387,7 @@ class AgentLoop:
         self.executor.clear_read_baselines()
         self.usage = SessionUsage(label=self.usage.label)
         self._turn_count = self._auto_continue_count = self._delivery_fix_count = 0
+        self._delivery = DeliveryChecks()
         self._final_response_effects = None
         self._pending_final_feedback = ""
         self.compaction_count = 0
@@ -709,6 +712,9 @@ class AgentLoop:
             if token is not None:
                 self._model_read_id.reset(token)
         if isinstance(result, ExecutionResult):
+            if self.config.delivery_verify or self.config.auto_verify_runnable_artifacts:
+                self._delivery.observe(name, arguments, result, cwd=self.executor.cwd,
+                                       builds=self.config.delivery_verify, scripts=self.config.auto_verify_runnable_artifacts)
             return result
         return ExecutionResult(success=result.success, tool=name,
                                content=str(result) if result.success else '', error=result.error)
@@ -978,6 +984,7 @@ class AgentLoop:
         self._plan_continuation_progress = None
         self._auto_continue_count = 0
         self._delivery_fix_count = 0
+        self._delivery = DeliveryChecks()
         cancelled = False
         failures = 0
         turns = 0
@@ -1032,11 +1039,13 @@ class AgentLoop:
                     continue
                 if self.last_error and self.stopped_reason == 'completed':
                     self.stopped_reason = "error"
-                if self.stopped_reason != 'completed' or check_completion is None:
+                if self.stopped_reason != 'completed':
                     break
                 if self._plan_continuation_progress is not None and any(
                         step['status'] == 'blocked' for step in self.task_plan['steps']):
                     self.stopped_reason = 'awaiting_input'
+                    break
+                if check_completion is None:
                     break
                 missing = check_completion()
                 if deadline is not None and time.monotonic() >= deadline:
@@ -1585,36 +1594,10 @@ class AgentLoop:
                 self.context.clear_flags()
                 return True
             turn_records = self.context.records[record_start_index:]
-            if self.config.delivery_verify and self._turn_needs_delivery_check(turn_records):
-                verification = await verify_delivery(self.config.cwd, [
-                    record.path or record.dest or ""
-                    for record in turn_records
-                ])
-                if verification.attempted and not verification.success:
-                    if self._delivery_fix_count < self.config.max_delivery_fix_attempts:
-                        self._delivery_fix_count += 1
-                        self.messages.append({"role": "user", "content": verification.to_feedback()})
-                        return True
-                    self.stopped_reason = 'delivery_verification_failed'
-                    self.last_error = "交付前验证失败，已达到自动修复上限"
-                    self.view.render_error(self.last_error)
-                    self.context.clear_flags()
-                    return False
-            runnable_feedback = (
-                self._build_runnable_artifact_feedback(turn_records)
-                if self.config.auto_verify_runnable_artifacts
-                else ""
-            )
-            if runnable_feedback:
-                if (self.config.max_auto_continues is not None
-                        and self._auto_continue_count >= self.config.max_auto_continues):
-                    self.stopped_reason = 'max_auto_continues'
-                    self.view.render_info("脚本尚未按要求验证，已达到自动续写上限")
-                    return False
-                self._auto_continue_count += 1
-                self.messages.append({"role": "user", "content": runnable_feedback})
-                self.view.render_info("检测到脚本写入后尚未运行，已要求模型继续验证")
-                return True
+            if self.config.delivery_verify or self.config.auto_verify_runnable_artifacts:
+                decision = await self._check_delivery()
+                if decision is not None:
+                    return decision
             if turn_records:
                 self.view.render_tool_summary(turn_records)
             self.context.clear_flags()
@@ -1685,58 +1668,57 @@ class AgentLoop:
             "继续时请发出实际工具调用；需要用户决定或暂停时，将当前步骤标记为 blocked。")})
         return True
 
-    def _turn_needs_delivery_check(self, records: list) -> bool:
-        return any(
-            getattr(record, "status", "") == "success"
-            and getattr(record, "tool", "") in {"write", "append", "edit", "copy", "touch", "mkdir"}
-            for record in records
-        )
+    async def _run_delivery_step(self, cmd: str, directory: Path) -> ExecutionResult:
+        command = Command(id=f"delivery-{uuid.uuid4().hex}", tool="bash", path=str(directory), cmd=cmd)
+        denial = await self._authorize_tool(command, {"cmd": cmd, "cwd": str(directory)})
+        if denial:
+            return ExecutionResult(False, tool="bash", error=denial, exit_code=126)
+        return await self.executor.execute(command, bash_cwd=str(directory))
 
-    def _build_runnable_artifact_feedback(self, records: list) -> str:
-        """Ask the model to verify runnable artifacts it just wrote.
+    async def _check_delivery(self) -> bool | None:
+        checks = self._delivery
+        projects = package_projects(self.executor.cwd, checks.changed_paths)
+        checks.changed_paths.clear()
+        failed_again = False
+        for project in projects:
+            result = await verify_delivery(project, self._run_delivery_step)
+            if result.success:
+                checks.failures.pop(project, None)
+            else:
+                checks.failures[project] = result
+                failed_again = True
 
-        Delayed writes are allowed to finish a turn, but generated scripts are
-        rarely a complete delivery until they have been executed or explicitly
-        verified. The harness does not auto-run them because execution belongs
-        to the model/tool policy; it returns a direct continuation request.
-        """
-        if any(
-            getattr(record, "status", "") == "success"
-            and getattr(record, "tool", "") == "bash"
-            for record in records
-        ):
-            return ""
+        if checks.failures:
+            if failed_again and self._delivery_fix_count < self.config.max_delivery_fix_attempts:
+                self._delivery_fix_count += 1
+                feedback = "\n\n".join(failure.to_feedback() for failure in checks.failures.values())
+                self._pending_final_feedback = feedback
+                return True
+            self.stopped_reason = "delivery_verification_failed"
+            reasons = []
+            for project, failure in checks.failures.items():
+                cmd, step = failure.steps[-1]
+                reasons.append(f"{project} ({cmd}: {step.error or f'exit {step.exit_code}'})")
+            self.last_error = "构建验证仍未通过：" + "、".join(reasons)
+            self.view.render_error(self.last_error)
+            return False
 
-        runnable_paths = []
-        for record in records:
-            if getattr(record, "status", "") != "success":
-                continue
-            if getattr(record, "tool", "") not in {"write", "append", "edit", "copy", "touch"}:
-                continue
-            path = getattr(record, "path", None) or getattr(record, "dest", None) or ""
-            if self._is_runnable_artifact(path):
-                runnable_paths.append(path)
-
-        if not runnable_paths:
-            return ""
-
-        shown = "\n".join(f"- {path}" for path in runnable_paths[:8])
-        extra = "" if len(runnable_paths) <= 8 else f"\n- ... {len(runnable_paths) - 8} more"
-        return (
-            "[THINKFLOW DELIVERY VERIFY REQUIRED — 写入了可运行脚本但尚未运行]\n"
-            "上一轮已经成功写入以下可运行文件：\n"
-            f"{shown}{extra}\n\n"
-            "请继续完成交付前验证：运行这些脚本或执行等价验证命令。"
-            "如果运行失败，请基于错误信息修复；如果不需要运行，请明确说明理由并验证最终产物是否存在。"
-        )
-
-    @staticmethod
-    def _is_runnable_artifact(path: str) -> bool:
-        suffix = os.path.splitext(path.lower())[1]
-        return suffix in {
-            ".py", ".js", ".mjs", ".cjs", ".ts", ".tsx",
-            ".ps1", ".bat", ".cmd", ".sh",
-        }
+        if checks.scripts:
+            if (self.config.max_auto_continues is not None
+                    and self._auto_continue_count >= self.config.max_auto_continues):
+                self.stopped_reason = "max_auto_continues"
+            elif checks.scripts == checks.prompted_scripts:
+                self.stopped_reason = "delivery_verification_failed"
+            else:
+                checks.prompted_scripts = checks.scripts.copy()
+                self._auto_continue_count += 1
+                self._pending_final_feedback = checks.script_feedback()
+                self.view.render_info("检测到脚本写入后尚未运行，已要求模型继续验证")
+                return True
+            self.last_error = "缺少脚本运行回执：" + "、".join(str(path) for path in checks.scripts)
+            self.view.render_error(self.last_error)
+            return False
+        return None
 
     async def _dispatch_text_commands(
         self,

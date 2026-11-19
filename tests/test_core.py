@@ -1743,16 +1743,9 @@ def test_agent_auto_continues_after_delivery_verification_failure():
             ]
             calls = []
 
-            async def fake_verify(cwd, changed_paths):
-                calls.append((cwd, changed_paths))
-                if len(calls) == 1:
-                    return VerificationResult(
-                        attempted=True,
-                        success=False,
-                        project_dir=tmp,
-                        reason="npm run build failed",
-                    )
-                return VerificationResult(attempted=True, success=True, project_dir=tmp, reason="ok")
+            async def fake_verify(project_dir, run):
+                calls.append(project_dir)
+                return VerificationResult(project_dir, [("npm run build", ExecutionResult(False, tool="bash", exit_code=1))])
 
             old_verify = agent_loop_module.verify_delivery
             agent_loop_module.verify_delivery = fake_verify
@@ -1775,6 +1768,7 @@ def test_agent_auto_continues_after_delivery_verification_failure():
                 await agent.run("write project")
                 assert len(seen_bodies) == 2
                 assert len(calls) == 1
+                assert agent.stopped_reason == "delivery_verification_failed"
                 assert any(
                     "THINKFLOW DELIVERY CHECK FAILED" in message.get("content", "")
                     for message in seen_bodies[1]["messages"]

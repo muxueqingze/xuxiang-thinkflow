@@ -1351,6 +1351,9 @@ async def single_run(agent: AgentLoop, prompt: str, store: SessionStore = None, 
             store.save(agent.to_snapshot())
     if agent.stopped_reason == "cancelled":
         return 130
+    if agent.stopped_reason == "awaiting_input":
+        print("等待用户输入（awaiting_input）", file=sys.stderr)
+        return 3
     if agent.stopped_reason != "completed" or agent.last_error:
         print(agent.last_error or f"Run stopped: {agent.stopped_reason}", file=sys.stderr)
         return 1

@@ -167,7 +167,7 @@ class Executor:
     def _revision_key(path: str) -> str:
         return os.path.normcase(os.path.abspath(path))
 
-    async def execute(self, command: Command) -> ExecutionResult:
+    async def execute(self, command: Command, *, bash_cwd: str | None = None) -> ExecutionResult:
         """执行命令，返回结果。"""
         dispatch = {
             "read": self._read_command,
@@ -176,7 +176,7 @@ class Executor:
             "mkdir": self._mkdir,
             "touch": self._touch,
             "copy": self._copy,
-            "bash": self._bash,
+            "bash": lambda cmd: self._bash(cmd, cwd=bash_cwd),
             "python": self._python_command,
             "edit": self._edit,
         }
@@ -625,14 +625,16 @@ class Executor:
     def _write_file(path: str, data: bytes):
         atomic_write_bytes(path, data)
 
-    async def _bash(self, command: Command) -> ExecutionResult:
-        """执行 shell 命令。"""
-        if command.cmd is None:
+    async def _bash(self, command: Command, *, cwd: str | None = None) -> ExecutionResult:
+        cmd = command.cmd
+        if cmd is None:
             return ExecutionResult(
                 success=False, tool="bash", error="缺少 cmd",
             )
         try:
-            self.security.check_bash(command.cmd)
+            self.security.check_bash(cmd)
+            if cwd is not None:
+                self._resolve_path(cwd, "bash")
         except PermissionError as e:
             return ExecutionResult(
                 success=False,
@@ -641,7 +643,7 @@ class Executor:
                 exit_code=126,
             )
 
-        return await self._run_process(command.cmd, shell=True, tool="bash")
+        return await self._run_process(cmd, shell=True, tool="bash", cwd=cwd)
 
     async def _python_command(self, command: Command) -> ExecutionResult:
         return await self.python(command.cmd, ref=command.ref)
@@ -690,10 +692,11 @@ class Executor:
                                        timeout=timeout, env=env)
 
     async def _run_process(self, command, *, shell: bool, tool: str, stdin: Optional[str] = None,
-                           timeout: Optional[float] = None, env: Optional[dict[str, str]] = None) -> ExecutionResult:
+                           timeout: Optional[float] = None, env: Optional[dict[str, str]] = None,
+                           cwd: str | None = None) -> ExecutionResult:
         options = {"stdout": asyncio.subprocess.PIPE, "stderr": asyncio.subprocess.PIPE,
-                   "stdin": asyncio.subprocess.PIPE if stdin is not None else None,
-                   "cwd": self.cwd, "env": self.security.command_env() if env is None else env}
+                   "stdin": asyncio.subprocess.PIPE if stdin is not None else asyncio.subprocess.DEVNULL,
+                   "cwd": self.cwd if cwd is None else cwd, "env": self.security.command_env() if env is None else env}
         if tool == "python":
             # Match the UTF-8 code channel and result decoder, regardless of shell locale.
             options["env"].update(PYTHONUTF8="1", PYTHONIOENCODING="utf-8")

@@ -1,15 +1,20 @@
 """Markdown examples and live commands share the production SSE entry point."""
 
 import asyncio
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import httpx
+from rich.console import Console
 
+from src import renderer
 from src.agent_loop import AgentConfig, AgentLoop
 from src.provider import ProviderConfig
+from src.text_filter import SafeTextStreamFilter
 
 
 def frame(**delta):
@@ -17,6 +22,28 @@ def frame(**delta):
 
 
 STOP = b'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\n'
+
+
+INLINE = '<tf-touch id="9" path="example-inline.txt" />'
+FENCED = '<tf-touch id="8" path="example-fenced.txt" />'
+LEGACY = '<touch id="7" path="example-legacy.txt" />'
+LIVE = '<tf-write id="1" path="doc.txt">private payload `tick`\n~~~text\nfile text\n~~~</tf-write>'
+EXPECTED = (
+    f'Inline `{INLINE}` and ``literal ` {INLINE}``.\n\n'
+    f'````xml\n```\n{FENCED}\n````\n\n'
+    f'  Final example ````{LEGACY}````'
+)
+MIXED = EXPECTED.replace('  Final example', f'{LIVE}  Final example')
+
+
+class MarkdownDisplayFilterTests(unittest.TestCase):
+    def test_visible_markdown_survives_every_split(self):
+        for allow_legacy in (False, True):
+            chunks = [[MIXED], list(MIXED)]
+            chunks.extend([MIXED[:index], MIXED[index:]] for index in range(1, len(MIXED)))
+            for pieces in chunks:
+                display = SafeTextStreamFilter(allow_legacy_tags=allow_legacy)
+                self.assertEqual(''.join(display.feed(piece) for piece in pieces) + display.flush(), EXPECTED)
 
 
 class FixtureStream(httpx.AsyncByteStream):
@@ -104,6 +131,57 @@ class StreamMarkdownExampleTests(unittest.IsolatedAsyncioTestCase):
         await self.run_stream(chunks())
         self.assertFalse((self.root / "example.txt").exists())
         self.assertEqual([record.id for record in self.agent.context.records], ["1"])
+
+    async def test_openai_desktop_events_and_assistant_history_keep_inline_examples(self):
+        async def chunks():
+            for character in MIXED:
+                yield frame(content=character)
+            yield STOP
+
+        await self.run_stream(chunks())
+        visible = ''.join(event['text'] for event in self.events if event['type'] == 'text_delta')
+        self.assertEqual(visible, EXPECTED)
+        message = next(m for m in self.agent.messages if m['role'] == 'assistant')
+        self.assertEqual(message['content'], EXPECTED)
+        self.assertEqual([(record.id, record.status) for record in self.agent.context.records], [('1', 'success')])
+
+    async def test_anthropic_terminal_keeps_inline_examples_and_wire_history(self):
+        self.enterContext(patch.object(renderer, '_strip_legacy_tool_tags', False))
+        agent = AgentLoop(
+            AgentConfig(cwd=str(self.root), max_run_turns=1, delivery_verify=False,
+                        allow_legacy_tool_tags=True, provider=ProviderConfig(
+                            base_url='http://fixture.test', model='fixture', format='anthropic', max_tokens=2048)),
+        )
+        self.addAsyncCleanup(agent.close)
+        legacy_source = MIXED.replace(LIVE, LIVE.replace('tf-write', 'write'))
+        events = [{'type': 'content_block_start', 'index': 0, 'content_block': {'type': 'text', 'text': ''}}]
+        events.extend({'type': 'content_block_delta', 'index': 0, 'delta': {'type': 'text_delta', 'text': char}}
+                      for char in legacy_source)
+        events.extend(({'type': 'content_block_stop', 'index': 0},
+                       {'type': 'message_delta', 'delta': {'stop_reason': 'end_turn'}}, {'type': 'message_stop'}))
+
+        async def chunks():
+            for event in events:
+                data = ('event: ' + event['type'] + '\ndata: ' + json.dumps(event) + '\n\n').encode()
+                yield data[:11]
+                yield data[11:]
+
+        await agent.client.aclose()
+        agent.client = httpx.AsyncClient(
+            base_url='http://fixture.test',
+            transport=httpx.MockTransport(lambda _: httpx.Response(200, stream=FixtureStream(chunks()))),
+        )
+        output = io.StringIO()
+        with patch.object(renderer, 'console', Console(file=output, force_terminal=False, width=160,
+                                                       theme=renderer.THEME)):
+            await agent.run('Local Markdown example fixture.')
+        rendered = output.getvalue()
+        for sample in (INLINE, FENCED, LEGACY):
+            self.assertIn(sample, rendered)
+        self.assertNotIn('private payload', rendered)
+        self.assertEqual([(record.id, record.status) for record in agent.context.records], [('1', 'success')])
+        message = next(m for m in agent.messages if m['role'] == 'assistant')
+        self.assertEqual(message['content'], [{'type': 'text', 'text': legacy_source}])
 
 
 if __name__ == "__main__":

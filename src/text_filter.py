@@ -1,173 +1,13 @@
-"""
-Streaming-safe text filter.
-
-Models sometimes emit ThinkFlow command blocks in the visible text channel. The
-agent still executes those commands through the text parser, but the terminal
-must not display raw tool tags. This filter streams ordinary text immediately
-while withholding possible command blocks until it can safely drop them.
-"""
+"""Streaming Markdown boundaries for ThinkFlow commands and visible text."""
 
 import re
 
-from .parser import TOOLS, build_open_tag_re
+from .parser import TOOLS
 
 
-class SafeTextStreamFilter:
-    """Remove ThinkFlow command blocks from text chunks without buffering all text."""
-
-    def __init__(self, allow_legacy_tags: bool = True):
-        self.buffer = ""
-        self.line_buffer = ""
-        self.in_fence = False
-        self.fence_marker = ""
-        self.allow_legacy_tags = allow_legacy_tags
-        self._open_tag_re = build_open_tag_re(allow_legacy_tags)
-
-    def feed(self, text: str) -> str:
-        self.line_buffer += text
-        out: list[str] = []
-
-        while True:
-            newline_at = self.line_buffer.find("\n")
-            if newline_at == -1:
-                break
-            line = self.line_buffer[:newline_at + 1]
-            self.line_buffer = self.line_buffer[newline_at + 1:]
-            out.append(self._feed_line(line))
-
-        if self.line_buffer and not self.in_fence and not self._could_be_fence_delimiter(self.line_buffer):
-            out.append(self._feed_plain(self.line_buffer))
-            self.line_buffer = ""
-
-        return "".join(out)
-
-    def _feed_plain(self, text: str) -> str:
-        self.buffer += text
-        out: list[str] = []
-
-        while self.buffer:
-            start = self.buffer.find("<")
-            if start == -1:
-                out.append(self.buffer)
-                self.buffer = ""
-                break
-
-            if start > 0:
-                out.append(self.buffer[:start])
-                self.buffer = self.buffer[start:]
-                continue
-
-            state = self._tool_prefix_state(self.buffer)
-            if state == "partial":
-                break
-            if state is None:
-                out.append("<")
-                self.buffer = self.buffer[1:]
-                continue
-
-            match = self._open_tag_re.match(self.buffer)
-            if not match:
-                if ">" not in self.buffer:
-                    break
-                out.append("<")
-                self.buffer = self.buffer[1:]
-                continue
-
-            tool = match.group("tool")
-            prefix = match.group("prefix") or ""
-            if match.group("self_close") == "/":
-                self.buffer = self.buffer[match.end():]
-                continue
-
-            close_tag = f"</{prefix}{tool}>"
-            close_at = self.buffer.find(close_tag, match.end())
-            if close_at == -1:
-                break
-            self.buffer = self.buffer[close_at + len(close_tag):]
-
-        return "".join(out)
-
-    def flush(self) -> str:
-        """Return any remaining ordinary text; drop incomplete command blocks."""
-        visible = self.feed("")
-        if self.line_buffer:
-            visible += self._feed_line(self.line_buffer)
-            self.line_buffer = ""
-        leftover = self.buffer
-        self.buffer = ""
-
-        if not leftover:
-            return visible
-
-        state = self._tool_prefix_state(leftover)
-        if state in ("partial", "tool"):
-            return visible
-        return visible + leftover
-
-    def reset(self):
-        self.buffer = ""
-        self.line_buffer = ""
-        self.in_fence = False
-        self.fence_marker = ""
-
-    def _feed_line(self, line: str) -> str:
-        # A fence within an unfinished command is file data, not visible
-        # Markdown. Keep it in the command buffer until the closing tag arrives.
-        if self.buffer and self._tool_prefix_state(self.buffer) in ("partial", "tool"):
-            return self._feed_plain(line)
-        marker = self._fence_marker(line)
-        if marker:
-            if not self.in_fence:
-                self.in_fence = True
-                self.fence_marker = marker
-            elif marker == self.fence_marker:
-                self.in_fence = False
-                self.fence_marker = ""
-            return line
-
-        if self.in_fence:
-            return line
-        return self._feed_plain(line)
-
-    @staticmethod
-    def _fence_marker(line: str) -> str:
-        stripped = line.lstrip()
-        if stripped.startswith("```"):
-            return "```"
-        if stripped.startswith("~~~"):
-            return "~~~"
-        return ""
-
-    @staticmethod
-    def _could_be_fence_delimiter(text: str) -> bool:
-        stripped = text.lstrip()
-        return "```".startswith(stripped) or "~~~".startswith(stripped)
-
-    def _tool_prefix_state(self, text: str) -> str | None:
-        if not text.startswith("<"):
-            return None
-
-        for tool in TOOLS:
-            starts = [f"<tf-{tool}"]
-            if self.allow_legacy_tags:
-                starts.append(f"<{tool}")
-            for prefix in starts:
-                if prefix.startswith(text):
-                    return "partial"
-                if text.startswith(prefix):
-                    if len(text) == len(prefix):
-                        return "partial"
-                    next_char = text[len(prefix)]
-                    if next_char.isspace():
-                        return "tool"
-                    return None
-        return None
-
-
-class MarkdownFenceCommandGate:
-    """Exclude top-level fences and same-line inline code from live commands."""
-
-    def __init__(self, allow_legacy_tags: bool = False):
+class _MarkdownCommandStream:
+    def __init__(self, allow_legacy_tags: bool, *, visible: bool):
+        self._visible = visible
         self._tag_prefixes = [f"<tf-{tool}" for tool in TOOLS]
         if allow_legacy_tags:
             self._tag_prefixes.extend(f"<{tool}" for tool in TOOLS)
@@ -208,13 +48,19 @@ class MarkdownFenceCommandGate:
                 self._line_prefix = text
                 return ""
 
-        line = text.removesuffix("\n")
-        line_end = self._source_end - int(text.endswith("\n"))
-        out = self._feed_plain(line, line_end) if self._pass_line else ""
+        if not self._pass_line:
+            out = text if self._visible else ""
+        else:
+            line = text.removesuffix("\n")
+            line_end = self._source_end - int(text.endswith("\n"))
+            out = self._feed_plain(line, line_end)
+            if ended:
+                if self._visible and self._backticks:
+                    ticks = "`" * self._backticks
+                    out += ticks if self._inline_width else self._track_commands(ticks, line_end)
+                if text.endswith("\n"):
+                    out += self._track_commands("\n", self._source_end)
         if ended:
-            if self._pass_line and text.endswith("\n"):
-                self._track_commands("\n", self._source_end)
-                out += "\n"
             # An unclosed inline example is scoped to the current logical line.
             self._inline_width = self._backticks = 0
             self._pass_line = None
@@ -222,7 +68,7 @@ class MarkdownFenceCommandGate:
 
     def _classify_line(self, text: str, ended: bool) -> bool | None:
         # Once a command body opens, its line prefixes belong to the payload.
-        if self._active_close:
+        if self._active_close or (self._visible and self._start_re.match(self._pending_tag)):
             return True
         start = text.lstrip()
         marker = start[:1]
@@ -253,8 +99,7 @@ class MarkdownFenceCommandGate:
 
     def _feed_plain(self, text: str, end_offset: int) -> str:
         if not self._inline_width and not self._backticks and "`" not in text:
-            self._track_commands(text, end_offset)
-            return text
+            return self._track_commands(text, end_offset)
 
         out: list[str] = []
         position = end_offset - len(text)
@@ -264,25 +109,32 @@ class MarkdownFenceCommandGate:
                 self._backticks += len(part)
                 continue
             if self._backticks:
-                if not self._inline_width:
-                    self._inline_width = self._backticks
-                    # Keep a delimiter so removing a span cannot join tag fragments.
-                    self._track_commands("`", position - len(part))
-                    out.append("`")
-                elif self._backticks == self._inline_width:
-                    self._inline_width = 0
+                ticks = self._backticks
                 self._backticks = 0
+                if not self._inline_width:
+                    self._inline_width = ticks
+                    # A delimiter keeps the gate from joining tag fragments.
+                    delimiter = "`" * ticks if self._visible else "`"
+                    out.append(self._track_commands(delimiter, position - len(part)))
+                else:
+                    if self._visible:
+                        out.append("`" * ticks)
+                    if ticks == self._inline_width:
+                        self._inline_width = 0
             if not self._inline_width:
-                self._track_commands(part, position)
+                out.append(self._track_commands(part, position))
+            elif self._visible:
                 out.append(part)
         return "".join(out)
 
-    def _track_commands(self, text: str, end_offset: int) -> None:
-        """Track boundaries only; command validation/execution stays in parser.
+    def _track_commands(self, text: str, end_offset: int) -> str:
+        """Track complete boundaries while advancing through ordinary text.
 
-        Retain partial open tags and a short closing-tag tail, never a second
-        copy of the whole payload. Quoted > characters do not end an open tag.
+        Retain partial open tags and a short closing-tag tail. The execution
+        parser still validates commands and owns their full payloads.
         """
+        original = text
+        visible: list[str] = []
         text = self._pending_tag + text
         self._pending_tag = ""
         while text:
@@ -291,7 +143,7 @@ class MarkdownFenceCommandGate:
                 end = text.find(self._active_close)
                 if end < 0:
                     self._close_tail = text[-(len(self._active_close) - 1):]
-                    return
+                    break
                 text = text[end + len(self._active_close):]
                 tool = self._active_close[2:-1].removeprefix("tf-")
                 self.command_ends[tool] = end_offset - len(text)
@@ -302,7 +154,11 @@ class MarkdownFenceCommandGate:
                 tail = text[text.rfind("<"):] if "<" in text else ""
                 if tail and any(prefix.startswith(tail) for prefix in self._tag_prefixes):
                     self._pending_tag = tail
-                return
+                if self._visible:
+                    visible.append(text[:-len(self._pending_tag)] if self._pending_tag else text)
+                break
+            if self._visible:
+                visible.append(text[:match.start()])
             quote, escaped, end = "", False, None
             for index in range(match.end(), len(text)):
                 char = text[index]
@@ -313,17 +169,43 @@ class MarkdownFenceCommandGate:
                 elif quote:
                     if char == quote:
                         quote = ""
-                elif char in ('"', "\'"):
+                elif char in ('"', "'"):
                     quote = char
                 elif char == ">":
                     end = index
                     break
             if end is None:
                 self._pending_tag = text[match.start():]
-                return
+                break
             if not text[match.start():end].rstrip().endswith("/"):
                 self._active_close = f"</{match.group('name')}>"
             else:
                 tool = match.group('name').removeprefix("tf-")
                 self.command_ends[tool] = end_offset - len(text) + end + 1
             text = text[end + 1:]
+        return "".join(visible) if self._visible else original
+
+
+class SafeTextStreamFilter(_MarkdownCommandStream):
+    """Keep Markdown examples and remove live commands from visible text."""
+
+    def __init__(self, allow_legacy_tags: bool = True):
+        super().__init__(allow_legacy_tags, visible=True)
+
+    def flush(self) -> str:
+        visible = super().flush()
+        self._pending_tag = self._active_close = self._close_tail = ""
+        return visible
+
+
+class MarkdownFenceCommandGate(_MarkdownCommandStream):
+    """Exclude top-level fences and same-line inline code from live commands."""
+
+    def __init__(self, allow_legacy_tags: bool = False):
+        super().__init__(allow_legacy_tags, visible=False)
+
+
+def strip_command_blocks(text: str, *, allow_legacy_tags: bool) -> str:
+    stream_filter = SafeTextStreamFilter(allow_legacy_tags=allow_legacy_tags)
+    visible = stream_filter.feed(text) + stream_filter.flush()
+    return re.sub(r"\n{3,}", "\n\n", visible).strip()

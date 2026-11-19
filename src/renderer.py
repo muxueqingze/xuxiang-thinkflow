@@ -8,6 +8,7 @@ ThinkFlow Renderer — 终端渲染
 from collections import Counter
 from contextlib import contextmanager
 from contextvars import ContextVar
+import re
 import time
 from typing import Optional
 
@@ -20,7 +21,7 @@ from rich.theme import Theme
 from rich.cells import cell_len, set_cell_size
 from rich.status import Status
 
-from .parser import TOOLS
+from .text_filter import strip_command_blocks as filter_command_blocks
 from .tool_registry import (
     TOOL_FLOW_LABELS,
     TOOL_KIND_LABELS,
@@ -411,77 +412,9 @@ def end_thinking():
         console.print()
 
 
-import re as _re
-
-# 匹配命令块（完整和不完整）
-_TOOLS_PATTERN = "|".join(_re.escape(tool) for tool in TOOLS)
-
-
-def _command_prefix_pattern() -> str:
-    return r'(?:tf-)?' if _strip_legacy_tool_tags else r'tf-'
-
-
 def strip_command_blocks(text: str) -> str:
-    """移除正文 fallback 中的 ThinkFlow 命令块，避免 UI 和上下文里残留工具标签。"""
-    visible = _strip_command_blocks_outside_fences(text)
-    return _re.sub(r'\n{3,}', '\n\n', visible).strip()
-
-
-def _strip_command_blocks_outside_fences(text: str) -> str:
-    chunks: list[str] = []
-    outside: list[str] = []
-    in_fence = False
-    fence_marker = ""
-
-    def flush_outside():
-        if outside:
-            chunks.append(_strip_command_blocks_raw("".join(outside)))
-            outside.clear()
-
-    for line in text.splitlines(keepends=True):
-        marker = _fence_marker(line)
-        if marker:
-            if not in_fence:
-                flush_outside()
-                in_fence = True
-                fence_marker = marker
-                chunks.append(line)
-            elif marker == fence_marker:
-                chunks.append(line)
-                in_fence = False
-                fence_marker = ""
-            else:
-                chunks.append(line)
-            continue
-
-        if in_fence:
-            chunks.append(line)
-        else:
-            outside.append(line)
-
-    flush_outside()
-    return "".join(chunks)
-
-
-def _strip_command_blocks_raw(text: str) -> str:
-    prefix = _command_prefix_pattern()
-    block_re = _re.compile(
-        rf'<{prefix}(?:{_TOOLS_PATTERN})\b[^>]*(?:/>|>[\s\S]*?</{prefix}(?:{_TOOLS_PATTERN})>)',
-        _re.MULTILINE,
-    )
-    text = block_re.sub('', text)
-    text = _re.sub(rf'<{prefix}(?:{_TOOLS_PATTERN})\b[^>]*$', '', text)
-    text = _re.sub(rf'^\s*</{prefix}(?:{_TOOLS_PATTERN})>', '', text)
-    return text
-
-
-def _fence_marker(line: str) -> str:
-    stripped = line.lstrip()
-    if stripped.startswith("```"):
-        return "```"
-    if stripped.startswith("~~~"):
-        return "~~~"
-    return ""
+    """Project raw assistant text into visible Markdown."""
+    return filter_command_blocks(text, allow_legacy_tags=_strip_legacy_tool_tags)
 
 
 @contextmanager
@@ -532,19 +465,19 @@ def _commit_finished_blocks():
     prefix = "\n".join(lines[:-1])
     # A link reference and its definition can be in different blocks, in
     # either order. Keep these together for Markdown's final resolution.
-    if _re.search(r"(?m)^ {0,3}\[[^\]\n]+\]:", prefix) or any(
+    if re.search(r"(?m)^ {0,3}\[[^\]\n]+\]:", prefix) or any(
         token.type == "inline" and token.map and token.map[0] < split
-        and _re.search(r"\[[^\]\n]*\](?!\()", token.content)
+        and re.search(r"\[[^\]\n]*\](?!\()", token.content)
         for token in parsed
     ):
         return
     _clear_preview()
-    _print_markdown(_strip_command_blocks_outside_fences(prefix))
+    _print_markdown(prefix)
     _text_buffer = lines[-1]
 
 
 def render_text_chunk(text: str):
-    """Commit complete Markdown blocks to scrollback; preview only the open tail."""
+    """Commit filtered Markdown blocks to scrollback and preview the open tail."""
     global _text_buffer, _last_preview_update, _preview_drawn, _new_stream_line
     if not text:
         return
@@ -586,7 +519,7 @@ def flush_text():
     """Print the remaining block once, including on tool boundaries."""
     global _text_buffer, _last_preview_update, _new_stream_line
     _clear_preview()
-    text = _strip_command_blocks_outside_fences(_text_buffer)
+    text = _text_buffer
     _text_buffer = ""
     _last_preview_update = 0.0
     _new_stream_line = False

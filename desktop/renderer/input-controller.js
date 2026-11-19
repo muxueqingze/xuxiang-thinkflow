@@ -1,7 +1,7 @@
 
 'use strict';
 let pendingInput = null, pendingReceiptStatus = '', legacyInputs = [], editingInput = null, attachments = [], receiptQueryBusy = false;
-const inputStatusNames = { received: '已接收', queued: '待执行', running: '正在执行', completed: '已完成', failed: '执行失败', cancelled: '已取消', interrupted: '中断待核对' };
+const inputStatusNames = { received: '已接收', queued: '待执行', running: '正在执行', awaiting_input: '等待您回复', completed: '已完成', failed: '执行失败', cancelled: '已取消', interrupted: '中断待核对' };
 function loadInputContext() {
   pendingInput = readLocal('v08-pending:' + draftKey, null);
   pendingReceiptStatus = pendingInput ? '未确认接收结果，正在查询后端回执…' : '';

@@ -135,6 +135,29 @@ class CommandInboxTests(unittest.IsolatedAsyncioTestCase):
         await self.finish()
         self.assertEqual(self.calls, ["Failure", "Next"])
 
+    async def test_question_pauses_fifo_and_new_answer_precedes_older_work(self):
+        entered, release = asyncio.Event(), asyncio.Event()
+
+        async def ask(agent, prompt):
+            if prompt == "Choose":
+                entered.set()
+                await release.wait()
+                agent.stopped_reason = "awaiting_input"
+
+        self.runner = ask
+        await self.submit("question", "Choose")
+        await entered.wait()
+        await self.submit("later", "Later")
+        release.set()
+        await self.finish()
+        self.assertEqual(self.service.state()["status"], "awaiting_input")
+        self.assertEqual((await self.receipt("question"))["status"], "awaiting_input")
+        self.assertEqual((await self.receipt("later"))["status"], "queued")
+        await self.submit("answer", "Use A")
+        await self.finish()
+        self.assertEqual(self.calls, ["Choose", "Use A", "Later"])
+        self.assertEqual((await self.receipt("answer"))["status"], "completed")
+
     async def test_cancel_pauses_fifo_and_does_not_replay_cancelled_input(self):
         entered = asyncio.Event()
         async def block(agent, prompt):

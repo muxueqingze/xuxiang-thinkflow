@@ -1,10 +1,9 @@
 """Instance-scoped runtime events and the optional legacy terminal view."""
 
 from collections.abc import Callable
-import re
 
 from . import renderer
-from .text_filter import SafeTextStreamFilter
+from .text_filter import strip_command_blocks
 
 
 class RuntimeEvents:
@@ -48,8 +47,7 @@ class RuntimeView:
         return render
 
     def strip_command_blocks(self, text: str) -> str:
-        stream_filter = SafeTextStreamFilter(allow_legacy_tags=self.allow_legacy_tags)
-        return re.sub(r"\n{3,}", "\n\n", stream_filter.feed(text) + stream_filter.flush()).strip()
+        return strip_command_blocks(text, allow_legacy_tags=self.allow_legacy_tags)
 
     def newline(self):
         if self.events.sink is None:

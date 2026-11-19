@@ -2,6 +2,8 @@
 
 ## 使用
 
+当前任务计划需要您选择时，桌面显示“等待您回复”，并暂停已有队列。直接发送回答即可继续本次对话，先前排队的任务在回答处理完后继续。
+
 在 [GitHub Releases](https://github.com/muxueqingze/xuxiang-thinkflow/releases) 下载 Windows x64 的 `ThinkFlow-版本-Windows-x64-Setup.exe`，双击安装。默认安装到当前用户的 `%LOCALAPPDATA%\Programs\ThinkFlow`，可以在向导里更改目录。安装后从开始菜单打开「续想 ThinkFlow」。可在 Windows「设置 → 应用」卸载，配置和会话会保留。
 
 便携版下载 `ThinkFlow-版本-Windows-x64.zip`，完整解压后双击 `ThinkFlow.exe`。两种桌面包都自带应用所需的 Node.js 和 Python 运行时。具体项目的编译器和运行时按项目配置。首次打开时选择工作区，再在「设置 → 模型连接」填写兼容端点和模型。

@@ -87,6 +87,7 @@ class FakeAgent:
         self.compactions = 0
 
     async def run(self, prompt, *, user_request=None, attachment_paths=()):
+        self.stopped_reason = "completed"
         self.messages.append({"role": "user", "content": prompt})
         if self.runner:
             await self.runner(self, prompt)

@@ -55,6 +55,8 @@ class InteractiveController:
             activity = f"流式工具：{tool}" if tool else "运行中"
             elapsed = int(time.monotonic() - self._started_at)
             status = f"Esc 停止 · {activity} {elapsed}s"
+        elif self.agent.stopped_reason == "awaiting_input":
+            status = "等待您回复"
         else:
             status = "就绪"
         if self.pending:
@@ -86,7 +88,11 @@ class InteractiveController:
 
     def submit(self, text: str, *, steer: bool = False) -> None:
         steer = steer and not self.paused and self._active is not None and not self._active.done()
-        self.pending.append(PendingMessage(text, steer))
+        if self.paused and not self.running and self.agent.stopped_reason == "awaiting_input":
+            self.pending.appendleft(PendingMessage(text, False))
+            self.paused = False
+        else:
+            self.pending.append(PendingMessage(text, steer))
         if self.running or self.paused:
             if self.paused:
                 status = "队列已暂停，/queue resume 继续"

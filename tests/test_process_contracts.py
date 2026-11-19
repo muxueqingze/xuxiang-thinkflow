@@ -16,6 +16,7 @@ from src.changes import ChangeStore
 from src.executor import Executor, ExecutionCancelled, ExecutionResult
 from src.interfaces import ExternalInterfaces, InterfaceConfig, CustomToolConfig, ImageGenerationConfig
 from src.parser import Command
+from src.process_owner import spawn_owned
 from src.security import SecurityPolicy
 
 
@@ -92,6 +93,12 @@ class ProcessContracts(unittest.IsolatedAsyncioTestCase):
 
     async def test_successful_parent_closes_owned_child_with_redirected_pipes(self):
         await self.run_orphan("closed")
+
+    async def test_noninteractive_child_has_no_access_to_host_input(self):
+        with patch("src.executor.spawn_owned", wraps=spawn_owned) as start:
+            result = await self.executor._run_process([sys.executable, "-c", "pass"], shell=False, tool="bash")
+        self.assertTrue(result.success)
+        self.assertEqual(start.await_args.kwargs["stdin"], asyncio.subprocess.DEVNULL)
 
     async def test_all_command_entries_share_complete_streams_and_exit_status(self):
         stdout = "x" * 90000 + "\nSTDOUT_TAIL\n"

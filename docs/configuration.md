@@ -163,7 +163,9 @@ await agent.run("生成只含一行 ready 的 release.txt，使用 LF 换行。"
                 check_completion=check_release)
 ```
 
-检查发生在工具与回执处理完、原本准备结束时。通过就交付，检查本身不调用模型。缺项时在现有预算内最多提示一次，补做后仍未通过则返回 `incomplete_response`。当前计划明确标为 `blocked` 等用户输入时，带检查的运行返回 `awaiting_input`。运行中采纳新的用户指令会解除原任务的检查，下一次 `run` 可以指定新的条件。
+检查发生在工具与回执处理完、原本准备结束时。通过就交付，检查本身不调用模型。缺项时在现有预算内最多提示一次，补做后仍未通过则返回 `incomplete_response`。当前请求采用的计划明确标为 `blocked`、需要用户输入时，运行返回 `awaiting_input`。运行中采纳新的用户指令会解除原任务的检查，下一次 `run` 可以指定新的条件。
+
+可选的 `delivery_verify` 逐一构建本次文件工具修改过的工作区 npm 包。构建沿用 shell 的权限、环境与取消处理；失败的包需要修复并通过复验。可选的 `auto_verify_runnable_artifacts` 跟踪已写入脚本的运行回执，例如用一条 bash 工具调用直接执行 `python report.py`。更改脚本后需要再次运行。两项默认关闭。
 
 任务明确要求实际读取某个文件时，宿主也可用 `event_sink` 收集本次任务的成功读取回执，让 `check_completion` 核对指定路径。普通问答可以直接结束。
 

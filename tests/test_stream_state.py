@@ -169,6 +169,7 @@ class StreamStateTests(unittest.IsolatedAsyncioTestCase):
                 tag('1', 'update_plan', waiting) + '您想采用哪种格式？'])
             await agent.run('先问我需要的格式，等我回复。')
             self.assertEqual(len(requests), 1)
+            self.assertEqual(agent.stopped_reason, 'awaiting_input')
             self.assertEqual(agent.task_plan, waiting)
 
     async def test_pending_plan_respects_budget_and_stops_on_repeated_empty_turns(self):
