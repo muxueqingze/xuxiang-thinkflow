@@ -203,6 +203,7 @@ def _flush_compact_tools():
     tools = _compact_tools.get()
     if not tools:
         return
+    _prepare_tool_notice()
     summary = " · ".join(f"{tool} ×{count}" if count > 1 else tool for tool, count in tools.items())
     console.print(Text(f"  已完成 {summary}  /cmds 查看", style="tag"))
     tools.clear()
@@ -218,10 +219,10 @@ def render_command_start(
     global _in_thinking, _activity_status
     if _in_thinking:
         end_thinking()
-    flush_text()
     _stop_activity()
     if _compact_tools.get() is not None:
         return
+    _prepare_tool_notice()
 
     color, label = TOOL_LABELS.get(tool, ("white", tool.upper()))
     badges = _tool_badges(tool, need_result)
@@ -247,15 +248,16 @@ def render_command_exec(
     _stop_activity()
     if _in_thinking:
         end_thinking()
-    flush_text()
     tools = _compact_tools.get()
     if tools is not None:
         if success:
             tools[tool] += 1
         else:
             _flush_compact_tools()
+            _prepare_tool_notice()
             console.print(Text(f"  失败 {tool}#{id} {detail} {extra}".rstrip(), style="fail"))
         return
+    _prepare_tool_notice()
 
     color, label = TOOL_LABELS.get(tool, ("white", tool.upper()))
 
@@ -454,7 +456,10 @@ def _print_markdown(text: str):
 
 def _commit_finished_blocks():
     global _text_buffer
-    complete = _text_buffer[:_text_buffer.rfind("\n")]
+    last_newline = _text_buffer.rfind("\n")
+    if last_newline < 0:
+        return
+    complete = _text_buffer[:last_newline]
     parsed = Markdown(complete).parsed
     starts = [token.map[0] for token in parsed if token.level == 0 and token.map]
     if len(starts) < 2:
@@ -474,6 +479,12 @@ def _commit_finished_blocks():
     _clear_preview()
     _print_markdown(prefix)
     _text_buffer = lines[-1]
+
+
+def _prepare_tool_notice():
+    # A parallel text tool can notify us in the middle of a Markdown block.
+    _clear_preview()
+    _commit_finished_blocks()
 
 
 def render_text_chunk(text: str):
@@ -516,7 +527,7 @@ def accumulate_text(text: str):
 
 
 def flush_text():
-    """Print the remaining block once, including on tool boundaries."""
+    """Print the remaining block once at a stream boundary."""
     global _text_buffer, _last_preview_update, _new_stream_line
     _clear_preview()
     text = _text_buffer

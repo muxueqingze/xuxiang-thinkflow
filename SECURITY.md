@@ -3,13 +3,13 @@
 ## Supported Versions
 
 The current source is on `main`. npm `latest` and `next`, and the Windows
-desktop release, provide 0.10.2. Security fixes target `main` and the current release.
+desktop release, provide 0.10.3. Security fixes target `main` and the current release.
 
 | Version | Supported |
 |---|---|
 | `main` | Yes |
-| `0.10.2` CLI / Desktop | Yes |
-| Earlier releases | Upgrade to 0.10.2 |
+| `0.10.3` CLI / Desktop | Yes |
+| Earlier releases | Upgrade to 0.10.3 |
 
 ## Reporting a Vulnerability
 

@@ -1,4 +1,4 @@
-> ThinkFlow 0.10.2 verifies each changed package, reports when a task needs user input, and preserves inline tool examples in streaming output. See the [release notes](docs/release-0.10.2.md).
+> ThinkFlow 0.10.3 verifies each changed package, reports when a task needs user input, and preserves inline tool examples in streaming output. See the [release notes](docs/release-0.10.3.md).
 
 # Xuxiang ThinkFlow
 
@@ -6,7 +6,7 @@ Language: [中文](README.md) | [English](README.en.md)
 
 [![CI](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.10.2-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
+[![Version](https://img.shields.io/badge/version-0.10.3-blue.svg)](https://github.com/muxueqingze/xuxiang-thinkflow/releases)
 
 > Predictable tool calls do not have to interrupt model reasoning.
 
@@ -62,9 +62,9 @@ The 2026-11-11 review follow-up unifies exact read projection across text and bo
 
 `main` is the active development and release branch. See [unreleased changes](docs/unreleased.md), [contributing](CONTRIBUTING.en.md), [repository management](docs/repository-management.md), or [report a vulnerability privately](https://github.com/muxueqingze/xuxiang-thinkflow/security/advisories/new).
 
-Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.2/ThinkFlow-0.10.2-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.2/ThinkFlow-0.10.2-Windows-x64.zip) runs after extracting the complete folder.
+Windows desktop: download the [installer](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.3/ThinkFlow-0.10.3-Windows-x64-Setup.exe), install for your user and open ThinkFlow from the Start menu. It includes Electron/Python and needs no administrator access, Node.js or Python installation. The [portable ZIP](https://github.com/muxueqingze/xuxiang-thinkflow/releases/download/v0.10.3/ThinkFlow-0.10.3-Windows-x64.zip) runs after extracting the complete folder.
 
-**0.10.2** is now the default npm version. npm installs the CLI only:
+**0.10.3** is now the default npm version. npm installs the CLI only:
 
 ```bash
 npm install -g xuxiang-agent
@@ -72,7 +72,7 @@ thinkflow --help
 xuxiang --help
 ```
 
-For an exact version, use `npm install -g xuxiang-agent@0.10.2`. Both `latest` and `next` point to 0.10.2; no channel suffix is required for the default install. See the [release notes](docs/release-0.10.2.md) for installation, upgrades and included changes.
+For an exact version, use `npm install -g xuxiang-agent@0.10.3`. Both `latest` and `next` point to 0.10.3; no channel suffix is required for the default install. See the [release notes](docs/release-0.10.3.md) for installation, upgrades and included changes.
 
 CLI requirements:
 

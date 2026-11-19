@@ -21,7 +21,7 @@ def native(name, ident, **arguments):
 
 class DeliveryTests(unittest.IsolatedAsyncioTestCase):
     def scripted(self, *responses, **config):
-        directory = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        directory = Path(self.enterContext(tempfile.TemporaryDirectory())).resolve()
         requests = []
 
         def reply(request):

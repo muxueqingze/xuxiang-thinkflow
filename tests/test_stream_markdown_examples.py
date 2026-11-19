@@ -13,6 +13,7 @@ from rich.console import Console
 
 from src import renderer
 from src.agent_loop import AgentConfig, AgentLoop
+from src.cli import single_run
 from src.provider import ProviderConfig
 from src.text_filter import SafeTextStreamFilter
 
@@ -44,6 +45,24 @@ class MarkdownDisplayFilterTests(unittest.TestCase):
             for pieces in chunks:
                 display = SafeTextStreamFilter(allow_legacy_tags=allow_legacy)
                 self.assertEqual(''.join(display.feed(piece) for piece in pieces) + display.flush(), EXPECTED)
+
+    def test_compact_prompt_preserves_open_markdown_across_tool_notices(self):
+        output = io.StringIO()
+        terminal = Console(file=output, force_terminal=True, color_system=None, width=160,
+                           legacy_windows=False, theme=renderer.THEME)
+        with (patch.object(renderer, 'console', terminal), renderer.prompt_stream_preview(),
+              renderer.compact_tool_output()):
+            renderer.render_text_chunk('Example `' + LEGACY[:8])
+            renderer.render_command_start('write', '1', 'doc.txt')
+            renderer.render_command_exec('write', '1', 'doc.txt', True)
+            renderer.render_command_exec('read', '2', 'other.txt', False, 'fixture error')
+            self.assertNotIn('Example', output.getvalue())
+            renderer.render_text_chunk(LEGACY[8:] + '`.')
+            renderer.flush_text()
+        transcript = output.getvalue()
+        self.assertEqual(transcript.count(LEGACY), 1)
+        self.assertEqual(transcript.count('已完成 write'), 1)
+        self.assertIn('失败 read#2 other.txt fixture error', transcript)
 
 
 class FixtureStream(httpx.AsyncByteStream):
@@ -153,7 +172,22 @@ class StreamMarkdownExampleTests(unittest.IsolatedAsyncioTestCase):
                             base_url='http://fixture.test', model='fixture', format='anthropic', max_tokens=2048)),
         )
         self.addAsyncCleanup(agent.close)
+        release_write = asyncio.Event()
+        write_finished = asyncio.Event()
+        output = io.StringIO()
+        execute_builtin = agent._execute_builtin
+
+        async def delayed_write(command):
+            await release_write.wait()
+            return await execute_builtin(command)
+
+        def observe(event):
+            if event['type'] == 'tool_completed' and event.get('id') == '1':
+                write_finished.set()
+
+        agent.events.observers.append(observe)
         legacy_source = MIXED.replace(LIVE, LIVE.replace('tf-write', 'write'))
+        middle_of_example = legacy_source.index(LEGACY) + len('<touch i')
         events = [{'type': 'content_block_start', 'index': 0, 'content_block': {'type': 'text', 'text': ''}}]
         events.extend({'type': 'content_block_delta', 'index': 0, 'delta': {'type': 'text_delta', 'text': char}}
                       for char in legacy_source)
@@ -161,23 +195,27 @@ class StreamMarkdownExampleTests(unittest.IsolatedAsyncioTestCase):
                        {'type': 'message_delta', 'delta': {'stop_reason': 'end_turn'}}, {'type': 'message_stop'}))
 
         async def chunks():
-            for event in events:
+            for index, event in enumerate(events):
                 data = ('event: ' + event['type'] + '\ndata: ' + json.dumps(event) + '\n\n').encode()
                 yield data[:11]
                 yield data[11:]
+                if index == middle_of_example:
+                    release_write.set()
+                    await asyncio.wait_for(write_finished.wait(), timeout=5)
+                    self.assertIn('流式工具完成', output.getvalue())
 
         await agent.client.aclose()
         agent.client = httpx.AsyncClient(
             base_url='http://fixture.test',
             transport=httpx.MockTransport(lambda _: httpx.Response(200, stream=FixtureStream(chunks()))),
         )
-        output = io.StringIO()
-        with patch.object(renderer, 'console', Console(file=output, force_terminal=False, width=160,
-                                                       theme=renderer.THEME)):
-            await agent.run('Local Markdown example fixture.')
+        with (patch.object(renderer, 'console', Console(file=output, force_terminal=False, width=160,
+                                                        theme=renderer.THEME)),
+              patch.object(agent, '_execute_builtin', delayed_write)):
+            self.assertEqual(await single_run(agent, 'Local Markdown example fixture.', autosave=False), 0)
         rendered = output.getvalue()
         for sample in (INLINE, FENCED, LEGACY):
-            self.assertIn(sample, rendered)
+            self.assertEqual(rendered.count(sample), 2 if sample == INLINE else 1)
         self.assertNotIn('private payload', rendered)
         self.assertEqual([(record.id, record.status) for record in agent.context.records], [('1', 'success')])
         message = next(m for m in agent.messages if m['role'] == 'assistant')
