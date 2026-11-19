@@ -188,6 +188,8 @@ class MarkdownFenceCommandGate:
 
     def reset(self):
         self._line_prefix = ""
+        self._source_end = 0
+        self.command_ends: dict[str, int] = {}
         self._pass_line = None
         self._fence_marker = ""
         self._inline_width = 0
@@ -197,6 +199,7 @@ class MarkdownFenceCommandGate:
         self._close_tail = ""
 
     def _feed_line_piece(self, text: str, *, ended: bool) -> str:
+        self._source_end += len(text)
         if self._pass_line is None:
             text = self._line_prefix + text
             self._line_prefix = ""
@@ -205,10 +208,12 @@ class MarkdownFenceCommandGate:
                 self._line_prefix = text
                 return ""
 
-        out = self._feed_plain(text.removesuffix("\n")) if self._pass_line else ""
+        line = text.removesuffix("\n")
+        line_end = self._source_end - int(text.endswith("\n"))
+        out = self._feed_plain(line, line_end) if self._pass_line else ""
         if ended:
             if self._pass_line and text.endswith("\n"):
-                self._track_commands("\n")
+                self._track_commands("\n", self._source_end)
                 out += "\n"
             # An unclosed inline example is scoped to the current logical line.
             self._inline_width = self._backticks = 0
@@ -246,13 +251,15 @@ class MarkdownFenceCommandGate:
         self._fence_marker = marker * width
         return False
 
-    def _feed_plain(self, text: str) -> str:
+    def _feed_plain(self, text: str, end_offset: int) -> str:
         if not self._inline_width and not self._backticks and "`" not in text:
-            self._track_commands(text)
+            self._track_commands(text, end_offset)
             return text
 
         out: list[str] = []
+        position = end_offset - len(text)
         for part in re.findall(r"`+|[^`]+", text):
+            position += len(part)
             if part.startswith("`") and not (self._active_close or self._start_re.match(self._pending_tag)):
                 self._backticks += len(part)
                 continue
@@ -260,17 +267,17 @@ class MarkdownFenceCommandGate:
                 if not self._inline_width:
                     self._inline_width = self._backticks
                     # Keep a delimiter so removing a span cannot join tag fragments.
-                    self._track_commands("`")
+                    self._track_commands("`", position - len(part))
                     out.append("`")
                 elif self._backticks == self._inline_width:
                     self._inline_width = 0
                 self._backticks = 0
             if not self._inline_width:
-                self._track_commands(part)
+                self._track_commands(part, position)
                 out.append(part)
         return "".join(out)
 
-    def _track_commands(self, text: str) -> None:
+    def _track_commands(self, text: str, end_offset: int) -> None:
         """Track boundaries only; command validation/execution stays in parser.
 
         Retain partial open tags and a short closing-tag tail, never a second
@@ -286,6 +293,8 @@ class MarkdownFenceCommandGate:
                     self._close_tail = text[-(len(self._active_close) - 1):]
                     return
                 text = text[end + len(self._active_close):]
+                tool = self._active_close[2:-1].removeprefix("tf-")
+                self.command_ends[tool] = end_offset - len(text)
                 self._active_close = self._close_tail = ""
                 continue
             match = self._start_re.search(text)
@@ -314,4 +323,7 @@ class MarkdownFenceCommandGate:
                 return
             if not text[match.start():end].rstrip().endswith("/"):
                 self._active_close = f"</{match.group('name')}>"
+            else:
+                tool = match.group('name').removeprefix("tf-")
+                self.command_ends[tool] = end_offset - len(text) + end + 1
             text = text[end + 1:]

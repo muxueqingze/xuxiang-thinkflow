@@ -353,7 +353,8 @@ class AgentLoop:
         self._turn_count = 0
         self._auto_continue_count = 0
         self._delivery_fix_count = 0
-        self._final_response_requested = False
+        self._final_response_effects: set[str] | None = None
+        self._pending_final_feedback = ""
         self._delivered_answer = False
         self.compaction_count = 0
         self.last_compaction: Optional[CompactionStats] = None
@@ -384,6 +385,8 @@ class AgentLoop:
         self.executor.clear_read_baselines()
         self.usage = SessionUsage(label=self.usage.label)
         self._turn_count = self._auto_continue_count = self._delivery_fix_count = 0
+        self._final_response_effects = None
+        self._pending_final_feedback = ""
         self.compaction_count = 0
         self.last_compaction = None
         self.last_input_tokens_estimate = 0
@@ -792,7 +795,7 @@ class AgentLoop:
         names = self._enabled_native_tool_names()
         protocol = build_protocol_prompt(names)
         if self.config.require_final_response:
-            protocol += '\n已知操作连续完成后，在同一次生成用一句正文交付结果。只发命令表示还在工作。'
+            protocol += '\n若最后一步是可预测写入，成功后无需等待回执。完成全部要求时在闭合标签后直接接交付正文，例如：</tf-write>已写入目标文件。还有文件、检查或待回答的问题就继续处理。'
         return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
     def _runtime_fields(self) -> dict:
@@ -969,7 +972,8 @@ class AgentLoop:
         self.last_error = ""
         self._last_turn_failed = False
         self.native_write_fallback = False
-        self._final_response_requested = False
+        self._final_response_effects = None
+        self._pending_final_feedback = ""
         self.stopped_reason = "completed"
         self._plan_continuation_progress = None
         self._auto_continue_count = 0
@@ -1015,6 +1019,8 @@ class AgentLoop:
                     if incoming:
                         # A new user request can cancel the original acceptance condition.
                         check_completion = None
+                        self._final_response_effects = None
+                        self._pending_final_feedback = ""
                         for item in incoming:
                             text = item['prompt']
                             self.conversation.record_request(len(self.messages), item.get('user_request', text),
@@ -1134,6 +1140,9 @@ class AgentLoop:
     async def _run_one_turn_impl(self, recovering: bool) -> bool:
         """运行一轮。"""
         self._turn_count += 1
+        if self._pending_final_feedback:
+            self.messages.append({'role': 'user', 'content': self._pending_final_feedback})
+            self._pending_final_feedback = ""
         turn_usage = TurnUsage(turn=self._turn_count, timestamp=time.time(), http_attempts=0)
         self.usage.add_turn(turn_usage)  # 先加入，_process_stream 会更新它
         commands_this_turn = 0
@@ -1198,6 +1207,9 @@ class AgentLoop:
         )
         parser_error_message = ""
         assistant_text = ""
+        # Position in the visible channel at a tool boundary. A preamble alone
+        # cannot deliver work that the model still had to perform.
+        text_before_delivery = 0
         assistant_reasoning = ""
         anthropic_content = [] if self.config.provider.format == 'anthropic' else None
         parser_error_counts = {"thinking": len(self.parser.errors), "text": len(self.text_parser.errors)}
@@ -1207,7 +1219,7 @@ class AgentLoop:
         text_after_native: list[Command] = []
 
         async def dispatch_parsed(commands, errors, channel):
-            nonlocal commands_this_turn, abort_reason, parser_error_message
+            nonlocal commands_this_turn, abort_reason, parser_error_message, text_before_delivery
             if traditional_tools:
                 # Native arguments and results settle at the provider boundary.
                 # Keep later intents for feedback without letting them overtake it.
@@ -1215,6 +1227,13 @@ class AgentLoop:
             else:
                 dispatched, reason = await self._dispatch_text_commands(commands, command_queue)
                 commands_this_turn += dispatched
+                if dispatched and self.config.require_final_response:
+                    # Updating the plan can follow an answer or a question for the user.
+                    for command in reversed(commands[:dispatched]):
+                        if command.tool != 'update_plan':
+                            text_before_delivery = (len(assistant_text) if channel == 'thinking'
+                                                    else self.text_command_gate.command_ends[command.tool])
+                            break
                 if reason != AbortReason.NONE:
                     self.view.flush_text()
                     abort_reason = reason
@@ -1407,12 +1426,12 @@ class AgentLoop:
             plain_text = gate.feed(clean_text) + gate.flush()
             # During recovery, a response made entirely of unprefixed tool
             # markup is an attempted action. It has produced no new receipt.
-            if ((recovering or self._final_response_requested) and not self.config.allow_legacy_tool_tags
+            if ((recovering or self._final_response_effects is not None) and not self.config.allow_legacy_tool_tags
                     and clean_text.startswith('<') and plain_text.strip() == clean_text
                     and self._CMD_TAG_RE.match(clean_text)):
                 legacy_view = SafeTextStreamFilter(allow_legacy_tags=True)
                 unexecuted_tags = not (legacy_view.feed(clean_text) + legacy_view.flush()).strip()
-            if (not assistant_text.strip() and not commands_this_turn and not self._final_response_requested
+            if (not assistant_text.strip() and not commands_this_turn and self._final_response_effects is None
                     and (self.config.require_final_response or is_deepseek(self.config.provider))):
                 self.events.emit('provider_protocol_error', kind='empty_assistant_response')
                 if not self.config.require_final_response:
@@ -1586,7 +1605,12 @@ class AgentLoop:
                 if self.config.auto_verify_runnable_artifacts
                 else ""
             )
-            if runnable_feedback and (self.config.max_auto_continues is None or self._auto_continue_count < self.config.max_auto_continues):
+            if runnable_feedback:
+                if (self.config.max_auto_continues is not None
+                        and self._auto_continue_count >= self.config.max_auto_continues):
+                    self.stopped_reason = 'max_auto_continues'
+                    self.view.render_info("脚本尚未按要求验证，已达到自动续写上限")
+                    return False
                 self._auto_continue_count += 1
                 self.messages.append({"role": "user", "content": runnable_feedback})
                 self.view.render_info("检测到脚本写入后尚未运行，已要求模型继续验证")
@@ -1596,28 +1620,39 @@ class AgentLoop:
             self.context.clear_flags()
             if self._continue_open_plan(turn_records):
                 return True
+            has_answer = bool(clean_text)
+            if has_answer and text_before_delivery:
+                has_answer = bool(self.view.strip_command_blocks(assistant_text[text_before_delivery:]))
             if (self.config.require_final_response and self.stopped_reason == 'completed'
-                    and (unexecuted_tags or not clean_text)):
-                if self._final_response_requested or (self.config.max_auto_continues is not None
-                        and self._auto_continue_count >= self.config.max_auto_continues):
+                    and (unexecuted_tags or not has_answer)):
+                effects = self._completed_effects(turn_records)
+                stalled = self._final_response_effects is not None and effects <= self._final_response_effects
+                if stalled or (self.config.max_auto_continues is not None
+                               and self._auto_continue_count >= self.config.max_auto_continues):
                     self.stopped_reason = 'incomplete_response'
                     self.last_error = '工具已结算，模型未交付最终答复。'
                     self.view.render_error(self.last_error)
                     return False
-                self._final_response_requested = True
+                if self._final_response_effects is None:
+                    self._final_response_effects = set()
+                self._final_response_effects.update(effects)
                 self._auto_continue_count += 1
                 feedback = (f'上次的无前缀标签没有执行。若要继续，请使用完整 tf-* 标签，从 id="{self.context.start_stamp}" 开始。'
-                            if unexecuted_tags else '上一轮没有面向用户的正文答复。')
-                self.messages.append({'role': 'user', 'content':
-                    f'[THINKFLOW CONTINUE] {feedback}对照用户请求与实际回执，'
-                    '继续遗漏的工作，完成后直接用正文交付。'})
+                            if unexecuted_tags else '上一轮没有在操作后向用户交付正文答复。')
+                self._pending_final_feedback = (f'[THINKFLOW CONTINUE] {feedback}对照用户请求与实际回执，'
+                                                '继续遗漏的工作，完成后直接用正文交付。')
                 return True
-            self._delivered_answer = bool(clean_text)
+            self._delivered_answer = has_answer
             self.view.newline()
             return False
 
         self.context.clear_flags()
         return False
+
+    @staticmethod
+    def _completed_effects(records: list) -> set[str]:
+        return {r.content_hash for r in records
+                if r.status == 'success' and r.flow == TOOL_FLOW_DELAYED and r.tool != 'update_plan'}
 
     def _continue_open_plan(self, records: list) -> bool:
         # Only plans adopted by this user request participate in continuation.
@@ -1631,9 +1666,7 @@ class AgentLoop:
         if step is None:
             return False
         progress = {('step', step['id'], step['status'])}
-        progress.update(('effect', record.content_hash) for record in records
-                        if record.status == 'success' and record.flow == TOOL_FLOW_DELAYED
-                        and record.tool != 'update_plan')
+        progress.update(('effect', effect) for effect in self._completed_effects(records))
         if not records:
             progress.add(('missing-command', step['id']))
         if progress <= seen:

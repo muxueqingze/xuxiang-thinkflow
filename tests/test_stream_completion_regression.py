@@ -95,6 +95,55 @@ class StreamCompletionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(agent.stopped_reason, 'completed')
         self.assertEqual(len(requests), 3)
 
+    async def test_answer_after_write_and_plan_bookkeeping_delivers_in_one_request(self):
+        write = '<tf-write id="1" path="result.txt">42</tf-write>'
+        plan = '<tf-update_plan id="2">{"explanation":"","steps":[]}</tf-update_plan>'
+        for suffix in ('结果是 42。' + plan, '使用示例如下。\n```xml\n' + write):
+            with self.subTest(suffix=suffix):
+                agent, requests, events = self.scripted(Stream(choice({'content': write + suffix}, 'stop'), '[DONE]'))
+                await agent.run('写文件并说明结果')
+                self.assertEqual((Path(agent.config.cwd) / 'result.txt').read_bytes(), b'42')
+                self.assertEqual(agent.stopped_reason, 'completed')
+                self.assertEqual(len(requests), 1)
+                self.assertIn(suffix.split('<tf-update_plan')[0], ''.join(
+                    e['text'] for e in events if e['type'] == 'text_delta'))
+
+    async def test_progress_before_tools_needs_a_reply_and_new_work_can_continue(self):
+        a = '<tf-write id="1" path="a.txt">A</tf-write>'
+        b = '<tf-write id="2" path="b.txt">B</tf-write>'
+        for channel in ('content', 'reasoning_content'):
+            with self.subTest(channel=channel):
+                agent, requests, _ = self.scripted(
+                    Stream(choice({'content': '我先写第一份。'}), choice({channel: a}, 'stop'), '[DONE]'),
+                    Stream(choice({'content': '接着写第二份。' + b}), choice({'content': '<tf-w'}, 'stop'), '[DONE]'),
+                    Stream(choice({'content': '两份文件内容分别是 A 和 B。'}, 'stop'), '[DONE]'),
+                    max_auto_continues=2)
+                await agent.run('写入两个文件，再说明各自内容。')
+                self.assertEqual(agent.stopped_reason, 'completed')
+                self.assertEqual(len(requests), 3)
+                for name in ('a', 'b'):
+                    self.assertEqual(Path(agent.config.cwd, name + '.txt').read_bytes(), name.upper().encode())
+
+    async def test_unsent_final_prompt_does_not_leak_into_next_task(self):
+        agent, requests, _ = self.scripted(
+            Stream(choice({'content': '<tf-touch id="1" path="a" />'}, 'stop'), '[DONE]'),
+            Stream(choice({'content': '七'}, 'stop'), '[DONE]'), max_auto_continues=2)
+        agent.config.max_run_turns = 1
+        await agent.run('创建 a 并告诉我。')
+        self.assertEqual(agent.stopped_reason, 'max_run_turns')
+        await agent.run('独立问题，只说七。')
+        self.assertEqual(agent.stopped_reason, 'completed')
+        self.assertNotIn('[THINKFLOW CONTINUE]', json.dumps(requests[1]))
+
+    async def test_enabled_script_check_cannot_succeed_with_no_verification_budget(self):
+        agent, requests, _ = self.scripted(Stream(choice({'content':
+            '<tf-write id="1" path="hello.py">print(42)</tf-write>写好了。'}, 'stop'), '[DONE]'))
+        agent.config.auto_verify_runnable_artifacts = True
+        await agent.run('写好并实际运行 hello.py。')
+        self.assertEqual(agent.stopped_reason, 'max_auto_continues')
+        self.assertEqual([r.tool for r in agent.context.records], ['write'])
+        self.assertEqual(len(requests), 1)
+
     async def test_failed_completion_check_respects_budget_and_preserves_receipt(self):
         for budget, calls in ((0, 1), (8, 2)):
             with self.subTest(budget=budget):

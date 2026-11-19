@@ -12,6 +12,7 @@
 
 ## 维护者更新
 
+- 可预测写入完成后，模型可在同一响应中交付。操作前的预告会与交付正文分开判断，有新操作的补做可在预算内继续。[实网和回放验证](research/early-stop-20261119.md#可预测文件操作的同轮交付)
 - 长任务中，相同计划和执行环境只传一次。工具 ID 变化只追加新戳记，压缩后会补齐当前状态。[缓存反馈 #12](https://github.com/muxueqingze/xuxiang-thinkflow/issues/12) · [双协议与实网对照](research/runtime-cache-20261119.md)
 - 长程任务可复用已确认的文件版本和历史输入，逐阶段验收与双方完整用量见[对照实验](research/long-workflows-20261119.md)。
 - Windows 桌面构建从冻结后的后端提取 Python 依赖清单，将对应版本的许可文本和终端原生组件声明写入安装目录及便携包的 `THIRD-PARTY-NOTICES.txt`。
