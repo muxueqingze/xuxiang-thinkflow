@@ -72,6 +72,45 @@ TOOL_SCHEMAS = [spec.without_handler() for spec in BUILTIN_TOOL_SPECS]
 MAX_EXECUTED_IDS = 4096
 CORE_NATIVE_TOOLS = frozenset({"read", "write", "edit", "bash", "python", "read_skill", "load_tools", "recall"})
 
+# Wire order is independent of JSON object key order in a saved session.
+_RUNTIME_HEADERS = {
+    'cursor': '', 'input': '\n完整输入可直接用于数据处理：',
+    'environment': '\n[EXECUTION ENVIRONMENT]\n', 'plan': '\n[CURRENT TASK PLAN]\n',
+    'fallback': '\n[PROTOCOL FALLBACK] ',
+}
+_RUNTIME_CLEARS = {'input': '\n当前请求无长输入引用。',
+                   'plan': '\n[CURRENT TASK PLAN]\n{"explanation": "", "steps": []}',
+                   'fallback': '\n[PROTOCOL FALLBACK] 本次任务已恢复常规工具配置。'}
+
+
+def _runtime_text(fields: dict) -> str:
+    return ''.join(header + fields[key] if fields[key] is not None else _RUNTIME_CLEARS[key]
+                   for key, header in _RUNTIME_HEADERS.items() if key in fields)
+
+
+def _retained_runtime(messages: list[dict]) -> dict:
+    """Find the last value of each field still visible after compaction."""
+    latest = {}
+    for message in reversed(messages):
+        saved = message.get('_thinkflow_runtime')
+        if isinstance(saved, str):
+            # Earlier snapshots froze a whole observation. Decode only this
+            # harness-owned field for comparison; replay its bytes verbatim.
+            for key, header in reversed(_RUNTIME_HEADERS.items()):
+                if header:
+                    prefix, marker, value = saved.rpartition(header)
+                    if marker:
+                        latest.setdefault(key, value)
+                        saved = prefix
+            latest.setdefault('cursor', saved)
+            break
+        if saved:
+            for key, value in saved.items():
+                latest.setdefault(key, value)
+            if len(latest) == len(_RUNTIME_HEADERS):
+                break
+    return latest
+
 
 def _as_int(value, default: int) -> int:
     try:
@@ -684,11 +723,12 @@ class AgentLoop:
         return '已开放：' + ', '.join(sorted(names)) + '。下一轮可直接调用，无需重复加载。'
 
     async def _update_plan_tool(self, tool_input):
-        plan = validate_plan(tool_input, records=self.context.records, previous=self.task_plan)
         previous = self.task_plan
-        self.task_plan = plan
+        plan = validate_plan(tool_input, records=self.context.records, previous=previous)
+        # Equivalent JSON objects can arrive in different key orders.
+        self.task_plan = previous if plan == previous else plan
         try:
-            self.events.emit('plan_updated', plan=plan)
+            self.events.emit('plan_updated', plan=self.task_plan)
         except Exception:
             self.task_plan = previous
             raise
@@ -755,40 +795,45 @@ class AgentLoop:
             protocol += '\n已知操作连续完成后，在同一次生成用一句正文交付结果。只发命令表示还在工作。'
         return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
-    def build_runtime_status_message(self) -> dict:
-        """Build the runtime state the next request needs."""
-        content = self.context.build_system_prompt_suffix()
+    def _runtime_fields(self) -> dict:
+        cursor = self.context.build_system_prompt_suffix()
         if len(self.conversation.requests) > 1 and self.context.start_stamp > 1:
-            content += f'\n{self.conversation.current_ref}: next new tf-* command id="{self.context.start_stamp}".'
+            cursor += f'\n{self.conversation.current_ref}: next new tf-* command id="{self.context.start_stamp}".'
+        fields = {'cursor': cursor}
         if self.conversation.requests and len(self.conversation.current_input) > 8000:
             ref = self.conversation.current_ref
             if 'execution_input' in self.conversation.requests[-1]:
                 ref += ':input'
-            content += (f'\n完整输入可直接用于数据处理：tf-python 加 ref="{ref}"，'
-                        '用 sys.stdin.read() 读取原文，无需把数据抄进代码。')
+            fields['input'] = (f'tf-python 加 ref="{ref}"，'
+                               '用 sys.stdin.read() 读取原文，无需把数据抄进代码。')
         shell = os.path.basename(os.environ.get('COMSPEC', 'cmd.exe')) if os.name == 'nt' else '/bin/sh'
-        content += '\n[EXECUTION ENVIRONMENT]\n' + json.dumps({
+        fields['environment'] = json.dumps({
             'platform': 'Windows' if os.name == 'nt' else sys.platform,
             'cwd': self.executor.cwd, 'shell': shell,
         }, ensure_ascii=False)
         if self.task_plan['steps'] or self.task_plan.get('context'):
-            content += '\n[CURRENT TASK PLAN]\n' + json.dumps(self.task_plan, ensure_ascii=False)
+            fields['plan'] = json.dumps(self.task_plan, ensure_ascii=False)
         if self.native_write_fallback:
-            content += '\n[PROTOCOL FALLBACK] 本次任务出现流式协议错误，现已提供原生文件工具作为保底。原生函数名用write/edit/bash等，不含tf-、id属性或尖括号。先核对已有回执，不要重放已成功操作。'
-        return {"role": "user", "content": content}
+            fields['fallback'] = '本次任务出现流式协议错误，现已提供原生文件工具作为保底。原生函数名用write/edit/bash等，不含tf-、id属性或尖括号。先核对已有回执，不要重放已成功操作。'
+        return fields
+
+    def build_runtime_status_message(self) -> dict:
+        """Build a standalone full observation."""
+        return {"role": "user", "content": _runtime_text(self._runtime_fields())}
 
     def _messages_with_current_runtime(self) -> list[dict]:
         """Freeze each state change at its original place in the conversation."""
-        current = self.build_runtime_status_message()['content']
-        previous = next((m['_thinkflow_runtime'] for m in reversed(self.messages)
-                         if '_thinkflow_runtime' in m), None)
-        if previous == current:
+        current = self._runtime_fields()
+        previous = _retained_runtime(self.messages)
+        delta = {key: value for key, value in current.items() if previous.get(key) != value}
+        delta.update({key: None for key in previous if key not in current and previous[key] is not None})
+        if not delta:
             return self.messages
         # A preview or retry can see the same tail again. Keep the sent state
         # and place the new one after it when no new history has arrived.
         if not self.messages or '_thinkflow_runtime' in self.messages[-1]:
-            return [*self.messages, {'role': 'user', 'content': '', '_thinkflow_runtime': current}]
-        return [*self.messages[:-1], {**self.messages[-1], '_thinkflow_runtime': current}]
+            return [*self.messages, {'role': 'user', 'content': '', '_thinkflow_runtime': delta}]
+        return [*self.messages[:-1], {**self.messages[-1], '_thinkflow_runtime': delta}]
 
     def _projected_history(self, *, report: bool = True) -> list[dict]:
         complete_reads = {record.id: record.output_chars for record in self.context.records
@@ -810,7 +855,7 @@ class AgentLoop:
             return [message]
         message = message.copy()
         status = message.pop('_thinkflow_runtime')
-        return with_observation([message], status)
+        return with_observation([message], status if isinstance(status, str) else _runtime_text(status))
 
     def _messages_with_runtime_status(self) -> list[dict]:
         return [item for message in self._projected_history() for item in self._attach_saved_runtime(message)]

@@ -81,6 +81,89 @@ class PromptCacheOptionsTests(unittest.IsolatedAsyncioTestCase):
                 self.assertTrue(first['tools'])
                 self.assertEqual(first, following)
 
+    async def test_frozen_state_only_appends_changes_and_survives_compaction(self):
+        for protocol in ('openai', 'anthropic'):
+            with self.subTest(protocol=protocol):
+                agent = self.agent({'provider': protocol})
+                agent.config.compaction.keep_recent_messages = 1
+                agent.messages = [{'role': 'user', 'content': 'Perform the next step.'}]
+                plan = {'steps': [], 'explanation': '', 'context': {'summary': 'Use contract A.'}}
+                await agent._update_plan_tool(plan)
+                first = await self.send_agent(agent)
+                # This is the persisted representation used before field deltas.
+                agent.messages[0]['_thinkflow_runtime'] = agent.build_runtime_status_message()['content']
+                self.assertEqual(await self.send_agent(agent), first)
+                for stamp in range(2, 7):
+                    agent.context.next_stamp = stamp
+                    agent.messages.extend([{'role': 'assistant', 'content': 'Continuing.'},
+                                           {'role': 'user', 'content': 'Next step.'}])
+                    agent.messages = agent._messages_with_current_runtime()
+                    current = await self.send_agent(agent)
+                    self.assertEqual(current['messages'][:len(first['messages'])], first['messages'])
+                    history = json.dumps(current['messages'], ensure_ascii=False)
+                    self.assertEqual(history.count('[CURRENT TASK PLAN]'), 1)
+                    self.assertEqual(history.count('[EXECUTION ENVIRONMENT]'), 1)
+                    self.assertIn(f'起始戳记：{stamp}', history)
+                    first = current
+                self.assertTrue(agent.compact(force=True).changed)
+                rebuilt = await self.send_agent(agent)
+                history = json.dumps(rebuilt['messages'], ensure_ascii=False)
+                self.assertEqual(history.count('Use contract A.'), 1)
+                self.assertEqual(history.count('[EXECUTION ENVIRONMENT]'), 1)
+                agent.messages = agent._messages_with_current_runtime()
+                restored = self.agent({'provider': protocol})
+                restored.load_snapshot(json.loads(json.dumps(agent.to_snapshot())))
+                self.assertEqual(await self.send_agent(restored), rebuilt)
+                restored.messages.extend([{'role': 'assistant', 'content': 'Done.'},
+                                          {'role': 'user', 'content': 'Continue.'}])
+                restored.context.next_stamp += 1
+                following = await self.send_agent(restored)
+                self.assertEqual(following['messages'][:len(rebuilt['messages'])], rebuilt['messages'])
+
+    async def test_runtime_changes_report_new_values_and_clear_obsolete_ones(self):
+        agent = self.agent({'provider': 'openai'})
+        agent.messages = [{'role': 'user', 'content': 'start'}]
+        agent.native_write_fallback = True
+        plan = {'steps': [], 'explanation': '', 'context': {'summary': 'A'}}
+        await agent._update_plan_tool(plan)
+        agent.messages = agent._messages_with_current_runtime()
+        initial = await self.send_agent(agent)
+        await agent._update_plan_tool(dict(reversed(plan.items())))
+        self.assertEqual(await self.send_agent(agent), initial)
+        for summary in ('B', 'A'):
+            await agent._update_plan_tool({**plan, 'context': {'summary': summary}})
+            agent.messages = agent._messages_with_current_runtime()
+            tail = (await self.send_agent(agent))['messages'][-1]['content']
+            self.assertEqual(json.loads(tail.split('[CURRENT TASK PLAN]\n')[1])['context']['summary'], summary)
+            self.assertNotIn('[EXECUTION ENVIRONMENT]', tail)
+        agent.native_write_fallback = False
+        agent.executor.cwd = str(Path(self.root) / 'next')
+        await agent._update_plan_tool({**plan, 'context': {}})
+        agent.messages = agent._messages_with_current_runtime()
+        cleared = await self.send_agent(agent)
+        tail = cleared['messages'][-1]['content']
+        self.assertIn('[EXECUTION ENVIRONMENT]', tail)
+        self.assertIn('next', tail)
+        self.assertIn('[CURRENT TASK PLAN]\n{"explanation": "", "steps": []}', tail)
+        self.assertIn('已恢复常规工具配置', tail)
+        self.assertEqual(await self.send_agent(agent), cleared)
+
+    async def test_large_input_reference_follows_the_request_and_survives_stamp_updates(self):
+        agent = self.agent({'provider': 'openai'})
+        for index in (1, 2):
+            source = f'source-{index} ' * 1001
+            user_input = f'Process attachment {index}'
+            agent.conversation.record_request(len(agent.messages), user_input, source)
+            agent.messages.append({'role': 'user', 'content': user_input})
+            agent.messages = agent._messages_with_current_runtime()
+            body = await self.send_agent(agent)
+            self.assertIn(f'tf-python 加 ref="request:{index}:input"', body['messages'][-1]['content'])
+            agent.context.next_stamp += 1
+            agent.messages = agent._messages_with_current_runtime()
+            tail = (await self.send_agent(agent))['messages'][-1]['content']
+            self.assertNotIn('tf-python 加 ref=', tail)
+            self.assertEqual(agent.conversation.original_text(f'request:{index}:input'), source)
+
     async def test_selection_switch_and_explicit_clear_do_not_reuse_another_profile_key(self):
         settings = {'active_provider': 'group', 'providers': {
             'group': {**self.base, 'prompt_cache_key': 'shared-fixture'},
