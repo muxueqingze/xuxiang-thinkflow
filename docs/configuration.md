@@ -146,6 +146,29 @@ asyncio.run(main())
 
 工具 handler 可返回字符串、`ToolResult` 或 `ExecutionResult`。结构化结果中的失败、stdout/stderr、完整输出引用会保留到实际反馈；覆盖已有工具后 direct、tf、native 使用同一 handler，运行中新增工具会进入 `load_tools` 目录。需要实际调用 ID 的 handler 可注册 `pass_call_id=True`，接收 `handler(arguments, call_id=...)`。
 
+### 固定任务的收尾验收
+
+SDK 宿主知道具体交付条件时，可以给本次 `run` 传入一个快速、只读的本地检查。返回 `None` 表示通过，返回非空字符串说明还缺什么。例如下面的任务要求精确的文件内容。
+
+```python
+from pathlib import Path
+
+target = Path(agent.config.cwd) / "release.txt"
+
+def check_release():
+    if not target.is_file() or target.read_bytes() != b"ready\n":
+        return 'release.txt 应含一行 ready，使用 LF 换行。'
+
+await agent.run("生成只含一行 ready 的 release.txt，使用 LF 换行。",
+                check_completion=check_release)
+```
+
+检查发生在工具与回执处理完、原本准备结束时。通过就交付，检查本身不调用模型。缺项时在现有预算内最多提示一次，补做后仍未通过则返回 `incomplete_response`。当前计划明确标为 `blocked` 等用户输入时，带检查的运行返回 `awaiting_input`。运行中采纳新的用户指令会解除原任务的检查，下一次 `run` 可以指定新的条件。
+
+任务明确要求实际读取某个文件时，宿主也可用 `event_sink` 收集本次任务的成功读取回执，让 `check_completion` 核对指定路径。普通问答可以直接结束。
+
+普通 CLI 或桌面会话中，多步骤任务可以要求模型用现有任务计划记录要做的检查，完成项引用真实工具回执。没有计划、工具调用或宿主验收条件时，一句普通正文仍可能被模型当作最终答复。
+
 ## 本轮依据与验证
 
 2026-11-11固定核对Pi提交`682c7b93`：借鉴[设置分层](https://github.com/earendil-works/pi/blob/682c7b93ce3e0a52b579c2b65b4c06bb392e7180/packages/coding-agent/src/core/settings-manager.ts#L65)与[显式SDK装配](https://github.com/earendil-works/pi/blob/682c7b93ce3e0a52b579c2b65b4c06bb392e7180/packages/coding-agent/src/core/sdk.ts#L48)。Pi的资源集合及扩展热重载另有生命周期规则，本轮复用ThinkFlow现有工具入口。

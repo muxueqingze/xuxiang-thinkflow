@@ -14,3 +14,4 @@
 
 - 长程任务可复用已确认的文件版本和历史输入，逐阶段验收与双方完整用量见[对照实验](research/long-workflows-20261119.md)。
 - Windows 桌面构建从冻结后的后端提取 Python 依赖清单，将对应版本的许可文本和终端原生组件声明写入安装目录及便携包的 `THIRD-PARTY-NOTICES.txt`。
+- SDK 的固定任务可在收尾时检查本地产物或回执。只有缺项才请求补做，满足条件可同轮交付。[用法](configuration.md#固定任务的收尾验收) · [早停对照](research/early-stop-20261119.md)

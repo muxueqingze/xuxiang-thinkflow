@@ -18,6 +18,7 @@ import sys
 import time
 import uuid
 from collections import deque
+from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass, field, replace
 from typing import Optional
@@ -914,8 +915,9 @@ class AgentLoop:
         tools = self.tool_registry.anthropic_tools()
         return [tool for tool in tools if tool.get("name") in names]
 
-    async def run(self, user_input: str, *, user_request: Optional[str] = None, attachment_paths=()):
-        """主入口。"""
+    async def run(self, user_input: str, *, user_request: Optional[str] = None, attachment_paths=(),
+                  check_completion: Callable[[], str | None] | None = None):
+        """Run a task. An optional local completion check returns a missing requirement or None."""
         if self._run_active:
             raise RuntimeError("This agent already has an active run")
         self._run_active = True
@@ -930,6 +932,7 @@ class AgentLoop:
         cancelled = False
         failures = 0
         turns = 0
+        completion_retry = False
         deadline = (None if self.config.max_run_seconds is None
                     else time.monotonic() + max(0.01, self.config.max_run_seconds))
         self.usage.start_run()
@@ -958,12 +961,15 @@ class AgentLoop:
                     break
                 # Admit user steering only after this response and all its tools
                 # settle. No timer, cancelled stream, or acknowledgement request.
+                turns_left = self.config.max_run_turns is None or turns < self.config.max_run_turns
                 if (self.steering_source is not None
                         and (should_continue or not self.last_error)
-                        and (self.config.max_run_turns is None or turns < self.config.max_run_turns)
+                        and turns_left
                         and (deadline is None or time.monotonic() < deadline)):
                     incoming = await self.steering_source()
                     if incoming:
+                        # A new user request can cancel the original acceptance condition.
+                        check_completion = None
                         for item in incoming:
                             text = item['prompt']
                             self.conversation.record_request(len(self.messages), item.get('user_request', text),
@@ -971,10 +977,36 @@ class AgentLoop:
                             self.messages.append({'role': 'user', 'content': text})
                         self.events.emit('steering_applied', messages=incoming)
                         should_continue = True
-                if not should_continue:
-                    if self.last_error and self.stopped_reason == 'completed':
-                        self.stopped_reason = "error"
+                if should_continue:
+                    continue
+                if self.last_error and self.stopped_reason == 'completed':
+                    self.stopped_reason = "error"
+                if self.stopped_reason != 'completed' or check_completion is None:
                     break
+                if self._plan_continuation_progress is not None and any(
+                        step['status'] == 'blocked' for step in self.task_plan['steps']):
+                    self.stopped_reason = 'awaiting_input'
+                    break
+                missing = check_completion()
+                if deadline is not None and time.monotonic() >= deadline:
+                    self.stopped_reason = 'max_run_seconds'
+                    break
+                if not missing:
+                    break
+                self._delivered_answer = False
+                if completion_retry or (self.config.max_auto_continues is not None
+                        and self._auto_continue_count >= self.config.max_auto_continues):
+                    self.stopped_reason = 'incomplete_response'
+                    self.last_error = missing
+                    self.view.render_error(missing)
+                    break
+                if not turns_left:
+                    self.stopped_reason = 'max_run_turns'
+                    break
+                self.messages.append({'role': 'user', 'content':
+                    f'[THINKFLOW CONTINUE] 任务验收仍缺：{missing}\n根据已有回执继续。'})
+                completion_retry = True
+                self._auto_continue_count += 1
             else:
                 self.stopped_reason = "max_run_turns"
             if self.stopped_reason.startswith("max_"):
