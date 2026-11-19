@@ -97,6 +97,7 @@ class AgentConfig:
     max_auto_continues: Optional[int] = 8  # None disables the continuation budget; 0 disables continuation.
     delivery_verify: bool = False
     require_final_response: bool = field(default=False, kw_only=True)  # Raw hosts may finish on receipts.
+    require_answer_marker: bool = field(default=False, kw_only=True)
     auto_verify_runnable_artifacts: bool = False
     max_delivery_fix_attempts: int = 3
     max_run_turns: Optional[int] = 40  # None disables the turn budget.
@@ -750,8 +751,11 @@ class AgentLoop:
         """
         names = self._enabled_native_tool_names()
         protocol = build_protocol_prompt(names)
-        if self.config.require_final_response:
+        if self.config.require_final_response or self.config.require_answer_marker:
             protocol += '\n已知操作连续完成后，在同一次生成用一句正文交付结果。只发命令表示还在工作。'
+        if self.config.require_answer_marker:
+            protocol += ('\n最终答复必须以「【答复】」开头并带有正文；需要用户提供必填信息或批准时，'
+                         '也用此标记并说明具体需要什么。进度说明、工具请求和等待回执时不使用此标记。')
         return "\n\n".join(part for part in (protocol, self.config.system_prompt) if part)
 
     def build_runtime_status_message(self) -> dict:
@@ -1336,9 +1340,10 @@ class AgentLoop:
                 legacy_view = SafeTextStreamFilter(allow_legacy_tags=True)
                 unexecuted_tags = not (legacy_view.feed(clean_text) + legacy_view.flush()).strip()
             if (not assistant_text.strip() and not commands_this_turn and not self._final_response_requested
-                    and (self.config.require_final_response or is_deepseek(self.config.provider))):
+                    and (self.config.require_final_response or self.config.require_answer_marker
+                         or is_deepseek(self.config.provider))):
                 self.events.emit('provider_protocol_error', kind='empty_assistant_response')
-                if not self.config.require_final_response:
+                if not (self.config.require_final_response or self.config.require_answer_marker):
                     parser_error_message = ('供应商返回了结束标记，但没有正文或工具调用，本轮没有执行操作。'
                                             '请根据已有结果继续未完成工作，使用当前提供的工具协议。')
                     abort_reason = AbortReason.TOOL_FAILED
@@ -1519,21 +1524,29 @@ class AgentLoop:
             self.context.clear_flags()
             if self._continue_open_plan(turn_records):
                 return True
-            if (self.config.require_final_response and self.stopped_reason == 'completed'
-                    and (unexecuted_tags or not clean_text)):
+            missing_marker = self.config.require_answer_marker and not (
+                clean_text.startswith('【答复】') and clean_text.removeprefix('【答复】').strip()
+            )
+            if ((self.config.require_final_response or self.config.require_answer_marker)
+                    and self.stopped_reason == 'completed' and (unexecuted_tags or not clean_text or missing_marker)):
                 if self._final_response_requested or (self.config.max_auto_continues is not None
                         and self._auto_continue_count >= self.config.max_auto_continues):
                     self.stopped_reason = 'incomplete_response'
-                    self.last_error = '工具已结算，模型未交付最终答复。'
+                    self.last_error = ('模型未给出带【答复】标记的最终答复，任务未确认完成。'
+                                       if missing_marker else '工具已结算，模型未交付最终答复。')
                     self.view.render_error(self.last_error)
                     return False
                 self._final_response_requested = True
                 self._auto_continue_count += 1
                 feedback = (f'上次的无前缀标签没有执行。若要继续，请使用完整 tf-* 标签，从 id="{self.context.start_stamp}" 开始。'
                             if unexecuted_tags else '上一轮没有面向用户的正文答复。')
-                self.messages.append({'role': 'user', 'content':
-                    f'[THINKFLOW CONTINUE] {feedback}对照用户请求与实际回执，'
-                    '继续遗漏的工作，完成后直接用正文交付。'})
+                if missing_marker:
+                    feedback = ('还没有确认最终答复。对照用户请求和实际回执；若只报告了进度，发出未完成的工具调用。'
+                                '不要重放已经成功的操作。完成后或需要用户决定时，以【答复】开头给出正文。')
+                    self.view.render_info('模型未确认最终答复，正在请求继续。')
+                else:
+                    feedback += '对照用户请求与实际回执，继续遗漏的工作，完成后直接用正文交付。'
+                self.messages.append({'role': 'user', 'content': f'[THINKFLOW CONTINUE] {feedback}'})
                 return True
             self._delivered_answer = bool(clean_text)
             self.view.newline()

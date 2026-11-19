@@ -92,6 +92,50 @@ class StreamCompletionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(requests), 2)
         self.assertEqual(len(agent.context.records), 1)
 
+    async def test_answer_marker_recovers_progress_only_stop_then_executes_tool(self):
+        progress = Stream(choice({'content': '我先检查文件，再给出结果。'}, 'stop'), '[DONE]')
+        tool = Stream(choice({'content': '<tf-read id="1" path="fixture.txt" />'}, 'stop'), '[DONE]')
+        answer = Stream(choice({'content': '【答复】文件中是 sample。'}, 'stop'), '[DONE]')
+        agent, requests, _ = self.scripted(progress, tool, answer, max_auto_continues=1)
+        agent.config.require_answer_marker = True
+        (Path(agent.config.cwd) / 'fixture.txt').write_text('sample', encoding='utf-8')
+
+        await agent.run('检查 fixture.txt，告诉我里面是什么。')
+
+        self.assertEqual(agent.stopped_reason, 'completed')
+        self.assertEqual(len(requests), 3)
+        self.assertIn('【答复】', requests[0]['messages'][0]['content'])
+        self.assertIn('[THINKFLOW CONTINUE]', requests[1]['messages'][-1]['content'])
+        self.assertIn('sample', requests[2]['messages'][-1]['content'])
+        self.assertEqual([(r.id, r.status) for r in agent.context.records], [('1', 'success')])
+
+    async def test_answer_marker_is_not_satisfied_by_progress_or_bare_marker(self):
+        for budget, attempts in ((0, 1), (8, 2)):
+            with self.subTest(budget=budget):
+                progress = Stream(choice({'content': '正在等待检查。'}, 'stop'), '[DONE]')
+                marker_only = Stream(choice({'content': '【答复】 \n'}, 'stop'), '[DONE]')
+                agent, requests, events = self.scripted(progress, marker_only, max_auto_continues=budget)
+                agent.config.require_answer_marker = True
+
+                await agent.run('检查文件。')
+
+                self.assertEqual(len(requests), attempts)
+                self.assertEqual(agent.stopped_reason, 'incomplete_response')
+                self.assertTrue(agent.last_error)
+                self.assertEqual([e['stopped_reason'] for e in events if e['type'] == 'run_finished'],
+                                 ['incomplete_response'])
+
+    async def test_answer_marker_accepts_short_answer_or_clarification_on_first_request(self):
+        for content in ('【答复】OK', '【答复】请提供要检查的文件路径。'):
+            with self.subTest(content=content):
+                agent, requests, _ = self.scripted(Stream(choice({'content': content}, 'stop'), '[DONE]'))
+                agent.config.require_answer_marker = True
+
+                await agent.run('检查文件。')
+
+                self.assertEqual(agent.stopped_reason, 'completed')
+                self.assertEqual(len(requests), 1)
+
     async def test_anthropic_text_in_block_start_is_a_real_short_answer(self):
         stream = Stream({'type': 'content_block_start', 'index': 0, 'content_block': {'type': 'text', 'text': 'OK'}},
                         {'type': 'content_block_stop', 'index': 0}, {'type': 'message_stop'})

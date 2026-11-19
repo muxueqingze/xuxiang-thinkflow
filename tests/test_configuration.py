@@ -144,6 +144,13 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(read_config(self.project / '.thinkflow/config.json'), {'compaction': {'enabled': False}})
         self.assertFalse((self.home / 'sessions').exists())
 
+    def test_answer_marker_is_opt_in_and_visible_in_effective_config(self):
+        from src.runtime import build_agent_config, effective_config
+        for value, expected in ((False, False), (True, True), ('false', False)):
+            config = {'tool_protocol': {'require_answer_marker': value}}
+            self.assertIs(build_agent_config(config, system_prompt='').require_answer_marker, expected)
+            self.assertIs(effective_config(config)['tool_protocol']['require_answer_marker'], expected)
+
 
 if __name__ == '__main__':
     unittest.main()

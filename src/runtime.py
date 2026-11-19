@@ -211,6 +211,7 @@ def build_agent_config(config: dict, system_prompt: str | None = None, cwd: str 
         max_auto_continues=(None if config.get("max_auto_continues", 8) is None else int(config.get("max_auto_continues", 8))),
         delivery_verify=bool(config.get("delivery_verify", False)),
         require_final_response=bool((config.get('tool_protocol') or {}).get('require_final_response', True)),
+        require_answer_marker=(config.get('tool_protocol') or {}).get('require_answer_marker') is True,
         auto_verify_runnable_artifacts=bool(config.get("auto_verify_runnable_artifacts", False)),
         max_delivery_fix_attempts=int(config.get("max_delivery_fix_attempts", 3)),
         max_run_turns=(None if config.get("max_run_turns", 40) is None else int(config.get("max_run_turns", 40))),
@@ -249,7 +250,8 @@ def effective_config(config: dict, cwd: str = None) -> dict:
                           'profile': normalize_security_profile((config.get('security') or {}).get('profile', 'balanced'))}
     result['compaction'] = asdict(runtime.compaction)
     result['interfaces'] = {**asdict(runtime.interfaces), 'skills': asdict(runtime.skills)}
-    result['tool_protocol'] = {'allow_legacy_tags': runtime.allow_legacy_tool_tags}
+    result['tool_protocol'] = {'allow_legacy_tags': runtime.allow_legacy_tool_tags,
+                               'require_answer_marker': runtime.require_answer_marker}
     result['context'] = {'enabled': True, 'files': [], 'max_chars': 80000, **(config.get('context') or {})}
     result.setdefault('system_prompt', '')
     result.setdefault('use_builtin_system_prompt', True)
