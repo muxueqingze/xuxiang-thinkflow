@@ -4,6 +4,8 @@
 
 CLI、桌面和 `create_agent` 默认要求一条正文交付答复。可预测操作后在同次生成答复即可；只发工具命令时框架会提示一次，仍无正文则返回 `incomplete_response`。专门消费工具回执、允许静默完成的宿主可设 `tool_protocol.require_final_response=false`。直接构造低层 `AgentConfig` 的调用方保留原先的静默结束方式。
 
+遇到模型只说“我先检查”就结束、却没发出工具调用时，可以用 `thinkflow --set tool_protocol.require_answer_marker=true` 为本次进程开启严格交付。此模式要求最终答复（含需要用户确认的具体问题）以可见的 `【答复】` 开头。缺少标记或正文时，在续写预算内最多补问一次，仍未交付则返回 `incomplete_response`。此选项默认关闭；补问会增加一次模型请求，不会由框架重放已执行的命令。
+
 ## 直接修改配置
 
 以下命令只操作配置，不启动模型或查询模型列表：
